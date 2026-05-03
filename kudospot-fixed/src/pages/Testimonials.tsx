@@ -1,0 +1,391 @@
+import { useEffect, useState } from "react";
+import { AppShell } from "@/components/AppShell";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, CheckSquare } from "lucide-react";
+import { trackEvent } from "@/lib/track";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
+import KudoSpotIcon from "@/components/KudoSpotIcon";
+
+type Testimonial = any;
+
+const Testimonials = () => {
+  const { user } = useAuth();
+  const { plan, canAddTestimonial, canDoAIRewrite, showUpgradeToast } = usePlanLimits();
+  const [items, setItems] = useState<Testimonial[]>([]);
+  const [filter, setFilter] = useState("all");
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState<Testimonial | null>(null);
+  const [rewriting, setRewriting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkApproving, setBulkApproving] = useState(false);
+
+  // form state
+  const [form, setForm] = useState({ customer_name: "", customer_role: "", customer_company: "", original_text: "", rating: 5 });
+
+  const load = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("testimonials").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    setItems(data || []);
+  };
+
+  useEffect(() => { load(); }, [user]);
+
+  const filtered = items.filter((t) => filter === "all" || t.status === filter);
+
+  const addTestimonial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!canAddTestimonial(items.length)) return showUpgradeToast("more testimonials");
+    const { error } = await supabase.from("testimonials").insert({ ...form, user_id: user.id, status: "pending", source: "manual" });
+    if (error) return toast.error(error.message);
+    toast.success("Testimonial added");
+    setForm({ customer_name: "", customer_role: "", customer_company: "", original_text: "", rating: 5 });
+    setOpen(false);
+    load();
+  };
+
+  const rewrite = async (t: Testimonial) => {
+    if (plan === "free") {
+      const rewrittenCount = items.filter((i) => i.ai_rewritten_text).length;
+      if (!canDoAIRewrite(rewrittenCount)) return showUpgradeToast("more AI rewrites");
+    }
+    setRewriting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("rewrite-testimonial", {
+        body: { testimonial_id: t.id },
+      });
+      if (error) throw error;
+      toast.success("AI rewrite complete!");
+      const updated = { ...t, ai_rewritten_text: data.rewritten, status: "ai_rewritten" };
+      setActive(updated);
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Rewrite failed");
+    } finally {
+      setRewriting(false);
+    }
+  };
+
+  const approve = async (t: Testimonial) => {
+    const text = t.ai_rewritten_text || t.original_text;
+    const { error } = await supabase.from("testimonials").update({ approved_text: text, status: "approved", approved_at: new Date().toISOString() }).eq("id", t.id);
+    if (error) return toast.error(error.message);
+    toast.success("Approved & published");
+    setActive(null);
+    load();
+  };
+
+  const createApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }) => {
+    if (!user) return null;
+
+    // If customer email exists, send via email automatically
+    if (t.customer_email && t.ai_rewritten_text) {
+      try {
+        const { data: emailData, error: emailError } = await supabase.functions.invoke("send-approval-email", {
+          body: { testimonial_id: t.id },
+        });
+        if (emailError) throw emailError;
+        trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
+        if (!opts?.silent) {
+          if (emailData?.approval_url) {
+            await navigator.clipboard.writeText(emailData.approval_url);
+            toast.success(emailData.message || "Approval email sent! Link also copied to clipboard.");
+          } else {
+            toast.success("Approval email sent to " + t.customer_email);
+          }
+        }
+        return emailData?.approval_url || null;
+      } catch (e: any) {
+        toast.error(e.message || "Email send failed — falling back to link copy");
+      }
+    }
+
+    // Fallback: create token and copy link manually
+    if (opts?.resend) {
+      await supabase.from("approval_tokens").update({ used_at: new Date().toISOString() }).eq("testimonial_id", t.id).is("used_at", null);
+    }
+    const { data, error } = await supabase.from("approval_tokens").insert({ testimonial_id: t.id, user_id: user.id, campaign: t.campaign || null }).select("token").single();
+    if (error) { toast.error(error.message); return null; }
+    const url = `${window.location.origin}/approve/${data.token}`;
+    await navigator.clipboard.writeText(url);
+    trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
+    if (!opts?.silent) {
+      if (!t.customer_email) {
+        toast.success("Approval link copied. No email on file — paste it and send manually.");
+      } else if (!t.ai_rewritten_text) {
+        toast.success("Approval link copied. Run AI Rewrite first for best results.");
+      } else {
+        toast.success(opts?.resend ? "Fresh link copied — old one invalidated" : "Approval link copied — share it with your customer");
+      }
+    }
+    return url;
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Delete this testimonial?")) return;
+    const { error } = await supabase.from("testimonials").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Deleted");
+    setActive(null);
+    load();
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const bulkApprove = async () => {
+    if (selected.size === 0) return;
+    setBulkApproving(true);
+    const ids = Array.from(selected);
+    const updates = ids.map((id) => {
+      const it = items.find((i) => i.id === id);
+      const text = it?.ai_rewritten_text || it?.original_text || "";
+      return supabase.from("testimonials").update({ approved_text: text, status: "approved", approved_at: new Date().toISOString() }).eq("id", id);
+    });
+    await Promise.all(updates);
+    toast.success(`${ids.length} testimonial${ids.length === 1 ? "" : "s"} approved`);
+    setSelected(new Set());
+    setBulkApproving(false);
+    load();
+  };
+
+  return (
+    <AppShell>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-1">Testimonials</h1>
+          <p className="text-muted-foreground">Collect, rewrite, approve.</p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Add testimonial</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>New testimonial</DialogTitle></DialogHeader>
+            <form onSubmit={addTestimonial} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Customer name *</Label><Input required value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></div>
+                <div><Label>Role</Label><Input value={form.customer_role} onChange={(e) => setForm({ ...form, customer_role: e.target.value })} /></div>
+              </div>
+              <div><Label>Company</Label><Input value={form.customer_company} onChange={(e) => setForm({ ...form, customer_company: e.target.value })} /></div>
+              <div><Label>Rating</Label>
+                <div className="flex gap-1 mt-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button type="button" key={n} onClick={() => setForm({ ...form, rating: n })}>
+                      <Star className={`h-6 w-6 ${n <= form.rating ? "fill-warning text-warning" : "text-muted"}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div><Label>Testimonial *</Label><Textarea required rows={5} value={form.original_text} onChange={(e) => setForm({ ...form, original_text: e.target.value })} placeholder="Paste the original testimonial here…" /></div>
+              <Button type="submit" className="w-full">Add</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Tabs value={filter} onValueChange={setFilter} className="mb-6">
+        <TabsList>
+          <TabsTrigger value="all">All ({items.length})</TabsTrigger>
+          <TabsTrigger value="pending">Pending</TabsTrigger>
+          <TabsTrigger value="ai_rewritten">Rewritten</TabsTrigger>
+          <TabsTrigger value="approved">Approved</TabsTrigger>
+          <TabsTrigger value="rejected">Rejected</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {selected.size > 0 && (
+        <Card className="p-3 mb-4 flex items-center justify-between bg-primary-light/30 border-primary/20">
+          <span className="text-sm font-medium">{selected.size} selected</span>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={bulkApprove} disabled={bulkApproving} className="bg-success hover:bg-success/90">
+              {bulkApproving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <CheckSquare className="h-3.5 w-3.5 mr-1" />} Approve all
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
+          </div>
+        </Card>
+      )}
+
+      {filtered.length === 0 ? (
+        <Card className="p-16 text-center text-muted-foreground">
+          <KudoSpotIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
+          No testimonials here yet.
+        </Card>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          {filtered.map((t) => (
+            <Card key={t.id} className="p-5 cursor-pointer hover:shadow-card transition relative" onClick={() => setActive(t)}>
+              <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
+                <Checkbox checked={selected.has(t.id)} onCheckedChange={() => toggleSelect(t.id)} />
+              </div>
+              <div className="flex items-start gap-3 mb-3 pr-8">
+                <div className="h-10 w-10 rounded-full bg-primary-light text-primary font-semibold flex items-center justify-center">{t.customer_name?.[0]?.toUpperCase()}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm">{t.customer_name}</div>
+                  <div className="text-xs text-muted-foreground">{[t.customer_role, t.customer_company].filter(Boolean).join(" · ")}</div>
+                </div>
+                <StatusPill status={t.status} />
+              </div>
+              {t.rating && <div className="flex mb-2">{[...Array(t.rating)].map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-warning text-warning" />)}</div>}
+              <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{t.ai_rewritten_text || t.original_text}</p>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Detail modal */}
+      <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {active && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center justify-between pr-6">
+                  <span>{active.customer_name}</span>
+                  <StatusPill status={active.status} />
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-5">
+                <div className="text-sm text-muted-foreground">{[active.customer_role, active.customer_company].filter(Boolean).join(" · ")}</div>
+
+                {/* Approval workflow panel */}
+                <ApprovalWorkflow
+                  testimonial={active}
+                  onResend={() => createApprovalLink(active, { resend: true })}
+                  onCopy={() => createApprovalLink(active, { silent: false })}
+                />
+
+                <div className={`grid ${active.ai_rewritten_text ? "md:grid-cols-2" : ""} gap-4`}>
+                  <div>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">Original</div>
+                    <Card className="p-4 bg-secondary/50">
+                      <p className="text-sm leading-relaxed">{active.original_text}</p>
+                    </Card>
+                  </div>
+                  {active.ai_rewritten_text && (
+                    <div>
+                      <div className="text-xs font-semibold text-primary uppercase mb-2 flex items-center gap-1">
+                        <KudoSpotIcon className="h-3 w-3" /> AI Rewritten
+                      </div>
+                      <Card className="p-4 border-primary bg-primary-light/30">
+                        <p className="text-sm leading-relaxed">{active.ai_rewritten_text}</p>
+                      </Card>
+                    </div>
+                  )}
+                </div>
+
+                {active.status === "rejected" && active.rejection_reason && (
+                  <Card className="p-4 border-destructive/30 bg-destructive/5">
+                    <div className="text-xs font-semibold text-destructive uppercase mb-1">Customer feedback</div>
+                    <p className="text-sm">{active.rejection_reason}</p>
+                  </Card>
+                )}
+
+                <div className="flex flex-wrap gap-2 pt-2 border-t">
+                  {!active.ai_rewritten_text && (
+                    <Button onClick={() => rewrite(active)} disabled={rewriting}>
+                      {rewriting ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Rewriting…</> : <><KudoSpotIcon className="h-4 w-4 mr-1" /> AI Rewrite</>}
+                    </Button>
+                  )}
+                  {active.ai_rewritten_text && active.status !== "approved" && (
+                    <Button onClick={() => rewrite(active)} disabled={rewriting} variant="outline">
+                      {rewriting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KudoSpotIcon className="h-4 w-4 mr-1" />} Regenerate
+                    </Button>
+                  )}
+                  {active.status !== "approved" && active.status !== "published" && (
+                    <Button onClick={() => approve(active)} variant="default" className="bg-success hover:bg-success/90">
+                      <Check className="h-4 w-4 mr-1" /> Approve & publish
+                    </Button>
+                  )}
+                  <Button variant="ghost" className="text-destructive ml-auto" onClick={() => remove(active.id)}>
+                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </AppShell>
+  );
+};
+
+const StatusPill = ({ status }: { status: string }) => {
+  const map: Record<string, { label: string; cls: string }> = {
+    pending: { label: "Pending", cls: "bg-warning/10 text-warning" },
+    ai_rewritten: { label: "Rewritten", cls: "bg-primary-light text-primary" },
+    approved: { label: "Approved", cls: "bg-success/10 text-success" },
+    published: { label: "Published", cls: "bg-success/10 text-success" },
+    rejected: { label: "Rejected", cls: "bg-destructive/10 text-destructive" },
+  };
+  const s = map[status] || map.pending;
+  return <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.cls}`}>{s.label}</span>;
+};
+
+const ApprovalWorkflow = ({ testimonial, onResend, onCopy }: { testimonial: any; onResend: () => void; onCopy: () => void }) => {
+  const [tokens, setTokens] = useState<any[]>([]);
+  useEffect(() => {
+    supabase.from("approval_tokens").select("*").eq("testimonial_id", testimonial.id).order("created_at", { ascending: false }).then(({ data }) => setTokens(data || []));
+  }, [testimonial.id]);
+
+  const hasOpen = tokens.some((t) => !t.used_at);
+  const status = testimonial.status;
+
+  const steps = [
+    { key: "pending", label: "Pending", icon: Clock, active: status === "pending" || status === "ai_rewritten", done: status === "approved" || status === "rejected" },
+    { key: "approved", label: "Approved", icon: Check, active: status === "approved", done: status === "approved" },
+    { key: "rejected", label: "Rejected", icon: X, active: status === "rejected", done: status === "rejected" },
+  ];
+
+  return (
+    <Card className="p-4 bg-secondary/30">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs font-semibold uppercase text-muted-foreground">Approval workflow</div>
+        {tokens.length > 0 && <span className="text-xs text-muted-foreground">{tokens.length} request{tokens.length === 1 ? "" : "s"} sent</span>}
+      </div>
+      <div className="flex items-center gap-2 mb-3">
+        {steps.filter((s) => s.key !== "rejected" || status === "rejected").map((s, i, arr) => (
+          <div key={s.key} className="flex items-center gap-2 flex-1">
+            <div className={`h-7 w-7 rounded-full flex items-center justify-center ${s.active && s.key === "approved" ? "bg-success text-white" : s.active && s.key === "rejected" ? "bg-destructive text-white" : s.active ? "bg-warning text-white" : s.done ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
+              <s.icon className="h-3.5 w-3.5" />
+            </div>
+            <span className={`text-sm ${s.active ? "font-semibold" : "text-muted-foreground"}`}>{s.label}</span>
+            {i < arr.length - 1 && <div className="flex-1 h-px bg-border" />}
+          </div>
+        ))}
+      </div>
+      {status !== "approved" && status !== "rejected" && (
+        <div className="flex flex-wrap gap-2 pt-2 border-t">
+          {hasOpen ? (
+            <Button size="sm" variant="outline" onClick={onResend}>
+              <RotateCw className="h-3.5 w-3.5 mr-1" /> Resend approval link
+            </Button>
+          ) : (
+            <Button size="sm" onClick={onCopy} disabled={!testimonial.ai_rewritten_text}>
+              <Link2 className="h-3.5 w-3.5 mr-1" /> Send approval link
+            </Button>
+          )}
+          {tokens[0] && (
+            <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/approve/${tokens[0].token}`); toast.success("Latest link copied"); }}>
+              <Copy className="h-3.5 w-3.5 mr-1" /> Copy latest
+            </Button>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+};
+
+export default Testimonials;

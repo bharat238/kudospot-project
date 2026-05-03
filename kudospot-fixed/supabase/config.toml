@@ -1,0 +1,13 @@
+project_id = "albijxdjlsxukluhciuc"
+
+[functions.rewrite-testimonial]
+verify_jwt = true
+
+[functions.generate-case-study]
+verify_jwt = true
+
+[functions.generate-social-post]
+verify_jwt = true
+
+[functions.backfill-analytics]
+verify_jwt = true
