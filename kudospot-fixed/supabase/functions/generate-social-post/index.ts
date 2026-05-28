@@ -14,24 +14,44 @@ const PLATFORM_RULES: Record<string, string> = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  console.log("Function generate-social-post started");
+
   try {
     const { testimonial_id, platform } = await req.json();
+    console.log(`Received request for testimonial_id: ${testimonial_id}, platform: ${platform}`);
+
     if (!testimonial_id || !PLATFORM_RULES[platform]) {
+      console.error("Missing required fields");
       return new Response(JSON.stringify({ error: "Missing testimonial_id or platform (linkedin|instagram|twitter)." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
     });
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: profile } = await supabase.from("profiles").select("business_name, brand_voice").eq("id", user.id).maybeSingle();
-    const { data: t } = await supabase.from("testimonials").select("*").eq("id", testimonial_id).eq("user_id", user.id).maybeSingle();
-    if (!t) return new Response(JSON.stringify({ error: "Testimonial not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.log("Fetching user...");
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("User not found or unauthorized", userError);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    console.log(`User identified: ${user.id}`);
+
+    console.log("Fetching profile and testimonial...");
+    const [profileRes, testimonialRes] = await Promise.all([
+      supabase.from("profiles").select("business_name, brand_voice").eq("id", user.id).maybeSingle(),
+      supabase.from("testimonials").select("*").eq("id", testimonial_id).eq("user_id", user.id).maybeSingle()
+    ]);
+
+    const { data: profile } = profileRes;
+    const { data: t } = testimonialRes;
+
+    if (!t) {
+      console.error("Testimonial not found");
+      return new Response(JSON.stringify({ error: "Testimonial not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const text = t.approved_text || t.ai_rewritten_text || t.original_text;
-
     const systemPrompt = `You are an expert social media copywriter. Transform testimonials into authentic, high-converting posts. Match the platform rules exactly. Return ONLY the caption text — ready to copy-paste, with hashtags included at the end. No preamble, no quotes around the output.`;
 
     const userPrompt = `Platform: ${platform}
@@ -45,8 +65,12 @@ Testimonial:
 Write the post.`;
 
     const apiKey = Deno.env.get("GROQ_API_KEY");
-    if (!apiKey) return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured in Supabase secrets." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!apiKey) {
+      console.error("GROQ_API_KEY not found in env");
+      return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured in Supabase secrets." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
+    console.log("Calling Groq API...");
     const aiResp = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -71,11 +95,40 @@ Write the post.`;
 
     const aiData = await aiResp.json();
     const caption = aiData.choices?.[0]?.message?.content?.trim();
-    if (!caption) return new Response(JSON.stringify({ error: "Empty AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    
+    if (!caption) {
+      console.error("Empty AI response");
+      return new Response(JSON.stringify({ error: "Empty AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    console.log("AI caption generated successfully");
 
-    return new Response(JSON.stringify({ caption }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.log("Inserting post into database using admin client...");
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: post, error: insertError } = await supabaseAdmin
+      .from("social_posts")
+      .insert({
+        user_id: user.id,
+        testimonial_id: testimonial_id,
+        platform: platform,
+        caption_text: caption,
+        status: "generated",
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Database insertion failed", insertError);
+      return new Response(JSON.stringify({ error: "Failed to save post to database: " + insertError.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    console.log("Post saved successfully:", post.id);
+    return new Response(JSON.stringify({ post, caption }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
-    console.error("generate-social-post error", e);
+    console.error("Unexpected error in generate-social-post", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

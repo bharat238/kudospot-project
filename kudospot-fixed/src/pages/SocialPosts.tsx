@@ -63,21 +63,6 @@ const SocialPosts = () => {
       const { data, error } = await supabase.functions.invoke("generate-social-post", { body: form });
       if (error) throw error;
       
-      const generatedCaption = data.caption;
-      if (!generatedCaption) throw new Error("No caption generated");
-
-      const { error: insertError } = await supabase
-        .from("social_posts")
-        .insert({
-          user_id: user.id,
-          testimonial_id: form.testimonial_id,
-          platform: form.platform,
-          caption_text: generatedCaption,
-          status: "generated",
-        });
-
-      if (insertError) throw insertError;
-
       toast.success("Post generated!");
       setOpen(false); setForm({ testimonial_id: "", platform: "linkedin" });
       load();
