@@ -1,10 +1,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { hmac } from "https://deno.land/x/hmac@v2.0.1/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Helper function for HMAC-SHA256 verification
+async function hmacSha256(key: string, message: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(key);
+  const messageData = encoder.encode(message);
+
+  const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
+
+  return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -24,7 +35,7 @@ Deno.serve(async (req) => {
     if (!keySecret) return new Response(JSON.stringify({ error: "Razorpay secret not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const body = `${razorpay_order_id}|${razorpay_payment_id}`;
-    const expectedSig = hmac("sha256", keySecret, body, "utf8", "hex");
+    const expectedSig = await hmacSha256(keySecret, body);
 
     if (expectedSig !== razorpay_signature) {
       return new Response(JSON.stringify({ error: "Payment verification failed. Signature mismatch." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
