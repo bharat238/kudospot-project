@@ -31,7 +31,7 @@ export const usePlanLimits = () => {
 
   const showUpgradeToast = (feature: string) => {
     toast.error(`You've reached your ${plan} plan limit for ${feature}.`, {
-      action: { label: "Upgrade →", onClick: () => { window.location.href = "/settings"; } },
+      action: { label: "Upgrade →", onClick: () => { window.location.href = "/upgrade"; } },
     });
   };
 

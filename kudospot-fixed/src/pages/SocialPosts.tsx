@@ -11,12 +11,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, Copy, Trash2, Loader2, Linkedin, Instagram, Twitter, Download, Quote } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
+
+import type { Database } from "@/integrations/supabase/types";
+type SocialPost = Database["public"]["Tables"]["social_posts"]["Row"];
 
 const ICONS: Record<string, any> = { linkedin: Linkedin, instagram: Instagram, twitter: Twitter };
 
 const SocialPosts = () => {
   const { user } = useAuth();
-  const [posts, setPosts] = useState<any[]>([]);
+  const { plan, canDoAIRewrite, showUpgradeToast } = usePlanLimits();
+  const [posts, setPosts] = useState<SocialPost[]>([]);
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [profile, setProfile] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
@@ -40,6 +45,10 @@ const SocialPosts = () => {
   const generate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.testimonial_id) return toast.error("Pick a testimonial.");
+    if (plan === "free") {
+      const generatedCount = posts.length;
+      if (!canDoAIRewrite(generatedCount)) return showUpgradeToast("more AI social posts");
+    }
     setGenerating(true);
     try {
       const { error } = await supabase.functions.invoke("generate-social-post", { body: form });

@@ -39,6 +39,11 @@ const Approve = () => {
     (async () => {
       const { data: tk } = await supabase.from("approval_tokens").select("*").eq("token", token).maybeSingle();
       if (!tk) { setLoading(false); return; }
+      if (tk.used_at) {
+        setTokenRow(tk);
+        setLoading(false);
+        return;
+      }
       setTokenRow(tk);
       const [{ data: tst }, { data: profile }] = await Promise.all([
         supabase.from("testimonials").select("*").eq("id", tk.testimonial_id).maybeSingle(),

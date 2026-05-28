@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -153,16 +154,49 @@ const Settings = () => {
                   </span>
                 </div>
                 {plan !== "pro" && (
-                  <Button>
+                  <Button onClick={() => { window.location.href = "/upgrade"; }}>
                     <Zap className="h-4 w-4 mr-1" /> Upgrade
                   </Button>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
-                {plan === "free"
-                  ? "Upgrade to unlock unlimited testimonials, AI rewrites, and more."
-                  : "Your plan is active. Thank you for being a KudoSpot customer."}
-              </p>
+              {plan === "free" ? (
+                <p className="text-sm text-muted-foreground mt-2">Upgrade to unlock unlimited testimonials, AI rewrites, and more.</p>
+              ) : (
+                <div className="mt-3">
+                  <p className="text-sm text-muted-foreground">Your plan is active. Thank you for being a KudoSpot customer.</p>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button className="mt-3 text-xs text-destructive hover:underline cursor-pointer bg-transparent border-none p-0">
+                        Cancel subscription
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Your plan will remain active until the end of the billing period.
+                          <br /><br />
+                          <strong>Note:</strong> Please also cancel your payment mandate in your bank or UPI app to stop future charges.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Keep my plan</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={async () => {
+                            const { error } = await supabase.from("profiles").update({ plan: "free", plan_expires_at: null }).eq("id", user?.id);
+                            if (error) { toast.error("Cancellation failed: " + error.message); return; }
+                            toast.success("Subscription cancelled. You will retain access until your billing period ends.");
+                            window.location.reload();
+                          }}
+                        >
+                          Confirm cancellation
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
             </Card>
 
             <Card className="p-6">

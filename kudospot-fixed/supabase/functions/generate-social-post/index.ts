@@ -44,33 +44,26 @@ Testimonial:
 
 Write the post.`;
 
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 800,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
-      }),
-    });
+    const aiResp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }] }),
+      }
+    );
 
     if (!aiResp.ok) {
       const errText = await aiResp.text();
-      console.error("Claude API error", aiResp.status, errText);
-      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "AI rate limit hit. Try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("Gemini API error", aiResp.status, errText);
       return new Response(JSON.stringify({ error: "AI request failed: " + aiResp.status }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResp.json();
-    const caption = aiData.content?.[0]?.text?.trim();
+    const caption = aiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!caption) return new Response(JSON.stringify({ error: "Empty AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const { data: post, error: postErr } = await supabase.from("social_posts").insert({

@@ -23,6 +23,8 @@ import Approve from "./pages/Approve";
 import Embed from "./pages/Embed";
 import PublicCaseStudy from "./pages/PublicCaseStudy";
 import NotFound from "./pages/NotFound.tsx";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,8 @@ const App = () => (
             <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/upgrade" element={<ProtectedRoute><Upgrade /></ProtectedRoute>} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

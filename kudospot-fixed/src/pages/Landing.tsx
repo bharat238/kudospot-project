@@ -50,7 +50,7 @@ const Landing = () => {
             </div>
             <div className="flex items-center gap-2 mt-6 text-sm text-muted-foreground">
               <div className="flex">{[...Array(5)].map((_, i) => <Star key={i} className="h-4 w-4 fill-warning text-warning" />)}</div>
-              Loved by 1,200+ founders
+              Free forever — no card required
             </div>
           </div>
           <div className="relative">
@@ -198,8 +198,19 @@ const Landing = () => {
         </Card>
       </section>
 
-      <footer className="border-t border-border/60 py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} KudoSpot. Built for founders.
+      <footer className="border-t border-border/60 py-10 text-sm text-muted-foreground">
+        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 font-medium text-foreground">
+            <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-5 w-5" />
+            KudoSpot
+          </div>
+          <p className="text-xs">© {new Date().getFullYear()} KudoSpot. Built for founders who want proof that works.</p>
+          <div className="flex items-center gap-6 text-xs">
+            <Link to="/privacy" className="hover:text-foreground transition">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-foreground transition">Terms of Service</Link>
+            <a href="mailto:hello@kudospot.io" className="hover:text-foreground transition">Contact</a>
+          </div>
+        </div>
       </footer>
     </div>
   );

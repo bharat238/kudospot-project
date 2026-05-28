@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, Copy, Trash2, Star, ExternalLink } from "lucide-react";
@@ -23,8 +24,8 @@ const TYPES = [
 const Widgets = () => {
   const { user } = useAuth();
   const { canAddWidget, showUpgradeToast } = usePlanLimits();
-  const [widgets, setWidgets] = useState<any[]>([]);
-  const [testimonials, setTestimonials] = useState<any[]>([]);
+  const [widgets, setWidgets] = useState<Tables<"widgets">[]>([]);
+  const [testimonials, setTestimonials] = useState<Tables<"testimonials">[]>([]);
   const [open, setOpen] = useState(false);
   const blank = { widget_name: "", widget_type: "wall", testimonial_ids: [] as string[], campaign: "" as string, settings: { primary_color: "#7C3AED", radius: 12 } };
   const [form, setForm] = useState<any>(blank);

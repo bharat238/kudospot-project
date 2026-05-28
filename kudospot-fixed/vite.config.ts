@@ -18,4 +18,20 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          "ui-vendor": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-toast"],
+          "query-vendor": ["@tanstack/react-query"],
+          "supabase-vendor": ["@supabase/supabase-js"],
+          "chart-vendor": ["recharts"],
+          "pdf-vendor": ["html2canvas", "jspdf"],
+          "form-vendor": ["react-hook-form", "@hookform/resolvers", "zod"],
+        },
+      },
+    },
+  },
 }));

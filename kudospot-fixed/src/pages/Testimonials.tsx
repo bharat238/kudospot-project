@@ -9,38 +9,54 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, CheckSquare } from "lucide-react";
+import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, CheckSquare, Search } from "lucide-react";
 import { trackEvent } from "@/lib/track";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 
-type Testimonial = any;
+import type { Database } from "@/integrations/supabase/types";
+type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
 
 const Testimonials = () => {
   const { user } = useAuth();
   const { plan, canAddTestimonial, canDoAIRewrite, showUpgradeToast } = usePlanLimits();
   const [items, setItems] = useState<Testimonial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [bulkApproving, setBulkApproving] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [pageLoading, setPageLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<Testimonial | null>(null);
   const [rewriting, setRewriting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkApproving, setBulkApproving] = useState(false);
 
   // form state
-  const [form, setForm] = useState({ customer_name: "", customer_role: "", customer_company: "", original_text: "", rating: 5 });
+  const [form, setForm] = useState({ customer_name: "", customer_role: "", customer_company: "", customer_email: "", original_text: "", rating: 5 });
 
   const load = async () => {
     if (!user) return;
+    setLoading(true);
     const { data } = await supabase.from("testimonials").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setItems(data || []);
+    setPageLoading(false);
   };
 
   useEffect(() => { load(); }, [user]);
 
-  const filtered = items.filter((t) => filter === "all" || t.status === filter);
+  const filtered = items.filter((t) => {
+    const matchesFilter = filter === "all" || t.status === filter;
+    const s = search.toLowerCase();
+    const matchesSearch = !search ||
+      t.customer_name?.toLowerCase().includes(s) ||
+      t.customer_company?.toLowerCase().includes(s) ||
+      t.original_text?.toLowerCase().includes(s) ||
+      t.ai_rewritten_text?.toLowerCase().includes(s);
+    return matchesFilter && matchesSearch;
+  });
 
   const addTestimonial = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +65,7 @@ const Testimonials = () => {
     const { error } = await supabase.from("testimonials").insert({ ...form, user_id: user.id, status: "pending", source: "manual" });
     if (error) return toast.error(error.message);
     toast.success("Testimonial added");
-    setForm({ customer_name: "", customer_role: "", customer_company: "", original_text: "", rating: 5 });
+    setForm({ customer_name: "", customer_role: "", customer_company: "", customer_email: "", original_text: "", rating: 5 });
     setOpen(false);
     load();
   };
@@ -181,6 +197,16 @@ const Testimonials = () => {
                 <div><Label>Role</Label><Input value={form.customer_role} onChange={(e) => setForm({ ...form, customer_role: e.target.value })} /></div>
               </div>
               <div><Label>Company</Label><Input value={form.customer_company} onChange={(e) => setForm({ ...form, customer_company: e.target.value })} /></div>
+              <div>
+                <Label>Customer email</Label>
+                <Input
+                  type="email"
+                  placeholder="customer@example.com"
+                  value={form.customer_email}
+                  onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Add email to send automatic approval requests</p>
+              </div>
               <div><Label>Rating</Label>
                 <div className="flex gap-1 mt-1">
                   {[1, 2, 3, 4, 5].map((n) => (
@@ -197,15 +223,26 @@ const Testimonials = () => {
         </Dialog>
       </div>
 
-      <Tabs value={filter} onValueChange={setFilter} className="mb-6">
-        <TabsList>
-          <TabsTrigger value="all">All ({items.length})</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="ai_rewritten">Rewritten</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <Tabs value={filter} onValueChange={setFilter} className="flex-1">
+          <TabsList>
+            <TabsTrigger value="all">All ({items.length})</TabsTrigger>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="ai_rewritten">Rewritten</TabsTrigger>
+            <TabsTrigger value="approved">Approved</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="relative w-full md:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search testimonials..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
 
       {selected.size > 0 && (
         <Card className="p-3 mb-4 flex items-center justify-between bg-primary-light/30 border-primary/20">
@@ -219,10 +256,29 @@ const Testimonials = () => {
         </Card>
       )}
 
-      {filtered.length === 0 ? (
+      {pageLoading ? (
+        <div className="grid md:grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="p-5 animate-pulse">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-10 w-10 rounded-full bg-muted" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-muted rounded w-1/3" />
+                  <div className="h-2.5 bg-muted rounded w-1/4" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-2.5 bg-muted rounded w-full" />
+                <div className="h-2.5 bg-muted rounded w-4/5" />
+                <div className="h-2.5 bg-muted rounded w-3/5" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <Card className="p-16 text-center text-muted-foreground">
           <KudoSpotIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
-          No testimonials here yet.
+          {search ? `No testimonials match "${search}"` : "No testimonials here yet."}
         </Card>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">

@@ -58,34 +58,28 @@ ${t.original_text}
 
 Rewrite this testimonial following all rules.`;
 
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured in Supabase secrets." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured in Supabase secrets." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 500,
-        system: SYSTEM_PROMPT(profile?.business_name || "", profile?.brand_voice || "friendly"),
-        messages: [{ role: "user", content: userPrompt }],
-      }),
-    });
+    const fullPrompt = SYSTEM_PROMPT(profile?.business_name || "", profile?.brand_voice || "friendly") + "\n\n" + userPrompt;
+
+    const aiResp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] }),
+      }
+    );
 
     if (!aiResp.ok) {
       const errText = await aiResp.text();
-      console.error("Claude API error", aiResp.status, errText);
-      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again in a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (aiResp.status === 401) return new Response(JSON.stringify({ error: "Invalid ANTHROPIC_API_KEY. Check Supabase secrets." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("Gemini API error", aiResp.status, errText);
       return new Response(JSON.stringify({ error: "AI request failed: " + aiResp.status }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResp.json();
-    const rewritten = aiData.content?.[0]?.text?.trim();
+    const rewritten = aiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!rewritten) return new Response(JSON.stringify({ error: "Empty AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     await supabase.from("testimonials").update({ ai_rewritten_text: rewritten, status: "ai_rewritten" }).eq("id", testimonial_id);

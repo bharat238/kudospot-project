@@ -14,7 +14,7 @@ const PublicCaseStudy = () => {
       const { data } = await supabase.from("case_studies").select("*").eq("published_slug", slug).eq("is_published", true).maybeSingle();
       setCs(data); setLoading(false);
       if (data) {
-        supabase.from("case_studies").update({ views: (data.views || 0) + 1 }).eq("id", data.id).then(() => {});
+        supabase.rpc("increment_case_study_views", { cs_id: data.id }).then(() => {});
         trackEvent({ user_id: data.user_id, event_type: "case_study_view", entity_id: data.id, entity_type: "case_study", campaign: data.campaign });
       }
     })();

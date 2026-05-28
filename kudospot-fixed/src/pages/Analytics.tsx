@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Eye, MousePointerClick, FileText, CheckCircle2, Download, TrendingUp, Loader2, Database, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 type Ev = {
   id: string;
@@ -45,7 +46,7 @@ const Analytics = () => {
   }>({ open: false, phase: "idle", total: 0, processed: 0, startedAt: 0, etaSec: 0 });
   const reportRef = useRef<HTMLDivElement>(null);
 
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const since = new Date();
@@ -63,9 +64,9 @@ const Analytics = () => {
     setEvents((ev || []) as Ev[]);
     setProfile(pr);
     setLoading(false);
-  };
+  }, [user, range]);
 
-  useEffect(() => { loadEvents(); }, [user, range]);
+  useEffect(() => { loadEvents(); }, [loadEvents]);
 
   // Apply client-side filters
   const filtered = useMemo(() => {
@@ -162,7 +163,7 @@ const Analytics = () => {
     return buckets;
   }, [filtered, range]);
 
-  const exportCSV = () => {
+  const exportCSV = useCallback(() => {
     const rows: string[][] = [];
     rows.push(["Section", "Date / Source / Campaign", "Metric", "Value"]);
     // Daily breakdown
@@ -195,9 +196,9 @@ const Analytics = () => {
     a.click();
     URL.revokeObjectURL(url);
     toast.success("CSV exported");
-  };
+  }, [sparkline, bySource, byCampaign, stats, campaignFilter, sourceFilter, range]);
 
-  const downloadPDF = async () => {
+  const downloadPDF = useCallback(async () => {
     setExporting(true);
     try {
       const { default: jsPDF } = await import("jspdf");
@@ -220,7 +221,7 @@ const Analytics = () => {
     } finally {
       setExporting(false);
     }
-  };
+  }, [range, campaignFilter, sourceFilter]);
 
   const runBackfill = async () => {
     if (!user) return;
@@ -272,6 +273,30 @@ const Analytics = () => {
       toast.error(e.message || "Backfill failed");
     }
   };
+
+  const chartDataByDay = useMemo(() => {
+    const grouped: Record<string, number> = {};
+    filtered
+      .filter((e) => e.event_type === "form_submit" || e.event_type === "approval_approved")
+      .forEach((e) => {
+        const d = new Date(e.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+        grouped[d] = (grouped[d] || 0) + 1;
+      });
+    return Object.entries(grouped).map(([date, count]) => ({ date, count }));
+  }, [filtered]);
+
+  const widgetChartData = useMemo(() => {
+    const grouped: Record<string, { widget: string; views: number; clicks: number }> = {};
+    filtered
+      .filter((e) => e.event_type === "widget_view" || e.event_type === "widget_click")
+      .forEach((e) => {
+        const key = e.entity_id || "unknown";
+        if (!grouped[key]) grouped[key] = { widget: key.slice(0, 8) + "…", views: 0, clicks: 0 };
+        if (e.event_type === "widget_view") grouped[key].views++;
+        else grouped[key].clicks++;
+      });
+    return Object.values(grouped);
+  }, [filtered]);
 
   const sparkMax = Math.max(1, ...sparkline.map((b) => b.widgetViews + b.caseViews + b.approvals));
   const filterLabel = [
@@ -337,6 +362,40 @@ const Analytics = () => {
         <div className="py-24 text-center text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
       ) : (
         <div ref={reportRef} className="bg-background space-y-6 p-2">
+
+        {chartDataByDay.length > 0 && (
+          <Card className="p-6 mb-6">
+            <h2 className="font-semibold mb-1">Testimonials collected over time</h2>
+            <p className="text-xs text-muted-foreground mb-4">Form submissions and approved testimonials</p>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={chartDataByDay} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }} />
+                <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} name="Testimonials" />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+        )}
+
+        {widgetChartData.length > 0 && (
+          <Card className="p-6 mb-6">
+            <h2 className="font-semibold mb-1">Widget performance</h2>
+            <p className="text-xs text-muted-foreground mb-4">Views vs clicks per widget</p>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={widgetChartData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="widget" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }} />
+                <Legend iconSize={10} />
+                <Bar dataKey="views" fill="hsl(var(--primary))" name="Views" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="clicks" fill="hsl(var(--success))" name="Clicks" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        )}
           <div className="pb-4 border-b">
             <div className="text-2xl font-bold">{profile?.business_name || profile?.full_name || "KudoSpot"} — Performance Report</div>
             <div className="text-sm text-muted-foreground mt-1">

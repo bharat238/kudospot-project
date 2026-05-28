@@ -9,20 +9,24 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, ExternalLink, Trash2, Loader2, Copy, X } from "lucide-react";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 
+import type { Database } from "@/integrations/supabase/types";
+type CaseStudy = Database["public"]["Tables"]["case_studies"]["Row"];
+
 const CaseStudies = () => {
   const { user } = useAuth();
   const { canAddCaseStudy, showUpgradeToast } = usePlanLimits();
-  const [items, setItems] = useState<any[]>([]);
-  const [testimonials, setTestimonials] = useState<any[]>([]);
+  const [items, setItems] = useState<Tables<"case_studies">[]>([]);
+  const [testimonials, setTestimonials] = useState<Tables<"testimonials">[]>([]);
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [active, setActive] = useState<any | null>(null);
+  const [active, setActive] = useState<Tables<"case_studies"> | null>(null);
   const [form, setForm] = useState({ client_name: "", context: "", campaign: "", testimonial_ids: [] as string[] });
 
   const load = async () => {
