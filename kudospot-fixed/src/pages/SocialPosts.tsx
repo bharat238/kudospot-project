@@ -24,6 +24,7 @@ const SocialPosts = () => {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [profile, setProfile] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -32,12 +33,20 @@ const SocialPosts = () => {
 
   const load = async () => {
     if (!user) return;
-    const [{ data: p }, { data: t }, { data: pr }] = await Promise.all([
-      supabase.from("social_posts").select("*, testimonials(customer_name, customer_role, approved_text, ai_rewritten_text, original_text)").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("testimonials").select("id, customer_name").eq("user_id", user.id).eq("status", "approved"),
-      supabase.from("profiles").select("business_name, business_logo_url").eq("id", user.id).maybeSingle(),
-    ]);
-    setPosts(p || []); setTestimonials(t || []); setProfile(pr || null);
+    setLoading(true);
+    try {
+      const [{ data: p }, { data: t }, { data: pr }] = await Promise.all([
+        supabase.from("social_posts").select("*, testimonials(customer_name, customer_role, approved_text, ai_rewritten_text, original_text)").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("testimonials").select("id, customer_name").eq("user_id", user.id).eq("status", "approved"),
+        supabase.from("profiles").select("business_name, business_logo_url").eq("id", user.id).maybeSingle(),
+      ]);
+      setPosts(p || []); setTestimonials(t || []); setProfile(pr || null);
+    } catch (error) {
+      console.error("Error loading social posts:", error);
+      toast.error("Failed to load social posts");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [user]);
@@ -129,14 +138,19 @@ const SocialPosts = () => {
           </DialogContent>
         </Dialog>
       </div>
-
-      {posts.length === 0 ? (
-        <Card className="p-16 text-center text-muted-foreground">
-          <KudoSpotIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
-          No posts yet. Generate your first one.
-        </Card>
-      ) : (
-        <div className="grid gap-4">
+  
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-24 text-muted-foreground">
+            <Loader2 className="h-12 w-12 animate-spin mb-4 opacity-20" />
+            <p>Loading your social posts...</p>
+          </div>
+        ) : posts.length === 0 ? (
+          <Card className="p-16 text-center text-muted-foreground">
+            <KudoSpotIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
+            No posts yet. Generate your first one.
+          </Card>
+        ) : (
+          <div className="grid gap-4">
           {posts.map((p) => {
             const Icon = ICONS[p.platform] || Linkedin;
             return (
