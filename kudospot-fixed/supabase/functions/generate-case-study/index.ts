@@ -50,26 +50,33 @@ ${testimonialBlock}
 
 Generate the case study as JSON only.`;
 
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const apiKey = Deno.env.get("GROQ_API_KEY");
+    if (!apiKey) return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured in Supabase secrets." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const aiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }] }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: systemPrompt + "\n\n" + userPrompt }],
+          max_tokens: 500,
+        }),
       }
     );
 
     if (!aiResp.ok) {
       const errText = await aiResp.text();
-      console.error("Gemini API error", aiResp.status, errText);
+      console.error("Groq API error", aiResp.status, errText);
       return new Response(JSON.stringify({ error: "AI request failed: " + aiResp.status }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResp.json();
-    const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+    const rawText = aiData.choices?.[0]?.message?.content?.trim() ?? "";
 
     let parsed: any;
     try {

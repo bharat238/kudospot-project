@@ -58,28 +58,35 @@ ${t.original_text}
 
 Rewrite this testimonial following all rules.`;
 
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured in Supabase secrets." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const apiKey = Deno.env.get("GROQ_API_KEY");
+    if (!apiKey) return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured in Supabase secrets." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const fullPrompt = SYSTEM_PROMPT(profile?.business_name || "", profile?.brand_voice || "friendly") + "\n\n" + userPrompt;
 
     const aiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: fullPrompt }],
+          max_tokens: 500,
+        }),
       }
     );
 
     if (!aiResp.ok) {
       const errText = await aiResp.text();
-      console.error("Gemini API error", aiResp.status, errText);
+      console.error("Groq API error", aiResp.status, errText);
       return new Response(JSON.stringify({ error: "AI request failed: " + aiResp.status }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResp.json();
-    const rewritten = aiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const rewritten = aiData.choices?.[0]?.message?.content?.trim();
     if (!rewritten) return new Response(JSON.stringify({ error: "Empty AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     await supabase.from("testimonials").update({ ai_rewritten_text: rewritten, status: "ai_rewritten" }).eq("id", testimonial_id);
