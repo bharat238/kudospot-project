@@ -73,17 +73,7 @@ Write the post.`;
     const caption = aiData.choices?.[0]?.message?.content?.trim();
     if (!caption) return new Response(JSON.stringify({ error: "Empty AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: post, error: postErr } = await supabase.from("social_posts").insert({
-      user_id: user.id,
-      testimonial_id,
-      platform,
-      caption_text: caption,
-      status: "generated",
-    }).select().single();
-
-    if (postErr) return new Response(JSON.stringify({ error: postErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    return new Response(JSON.stringify({ post, caption }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ caption }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("generate-social-post error", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
