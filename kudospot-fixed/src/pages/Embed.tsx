@@ -40,7 +40,27 @@ const Embed = () => {
   }, [widget, items]);
 
   if (loading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
-  if (!widget) return <div className="p-6 text-sm text-muted-foreground">Widget unavailable.</div>;
+  if (!widget) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        fontFamily: 'sans-serif',
+        color: '#6b7280',
+        fontSize: '14px',
+        textAlign: 'center',
+        padding: '24px',
+      }}>
+        <div>
+          <div style={{ fontSize: '32px', marginBottom: '12px' }}>💬</div>
+          <div style={{ fontWeight: 500, marginBottom: '4px' }}>Testimonials unavailable</div>
+          <div style={{ fontSize: '12px' }}>This widget could not be loaded.</div>
+        </div>
+      </div>
+    );
+  }
 
   const accent = widget.settings?.primary_color || "#7C3AED";
   const radius = widget.settings?.radius ?? 12;

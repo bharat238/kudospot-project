@@ -63,21 +63,29 @@ const Approve = () => {
 
   const finalize = async (text: string, kind: "approved" | "original") => {
     if (!tokenRow || !t) return;
-    const { error } = await supabase.from("testimonials").update({ approved_text: text, status: "approved", approved_at: new Date().toISOString() }).eq("id", t.id);
-    if (error) return toast.error(error.message);
-    await supabase.from("approval_tokens").update({ used_at: new Date().toISOString() }).eq("token", tokenRow.token);
-    trackEvent({ user_id: tokenRow.user_id, event_type: "approval_approved", entity_id: t.id, entity_type: "approval", campaign: tokenRow.campaign });
-    setDone(kind);
+    try {
+      const { error } = await supabase.functions.invoke("handle-approval", {
+        body: { token, action: "approve", text },
+      });
+      if (error) throw error;
+      setDone(kind);
+    } catch (err: any) {
+      toast.error(err.message || "Approval failed");
+    }
   };
 
   const reject = async () => {
     if (!tokenRow || !t) return;
     const reason = (pickedTpl && pickedTpl !== "Other" ? pickedTpl : rejectReason).trim() || pickedTpl || null;
-    const { error } = await supabase.from("testimonials").update({ status: "rejected", rejection_reason: reason, rejected_at: new Date().toISOString() }).eq("id", t.id);
-    if (error) return toast.error(error.message);
-    await supabase.from("approval_tokens").update({ used_at: new Date().toISOString() }).eq("token", tokenRow.token);
-    trackEvent({ user_id: tokenRow.user_id, event_type: "approval_rejected", entity_id: t.id, entity_type: "approval", campaign: tokenRow.campaign, metadata: { reason } });
-    setDone("rejected");
+    try {
+      const { error } = await supabase.functions.invoke("handle-approval", {
+        body: { token, action: "reject", reason },
+      });
+      if (error) throw error;
+      setDone("rejected");
+    } catch (err: any) {
+      toast.error(err.message || "Rejection failed");
+    }
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;

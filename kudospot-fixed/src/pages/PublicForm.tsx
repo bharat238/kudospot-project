@@ -17,7 +17,9 @@ const PublicForm = () => {
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
   const [data, setData] = useState({ customer_name: "", customer_role: "", customer_company: "", customer_email: "", original_text: "", rating: 5 });
+  const MAX_CHARS = 2000;
 
   useEffect(() => {
     (async () => {
@@ -30,6 +32,13 @@ const PublicForm = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form) return;
+    
+    if (honeypot) {
+      // Bot detected — silently succeed without inserting
+      setSubmitted(true);
+      return;
+    }
+
     setSubmitting(true);
     const { error } = await supabase.from("testimonials").insert({
       user_id: form.user_id,
@@ -83,6 +92,15 @@ const PublicForm = () => {
         {form.subheadline && <p className="text-muted-foreground mb-6">{form.subheadline}</p>}
 
         <form onSubmit={submit} className="space-y-4">
+          <input
+            type="text"
+            name="website"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+            style={{ display: 'none' }}
+            tabIndex={-1}
+            autoComplete="off"
+          />
           {form.collect_rating && (
             <div>
               <Label>How would you rate your experience?</Label>
@@ -107,8 +125,21 @@ const PublicForm = () => {
               rows={6}
               value={data.original_text}
               onChange={(e) => setData({ ...data, original_text: e.target.value })}
+              maxLength={MAX_CHARS}
               placeholder="Tell us your story…"
             />
+            <div style={{ 
+              textAlign: 'right', 
+              fontSize: '12px', 
+              marginTop: '4px', 
+              color: data.original_text.length >= MAX_CHARS 
+                ? '#ef4444' 
+                : data.original_text.length >= MAX_CHARS * 0.9 
+                ? '#f59e0b' 
+                : '#9ca3af', 
+            }}>
+              {data.original_text.length} / {MAX_CHARS}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Name *</Label><Input required value={data.customer_name} onChange={(e) => setData({ ...data, customer_name: e.target.value })} /></div>

@@ -6,6 +6,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Simple in-memory rate limiter (resets on cold start — good enough for edge)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+    return false;
+  }
+  if (entry.count >= 10) return true;
+  entry.count++;
+  return false;
+}
+
 const SYSTEM_PROMPT = (businessName: string, brandVoice: string) => `You are an expert copywriter and conversion specialist with 15 years of experience writing customer success stories that convert. Your job is to transform a raw customer testimonial into a compelling, specific, story-driven testimonial that will make prospects immediately trust and buy from this business.
 
 RULES:
@@ -27,6 +42,14 @@ Return ONLY the rewritten testimonial text. No preamble, no quotes, no explanati
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
+  if (isRateLimited(ip)) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Try again in a minute.' }), {
+      status: 429,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
     const authHeader = req.headers.get("Authorization");

@@ -57,7 +57,7 @@ const Widgets = () => {
     toast.success("Deleted"); load();
   };
 
-  const embedCode = (id: string) => `<iframe src="${window.location.origin}/embed/${id}" style="width:100%;border:0;min-height:400px" loading="lazy"></iframe>`;
+  const embedCode = (id: string) => `<iframe src="${window.location.origin}/embed/${id}" style="width:100%;border:0;min-height:400px" loading="lazy" title="KudoSpot Testimonial Widget"></iframe>`;
 
   return (
     <AppShell>

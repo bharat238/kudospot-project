@@ -35,15 +35,34 @@ const SocialPosts = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data: p, error: postsError } = await supabase
+      // Step 1: fetch social posts
+      const { data: postsData, error: postsError } = await supabase
         .from("social_posts")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (postsError) console.error("Posts fetch error:", postsError);
-      console.log("Posts fetched:", p);
-      setPosts(p || []);
+      if (postsError) throw postsError;
+
+      // Step 2: get unique testimonial IDs
+      const testimonialIds = [...new Set((postsData || []).map(p => p.testimonial_id).filter(Boolean))];
+
+      // Step 3: fetch customer names for those testimonials
+      const { data: testimonialsData } = await supabase
+        .from("testimonials")
+        .select("id, customer_name")
+        .in("id", testimonialIds);
+
+      // Step 4: build a lookup map
+      const nameMap = Object.fromEntries((testimonialsData || []).map(t => [t.id, t.customer_name]) ?? []);
+
+      // Step 5: merge into posts
+      const postsWithNames = (postsData || []).map(p => ({
+        ...p,
+        customer_name: nameMap[p.testimonial_id] ?? "—",
+      })) as (SocialPost & { customer_name: string })[];
+
+      setPosts(postsWithNames);
 
       const [{ data: t }, { data: pr }] = await Promise.all([
         supabase.from("testimonials").select("id, customer_name").eq("user_id", user.id).eq("status", "approved"),
@@ -98,12 +117,15 @@ const SocialPosts = () => {
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", logging: false, useCORS: true });
       const link = document.createElement("a");
-      const safeName = (post.testimonials?.customer_name || "testimonial").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const safeName = (post.customer_name || "testimonial").toLowerCase().replace(/[^a-z0-9]+/g, "-");
       link.download = `testimonial-${post.platform}-${safeName}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (e: any) {
-      toast.error(e.message || "Download failed");
+      console.error("PNG download failed:", e);
+      toast.error("PNG download failed. Please try in Chrome or copy the text manually.", {
+        duration: 5000,
+      });
     } finally {
       setDownloadingId(null);
     }
@@ -169,7 +191,7 @@ const SocialPosts = () => {
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4 text-primary" />
                     <span className="font-semibold capitalize">{p.platform}</span>
-                    <span className="text-xs text-muted-foreground">· {p.testimonials?.customer_name}</span>
+                    <span className="text-xs text-muted-foreground">· {(p as any).customer_name}</span>
                   </div>
                   <div className="flex gap-1">
                     <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(p.caption_text); toast.success("Caption copied"); }}><Copy className="h-3.5 w-3.5" /></Button>

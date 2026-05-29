@@ -31,7 +31,7 @@ const Testimonials = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<Testimonial | null>(null);
-  const [rewriting, setRewriting] = useState(false);
+  const [rewritingIds, setRewritingIds] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // form state
@@ -75,7 +75,7 @@ const Testimonials = () => {
       const rewrittenCount = items.filter((i) => i.ai_rewritten_text).length;
       if (!canDoAIRewrite(rewrittenCount)) return showUpgradeToast("more AI rewrites");
     }
-    setRewriting(true);
+    setRewritingIds(prev => new Set(prev).add(t.id));
     try {
       const { data, error } = await supabase.functions.invoke("rewrite-testimonial", {
         body: { testimonial_id: t.id },
@@ -88,7 +88,11 @@ const Testimonials = () => {
     } catch (e: any) {
       toast.error(e.message || "Rewrite failed");
     } finally {
-      setRewriting(false);
+      setRewritingIds(prev => {
+        const next = new Set(prev);
+        next.delete(t.id);
+        return next;
+      });
     }
   };
 
@@ -351,13 +355,13 @@ const Testimonials = () => {
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
                   {!active.ai_rewritten_text && (
-                    <Button onClick={() => rewrite(active)} disabled={rewriting}>
-                      {rewriting ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Rewriting…</> : <><KudoSpotIcon className="h-4 w-4 mr-1" /> AI Rewrite</>}
+                    <Button onClick={() => rewrite(active)} disabled={rewritingIds.has(active.id)}>
+                      {rewritingIds.has(active.id) ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Rewriting…</> : <><KudoSpotIcon className="h-4 w-4 mr-1" /> AI Rewrite</>}
                     </Button>
                   )}
                   {active.ai_rewritten_text && active.status !== "approved" && (
-                    <Button onClick={() => rewrite(active)} disabled={rewriting} variant="outline">
-                      {rewriting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KudoSpotIcon className="h-4 w-4 mr-1" />} Regenerate
+                    <Button onClick={() => rewrite(active)} disabled={rewritingIds.has(active.id)} variant="outline">
+                      {rewritingIds.has(active.id) ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KudoSpotIcon className="h-4 w-4 mr-1" />} Regenerate
                     </Button>
                   )}
                   {active.status !== "approved" && active.status !== "published" && (

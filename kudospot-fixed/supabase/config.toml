@@ -9,5 +9,11 @@ verify_jwt = true
 [functions.generate-social-post]
 verify_jwt = true
 
+[functions.handle-approval]
+verify_jwt = false
+
+[functions.send-approval-email]
+verify_jwt = true
+
 [functions.backfill-analytics]
 verify_jwt = true
