@@ -35,12 +35,21 @@ const SocialPosts = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: p }, { data: t }, { data: pr }] = await Promise.all([
-        supabase.from("social_posts").select("*, testimonials(customer_name, customer_role, approved_text, ai_rewritten_text, original_text)").eq("user_id", user.id).order("created_at", { ascending: false }),
+      const { data: p, error: postsError } = await supabase
+        .from("social_posts")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (postsError) console.error("Posts fetch error:", postsError);
+      console.log("Posts fetched:", p);
+      setPosts(p || []);
+
+      const [{ data: t }, { data: pr }] = await Promise.all([
         supabase.from("testimonials").select("id, customer_name").eq("user_id", user.id).eq("status", "approved"),
         supabase.from("profiles").select("business_name, business_logo_url").eq("id", user.id).maybeSingle(),
       ]);
-      setPosts(p || []); setTestimonials(t || []); setProfile(pr || null);
+      setTestimonials(t || []); setProfile(pr || null);
     } catch (error) {
       console.error("Error loading social posts:", error);
       toast.error("Failed to load social posts");
