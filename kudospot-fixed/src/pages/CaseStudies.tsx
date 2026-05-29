@@ -41,7 +41,8 @@ const CaseStudies = () => {
 
   const generate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canAddCaseStudy(items.length)) return showUpgradeToast("case studies");
+    // TEMP: disabled for testing
+    // if (!canAddCaseStudy(items.length)) return showUpgradeToast("case studies");
     if (form.testimonial_ids.length < 1) return toast.error("Pick at least one testimonial.");
     setGenerating(true);
     try {
