@@ -22,6 +22,7 @@ import PublicForm from "./pages/PublicForm";
 import Approve from "./pages/Approve";
 import Embed from "./pages/Embed";
 import PublicCaseStudy from "./pages/PublicCaseStudy";
+import WallOfLove from "./pages/WallOfLove";
 import NotFound from "./pages/NotFound.tsx";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/approve/:token" element={<Approve />} />
             <Route path="/embed/:id" element={<Embed />} />
             <Route path="/case-studies/:slug" element={<PublicCaseStudy />} />
+            <Route path="/wall/:slug" element={<WallOfLove />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
             <Route path="/collect" element={<ProtectedRoute><Collect /></ProtectedRoute>} />

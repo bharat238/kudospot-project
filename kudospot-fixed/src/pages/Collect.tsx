@@ -173,6 +173,7 @@ const Collect = () => {
   const removeQ = (i: number) => setForm((f: any) => ({ ...f, questions: f.questions.filter((_: any, j: number) => j !== i) }));
 
   const publicUrl = (slug: string) => `${window.location.origin}/collect/${slug}`;
+  const wallUrl = (slug: string) => `${window.location.origin}/wall/${slug}`;
 
   // ── sequences CRUD ────────────────────────────────────────────────────
   const startNewSeq = () => {
@@ -403,10 +404,17 @@ const Collect = () => {
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeForm(f.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-secondary/50 p-2 rounded-lg">
+                  <div className="flex items-center gap-2 bg-secondary/50 p-2 rounded-lg mb-2">
+                    <div className="text-xs font-semibold uppercase text-muted-foreground px-1 min-w-[60px]">Form</div>
                     <code className="text-xs flex-1 truncate">{publicUrl(f.public_slug)}</code>
                     <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(publicUrl(f.public_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
                     <Button size="sm" variant="ghost" onClick={() => window.open(publicUrl(f.public_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>
+                  </div>
+                  <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-lg">
+                    <div className="text-xs font-semibold uppercase text-primary px-1 min-w-[60px]">Wall</div>
+                    <code className="text-xs flex-1 truncate">{wallUrl(f.public_slug)}</code>
+                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => { navigator.clipboard.writeText(wallUrl(f.public_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => window.open(wallUrl(f.public_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>
                   </div>
                 </Card>
               ))}
