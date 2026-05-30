@@ -115,15 +115,14 @@ const Testimonials = () => {
     }
   };
 
-  const sendApprovalEmail = async (t: Testimonial) => {
-    if (!t.customer_email) return toast.error("Customer email is required to send approval link.");
-    try {
-      const { error } = await supabase.functions.invoke("send-approval-email", { body: { testimonial_id: t.id } });
-      if (error) throw error;
+  const sendApproval = async (testimonialId: string) => {
+    const { error } = await supabase.functions.invoke("send-approval-email", {
+      body: { testimonial_id: testimonialId }
+    });
+    if (error) toast.error("Failed to send approval email");
+    else {
       toast.success("Approval email sent to customer!");
       load();
-    } catch (e: any) {
-      toast.error(e.message || "Failed to send email");
     }
   };
 
@@ -391,10 +390,10 @@ const Testimonials = () => {
                       <Check className="h-4 w-4 mr-1" /> Approve & Send Email
                     </Button>
                   )}
-                  {active.status !== "approved" && active.status !== "declined" && active.ai_rewritten_text && !active.approval_sent_at && (
-                    <Button onClick={() => sendApprovalEmail(active)} variant="outline">
+                  {active.ai_rewritten_text && active.customer_email && active.approval_status !== "approved" && (
+                    <Button variant="outline" size="sm" onClick={() => sendApproval(active.id)}>
                       <Mail className="h-3.5 w-3.5 mr-1" />
-                      {active.approval_status === "sent" ? "Resend approval" : "Send for approval"}
+                      {active.approval_status === "sent" ? "Resend approval email" : "Send for approval"}
                     </Button>
                   )}
                   <Button variant="ghost" className="text-destructive ml-auto" onClick={() => remove(active.id)}>
