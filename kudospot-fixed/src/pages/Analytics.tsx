@@ -69,20 +69,22 @@ const Analytics = () => {
 
     // Fetch counts from testimonials table for more accurate approval metrics
     try {
-      const [sentRes, approvedRes] = await Promise.all([
-        supabase
-          .from("testimonials")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .neq("approval_status", "not_sent"),
-        supabase
-          .from("testimonials")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("approval_status", "approved"),
-      ]);
-      const sent = sentRes.count || 0;
-      const approved = approvedRes.count || 0;
+      const { count: sentCountResponse, error: sentError } = await supabase
+        .from("testimonials")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .neq("approval_status", "not_sent");
+      console.log("Sent count:", sentCountResponse, "Error:", sentError);
+
+      const { count: approvedCountResponse, error: approvedError } = await supabase
+        .from("testimonials")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("approval_status", "approved");
+      console.log("Approved count:", approvedCountResponse, "Error:", approvedError);
+
+      const sent = sentCountResponse || 0;
+      const approved = approvedCountResponse || 0;
       setSentCount(sent);
       setApprovedCount(approved);
       setApprovalRate(sent > 0 ? Math.round((approved / sent) * 100) : 0);
