@@ -19,6 +19,8 @@ const PublicForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [data, setData] = useState({ customer_name: "", customer_role: "", customer_company: "", customer_email: "", original_text: "", rating: 5 });
+  const [submitCount, setSubmitCount] = useState(0);
+  const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const MAX_CHARS = 2000;
 
   useEffect(() => {
@@ -32,30 +34,52 @@ const PublicForm = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form) return;
-    
+
     if (honeypot) {
       // Bot detected — silently succeed without inserting
       setSubmitted(true);
       return;
     }
 
+    // Minimum length validation
+    if ((data.original_text || "").trim().length < 20) {
+      toast.error("Please write at least 20 characters.");
+      return;
+    }
+
+    // Rate limiting: max 3 submissions per minute
+    const now = Date.now();
+    if (submitCount >= 3 && now - lastSubmitTime < 60000) {
+      toast.error("Too many submissions. Please wait a minute.");
+      return;
+    }
+    setSubmitCount((prev) => prev + 1);
+    setLastSubmitTime(now);
+
     setSubmitting(true);
-    const { error } = await supabase.from("testimonials").insert({
-      user_id: form.user_id,
-      customer_name: data.customer_name,
-      customer_role: data.customer_role || null,
-      customer_company: data.customer_company || null,
-      customer_email: data.customer_email || null,
-      original_text: data.original_text,
-      rating: form.collect_rating ? data.rating : null,
-      source: "form",
-      status: "pending",
-      campaign: form.campaign || null,
-    });
-    setSubmitting(false);
-    if (error) return toast.error(error.message);
-    trackEvent({ user_id: form.user_id, event_type: "form_submit", entity_id: form.id, entity_type: "form", campaign: form.campaign });
-    setSubmitted(true);
+    try {
+      const { error } = await supabase.from("testimonials").insert({
+        user_id: form.user_id,
+        customer_name: data.customer_name,
+        customer_role: data.customer_role || null,
+        customer_company: data.customer_company || null,
+        customer_email: data.customer_email || null,
+        original_text: data.original_text,
+        rating: form.collect_rating ? data.rating : null,
+        source: "form",
+        status: "pending",
+        campaign: form.campaign || null,
+      });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      trackEvent({ user_id: form.user_id, event_type: "form_submit", entity_id: form.id, entity_type: "form", campaign: form.campaign });
+      setSubmitted(true);
+    } finally {
+      // keep submit button disabled for 3s to avoid double clicks
+      setTimeout(() => setSubmitting(false), 3000);
+    }
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
