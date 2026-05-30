@@ -217,7 +217,10 @@ const Analytics = () => {
       pdf.save(`kudospot-${range}d-${filterTag}-${new Date().toISOString().slice(0, 10)}.pdf`);
       toast.success("Report downloaded");
     } catch (e: any) {
-      toast.error(e.message || "Export failed");
+      console.error("PDF export failed:", e);
+      toast.error("Export failed. If you're on Safari/mobile, try Chrome or Desktop.", {
+        duration: 5000,
+      });
     } finally {
       setExporting(false);
     }

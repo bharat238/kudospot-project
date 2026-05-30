@@ -16,69 +16,48 @@ Deno.serve(async (req) => {
 
     const { token, action, text, reason } = await req.json();
 
-    // 1. Validate token
-    const { data: tk, error: tkErr } = await supabaseAdmin
-      .from("approval_tokens")
-      .select("*")
-      .eq("token", token)
-      .maybeSingle();
-
-    if (tkErr || !tk) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    if (tk.used_at) {
-      return new Response(JSON.stringify({ error: "Token already used" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    // 2. Fetch testimonial
+    // 1. Find testimonial by token
     const { data: t, error: tErr } = await supabaseAdmin
       .from("testimonials")
       .select("*")
-      .eq("id", tk.testimonial_id)
+      .eq("approval_token", token)
       .maybeSingle();
 
     if (tErr || !t) {
-      return new Response(JSON.stringify({ error: "Testimonial not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Invalid token or testimonial not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 3. Update status
+    // 2. Update status
     const now = new Date().toISOString();
     if (action === "approve") {
       await supabaseAdmin
         .from("testimonials")
-        .update({ approved_text: text, status: "approved", approved_at: now })
+        .update({ approved_text: text || t.ai_rewritten_text, status: "approved", approved_at: now })
         .eq("id", t.id);
 
-      // BUG 3 Fix: Insert analytics event
+      // Log analytics event
       await supabaseAdmin.from("analytics_events").insert({
-        user_id: tk.user_id,
+        user_id: t.user_id,
         event_type: "approval_approved",
         entity_id: t.id,
         entity_type: "approval",
-        campaign: tk.campaign,
+        campaign: t.campaign,
       });
-    } else {
+    } else if (action === "reject" || action === "decline") {
       await supabaseAdmin
         .from("testimonials")
-        .update({ status: "rejected", rejection_reason: reason, rejected_at: now })
+        .update({ status: "declined", rejection_reason: reason, rejected_at: now })
         .eq("id", t.id);
 
       await supabaseAdmin.from("analytics_events").insert({
-        user_id: tk.user_id,
+        user_id: t.user_id,
         event_type: "approval_rejected",
         entity_id: t.id,
         entity_type: "approval",
-        campaign: tk.campaign,
+        campaign: t.campaign,
         metadata: { reason },
       });
     }
-
-    // 4. Mark token as used
-    await supabaseAdmin
-      .from("approval_tokens")
-      .update({ used_at: now })
-      .eq("token", token);
 
     return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

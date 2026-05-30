@@ -20,6 +20,7 @@ import Analytics from "./pages/Analytics";
 import Upgrade from "./pages/Upgrade";
 import PublicForm from "./pages/PublicForm";
 import Approve from "./pages/Approve";
+import Decline from "./pages/Decline";
 import Embed from "./pages/Embed";
 import PublicCaseStudy from "./pages/PublicCaseStudy";
 import WallOfLove from "./pages/WallOfLove";
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/collect/:slug" element={<PublicForm />} />
             <Route path="/approve/:token" element={<Approve />} />
+            <Route path="/decline/:token" element={<Decline />} />
             <Route path="/embed/:id" element={<Embed />} />
             <Route path="/case-studies/:slug" element={<PublicCaseStudy />} />
             <Route path="/wall/:slug" element={<WallOfLove />} />

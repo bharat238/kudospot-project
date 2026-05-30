@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, CheckSquare, Search } from "lucide-react";
+import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, CheckSquare, Search, Send, Mail } from "lucide-react";
 import { trackEvent } from "@/lib/track";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
@@ -97,12 +97,34 @@ const Testimonials = () => {
   };
 
   const approve = async (t: Testimonial) => {
-    const text = t.ai_rewritten_text || t.original_text;
-    const { error } = await supabase.from("testimonials").update({ approved_text: text, status: "approved", approved_at: new Date().toISOString() }).eq("id", t.id);
-    if (error) return toast.error(error.message);
-    toast.success("Approved & published");
-    setActive(null);
-    load();
+    try {
+      const text = t.ai_rewritten_text || t.original_text;
+      const { error } = await supabase.from("testimonials").update({ approved_text: text, status: "approved", approved_at: new Date().toISOString() }).eq("id", t.id);
+      if (error) throw error;
+      toast.success("Testimonial approved!");
+      
+      // Feature 9: Trigger approval email
+      if (t.customer_email && t.ai_rewritten_text) {
+        supabase.functions.invoke("send-approval-email", { body: { testimonial_id: t.id } });
+        toast.info("Approval email sent to customer.");
+      }
+
+      setActive(null); load();
+    } catch (e: any) {
+      toast.error(e.message || "Approval failed");
+    }
+  };
+
+  const sendApprovalEmail = async (t: Testimonial) => {
+    if (!t.customer_email) return toast.error("Customer email is required to send approval link.");
+    try {
+      const { error } = await supabase.functions.invoke("send-approval-email", { body: { testimonial_id: t.id } });
+      if (error) throw error;
+      toast.success("Approval email sent to customer!");
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to send email");
+    }
   };
 
   const createApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }) => {
@@ -297,7 +319,7 @@ const Testimonials = () => {
                   <div className="font-semibold text-sm">{t.customer_name}</div>
                   <div className="text-xs text-muted-foreground">{[t.customer_role, t.customer_company].filter(Boolean).join(" · ")}</div>
                 </div>
-                <StatusPill status={t.status} />
+                <StatusPill testimonial={t} />
               </div>
               {t.rating && <div className="flex mb-2">{[...Array(t.rating)].map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-warning text-warning" />)}</div>}
               <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{t.ai_rewritten_text || t.original_text}</p>
@@ -314,7 +336,7 @@ const Testimonials = () => {
               <DialogHeader>
                 <DialogTitle className="flex items-center justify-between pr-6">
                   <span>{active.customer_name}</span>
-                  <StatusPill status={active.status} />
+                  <StatusPill testimonial={active} />
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-5">
@@ -364,9 +386,15 @@ const Testimonials = () => {
                       {rewritingIds.has(active.id) ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KudoSpotIcon className="h-4 w-4 mr-1" />} Regenerate
                     </Button>
                   )}
-                  {active.status !== "approved" && active.status !== "published" && (
+                  {active.status !== "approved" && active.status !== "declined" && (
                     <Button onClick={() => approve(active)} variant="default" className="bg-success hover:bg-success/90">
-                      <Check className="h-4 w-4 mr-1" /> Approve & publish
+                      <Check className="h-4 w-4 mr-1" /> Approve & Send Email
+                    </Button>
+                  )}
+                  {active.status !== "approved" && active.status !== "declined" && active.ai_rewritten_text && !active.approval_sent_at && (
+                    <Button onClick={() => sendApprovalEmail(active)} variant="outline">
+                      <Mail className="h-3.5 w-3.5 mr-1" />
+                      {active.approval_status === "sent" ? "Resend approval" : "Send for approval"}
                     </Button>
                   )}
                   <Button variant="ghost" className="text-destructive ml-auto" onClick={() => remove(active.id)}>
@@ -382,16 +410,26 @@ const Testimonials = () => {
   );
 };
 
-const StatusPill = ({ status }: { status: string }) => {
-  const map: Record<string, { label: string; cls: string }> = {
-    pending: { label: "Pending", cls: "bg-warning/10 text-warning" },
-    ai_rewritten: { label: "Rewritten", cls: "bg-primary-light text-primary" },
-    approved: { label: "Approved", cls: "bg-success/10 text-success" },
-    published: { label: "Published", cls: "bg-success/10 text-success" },
-    rejected: { label: "Rejected", cls: "bg-destructive/10 text-destructive" },
-  };
-  const s = map[status] || map.pending;
-  return <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.cls}`}>{s.label}</span>;
+const StatusPill = ({ testimonial }: { testimonial: any }) => {
+  const { status, approval_status } = testimonial;
+  
+  if (status === "approved") {
+    return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-success/10 text-success border border-success/20">Approved</span>;
+  }
+  if (status === "declined") {
+    return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-destructive/10 text-destructive border border-destructive/20">Declined</span>;
+  }
+  if (approval_status === "sent") {
+    return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">Awaiting Approval</span>;
+  }
+  if (approval_status === "approved") {
+    return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-success/10 text-success border border-success/20">Customer approved ✓</span>;
+  }
+  if (status === "ai_rewritten") {
+    return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-primary-light text-primary border border-primary/20">Rewritten</span>;
+  }
+  
+  return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-secondary text-muted-foreground border border-border">Pending</span>;
 };
 
 const ApprovalWorkflow = ({ testimonial, onResend, onCopy }: { testimonial: any; onResend: () => void; onCopy: () => void }) => {
