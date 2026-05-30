@@ -10,9 +10,19 @@ const Approve = () => {
   useEffect(() => {
     const approve = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke(
-          "approve-testimonial", { body: { token } }
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/approve-testimonial`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ token }),
+          }
         );
+        const data = await response.json();
+        const error = !response.ok ? data : null;
         if (error || !data?.success) {
           setState("error");
         } else if (data.already_approved) {
