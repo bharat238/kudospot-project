@@ -13,8 +13,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
   Plus, Copy, ExternalLink, Trash2, Upload, X, GripVertical,
-  Mail, Send, Clock, CheckCircle2, AlertCircle, Users, ToggleLeft
+  Mail, Send, Clock, CheckCircle2, AlertCircle, Users, ToggleLeft, QrCode
 } from "lucide-react";
+import { QRCodeModal } from "@/components/QRCodeModal";
 
 // ─── blank form template ────────────────────────────────────────────────────
 const blank = {
@@ -79,6 +80,11 @@ const Collect = () => {
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>(blank);
   const [uploading, setUploading] = useState(false);
+  const [qrModal, setQrModal] = useState<{ 
+    open: boolean; 
+    formUrl: string; 
+    formName: string; 
+  }>({ open: false, formUrl: "", formName: "" });
 
   // Sequences tab
   const [sequences, setSequences] = useState<any[]>([]);
@@ -400,6 +406,20 @@ const Collect = () => {
                       <span className="h-3 w-3 rounded-full border shrink-0" style={{ background: f.brand_color }} />
                     </div>
                     <div className="flex gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setQrModal({
+                            open: true,
+                            formUrl: `https://kudospot.pages.dev/collect/${f.public_slug}`,
+                            formName: f.form_name,
+                          })
+                        }
+                      >
+                        <QrCode className="h-3.5 w-3.5 mr-1" />
+                        QR Code
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => startEdit(f)}>Edit</Button>
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeForm(f.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
@@ -615,6 +635,13 @@ const Collect = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      <QRCodeModal 
+        open={qrModal.open} 
+        onOpenChange={(open) => setQrModal((prev) => ({ ...prev, open }))} 
+        formUrl={qrModal.formUrl} 
+        formName={qrModal.formName} 
+      />
     </AppShell>
   );
 };
