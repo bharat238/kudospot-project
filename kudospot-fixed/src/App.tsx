@@ -47,7 +47,7 @@ const App = () => (
             <Route path="/decline/:token" element={<Decline />} />
             <Route path="/embed/:id" element={<Embed />} />
             <Route path="/case-studies/:slug" element={<PublicCaseStudy />} />
-            <Route path="/wall/:slug" element={<WallOfLove />} />
+            <Route path="/wall/:userId" element={<WallOfLove />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
             <Route path="/collect" element={<ProtectedRoute><Collect /></ProtectedRoute>} />

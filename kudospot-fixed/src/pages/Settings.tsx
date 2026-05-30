@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, X, GripVertical, Zap } from "lucide-react";
+import { Plus, X, GripVertical, Zap, Copy, ExternalLink } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { PLAN_LIMITS, type PlanName } from "@/hooks/usePlanLimits";
 
@@ -135,6 +135,35 @@ const Settings = () => {
                       <Button type="button" size="icon" variant="ghost" onClick={() => removeTpl(i)}><X className="h-4 w-4" /></Button>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              <div className="border-t pt-5">
+                <Label>Public Wall of Love</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-3">Your public page to showcase all approved testimonials.</p>
+                <div className="flex items-center gap-2">
+                  <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono flex-1 truncate">
+                    {window.location.origin}/wall/{user?.id}
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/wall/${user?.id}`);
+                      toast.success("Link copied!");
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => window.open(`/wall/${user?.id}`, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
