@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
-import { MessageSquareQuote, CheckCircle2, Clock, Plus } from "lucide-react";
+import { MessageSquareQuote, CheckCircle2, Clock, Plus, Copy, ExternalLink, Heart } from "lucide-react";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
+import { toast } from "sonner";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -63,6 +64,49 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Your social proof at a glance.</p>
         </div>
         <Link to="/testimonials"><Button><Plus className="h-4 w-4 mr-1" /> Add testimonial</Button></Link>
+      </div>
+
+      <div className="mb-6 p-4 rounded-xl border border-purple-200  
+      bg-gradient-to-r from-purple-50 to-white  
+      dark:from-purple-950/20 dark:border-purple-800"> 
+        <div className="flex items-center justify-between flex-wrap gap-3"> 
+          <div className="flex items-center gap-3"> 
+            <div className="h-10 w-10 rounded-full bg-purple-100  
+            dark:bg-purple-900 flex items-center justify-center"> 
+              <Heart className="h-5 w-5 text-purple-600" /> 
+            </div> 
+            <div> 
+              <p className="font-medium text-sm">Your Wall of Love is live</p> 
+              <p className="text-xs text-muted-foreground font-mono truncate max-w-xs"> 
+                kudospot.pages.dev/wall/{user?.id} 
+              </p> 
+            </div> 
+          </div> 
+          <div className="flex items-center gap-2"> 
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => { 
+                navigator.clipboard.writeText( 
+                  `https://kudospot.pages.dev/wall/${user?.id}` 
+                ); 
+                toast.success("Wall of Love URL copied!"); 
+              }} 
+            > 
+              <Copy className="h-3.5 w-3.5 mr-1" /> Copy link 
+            </Button> 
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => window.open( 
+                `https://kudospot.pages.dev/wall/${user?.id}`,  
+                "_blank" 
+              )} 
+            > 
+              <ExternalLink className="h-3.5 w-3.5 mr-1" /> View 
+            </Button> 
+          </div> 
+        </div> 
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
