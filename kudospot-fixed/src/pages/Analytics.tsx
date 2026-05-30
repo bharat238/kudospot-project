@@ -45,6 +45,9 @@ const Analytics = () => {
     total: number; processed: number; startedAt: number; etaSec: number; message?: string;
   }>({ open: false, phase: "idle", total: 0, processed: 0, startedAt: 0, etaSec: 0 });
   const reportRef = useRef<HTMLDivElement>(null);
+  const [sentCount, setSentCount] = useState<number | null>(null);
+  const [approvedCount, setApprovedCount] = useState<number | null>(null);
+  const [approvalRate, setApprovalRate] = useState<number | null>(null);
 
   const loadEvents = useCallback(async () => {
     if (!user) return;
@@ -63,6 +66,33 @@ const Analytics = () => {
     ]);
     setEvents((ev || []) as Ev[]);
     setProfile(pr);
+
+    // Fetch counts from testimonials table for more accurate approval metrics
+    try {
+      const [sentRes, approvedRes] = await Promise.all([
+        supabase
+          .from("testimonials")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .neq("approval_status", "not_sent"),
+        supabase
+          .from("testimonials")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("approval_status", "approved"),
+      ]);
+      const sent = sentRes.count || 0;
+      const approved = approvedRes.count || 0;
+      setSentCount(sent);
+      setApprovedCount(approved);
+      setApprovalRate(sent > 0 ? Math.round((approved / sent) * 100) : 0);
+    } catch (e) {
+      // ignore — fall back to event-based counts
+      setSentCount(null);
+      setApprovedCount(null);
+      setApprovalRate(null);
+    }
+
     setLoading(false);
   }, [user, range]);
 
@@ -101,9 +131,10 @@ const Analytics = () => {
     const widgetViews = count("widget_view");
     const widgetClicks = count("widget_click");
     const caseViews = count("case_study_view");
-    const approvalsSent = count("approval_sent");
-    const approvalsApproved = count("approval_approved");
+    const approvalsSent = sentCount ?? count("approval_sent");
+    const approvalsApproved = approvedCount ?? count("approval_approved");
     const approvalsRejected = count("approval_rejected");
+    const computedApprovalRate = approvalRate ?? (approvalsSent > 0 ? Math.round((approvalsApproved / approvalsSent) * 100) : 0);
     return {
       widgetViews,
       widgetClicks,
@@ -112,9 +143,9 @@ const Analytics = () => {
       approvalsSent,
       approvalsApproved,
       approvalsRejected,
-      conversionRate: approvalsSent ? Math.round((approvalsApproved / approvalsSent) * 1000) / 10 : 0,
+      conversionRate: computedApprovalRate,
     };
-  }, [filtered]);
+  }, [filtered, sentCount, approvedCount, approvalRate]);
 
   const bySource = useMemo(() => {
     const map = new Map<string, { source: string; views: number; clicks: number; submits: number; approvals: number }>();
