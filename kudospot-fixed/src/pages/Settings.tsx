@@ -138,36 +138,43 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="border-t pt-5">
-                <Label>Public Wall of Love</Label>
-                <p className="text-xs text-muted-foreground mt-0.5 mb-3">Your public page to showcase all approved testimonials.</p>
-                <div className="flex items-center gap-2">
-                  <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono flex-1 truncate">
-                    {window.location.origin}/wall/{user?.id}
-                  </div>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/wall/${user?.id}`);
-                      toast.success("Link copied!");
-                    }}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => window.open(`/wall/${user?.id}`, "_blank")}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
               <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
+
+              <div className="mt-8 pt-6 border-t">
+                <h3 className="text-sm font-medium mb-4">Your public pages</h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">
+                      Wall of Love URL
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-muted rounded-md px-3 py-2 text-sm font-mono truncate">
+                        https://kudospot.pages.dev/wall/{user?.id}
+                      </div>
+                      <Button 
+                        type="button"
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => { 
+                          navigator.clipboard.writeText(`https://kudospot.pages.dev/wall/${user?.id}`); 
+                          toast.success("Wall of Love URL copied!"); 
+                        }} 
+                      > 
+                        <Copy className="h-3.5 w-3.5" /> 
+                      </Button> 
+                      <Button 
+                        type="button"
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => window.open(`https://kudospot.pages.dev/wall/${user?.id}`, "_blank")} 
+                      > 
+                        <ExternalLink className="h-3.5 w-3.5" /> 
+                      </Button> 
+                    </div> 
+                  </div> 
+                </div> 
+              </div>
             </form>
           </Card>
         </TabsContent>
