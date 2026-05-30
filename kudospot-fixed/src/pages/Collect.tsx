@@ -391,19 +391,19 @@ const Collect = () => {
             <Card className="p-16 text-center text-muted-foreground">No forms yet. Create one to start collecting.</Card>
           ) : (
             <div className="grid gap-4">
-              {forms.map((f) => (
-                <Card key={f.id} className="p-5">
+              {forms.map((form) => (
+                <Card key={form.id} className="p-5">
                   <div className="flex items-center justify-between mb-3 gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      {f.logo_url && <img src={f.logo_url} alt="" className="h-8 w-8 object-contain rounded border bg-white p-0.5" />}
+                      {form.logo_url && <img src={form.logo_url} alt="" className="h-8 w-8 object-contain rounded border bg-white p-0.5" />}
                       <div className="min-w-0">
                         <div className="font-semibold truncate flex items-center gap-2">
-                          {f.form_name}
-                          {f.campaign && <span className="text-[10px] uppercase tracking-wide bg-primary-light text-primary px-1.5 py-0.5 rounded font-semibold">{f.campaign}</span>}
+                          {form.form_name}
+                          {form.campaign && <span className="text-[10px] uppercase tracking-wide bg-primary-light text-primary px-1.5 py-0.5 rounded font-semibold">{form.campaign}</span>}
                         </div>
-                        <div className="text-xs text-muted-foreground truncate">{f.headline}</div>
+                        <div className="text-xs text-muted-foreground truncate">{form.headline}</div>
                       </div>
-                      <span className="h-3 w-3 rounded-full border shrink-0" style={{ background: f.brand_color }} />
+                      <span className="h-3 w-3 rounded-full border shrink-0" style={{ background: form.brand_color }} />
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <Button
@@ -412,29 +412,29 @@ const Collect = () => {
                         onClick={() =>
                           setQrModal({
                             open: true,
-                            formUrl: `https://kudospot.pages.dev/collect/${f.public_slug}`,
-                            formName: f.form_name,
+                            formUrl: `https://kudospot.pages.dev/collect/${form.public_slug}`,
+                            formName: form.form_name,
                           })
                         }
                       >
                         <QrCode className="h-3.5 w-3.5 mr-1" />
-                        QR Code
+                        QR
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => startEdit(f)}>Edit</Button>
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeForm(f.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="sm" onClick={() => startEdit(form)}>Edit</Button>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeForm(form.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 bg-secondary/50 p-2 rounded-lg mb-2">
                     <div className="text-xs font-semibold uppercase text-muted-foreground px-1 min-w-[60px]">Form</div>
-                    <code className="text-xs flex-1 truncate">{publicUrl(f.public_slug)}</code>
-                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(publicUrl(f.public_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" onClick={() => window.open(publicUrl(f.public_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>
+                    <code className="text-xs flex-1 truncate">{publicUrl(form.public_slug)}</code>
+                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(publicUrl(form.public_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => window.open(publicUrl(form.public_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>
                   </div>
                   <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-lg">
                     <div className="text-xs font-semibold uppercase text-primary px-1 min-w-[60px]">Wall</div>
-                    <code className="text-xs flex-1 truncate">{wallUrl(f.public_slug)}</code>
-                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => { navigator.clipboard.writeText(wallUrl(f.public_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => window.open(wallUrl(f.public_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>
+                    <code className="text-xs flex-1 truncate">{wallUrl(form.public_slug)}</code>
+                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => { navigator.clipboard.writeText(wallUrl(form.public_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => window.open(wallUrl(form.public_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>
                   </div>
                 </Card>
               ))}
