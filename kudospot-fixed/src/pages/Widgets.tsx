@@ -107,6 +107,49 @@ const Widgets = () => {
                 <div><Label>Accent color</Label><Input type="color" value={form.settings.primary_color} onChange={(e) => setForm({ ...form, settings: { ...form.settings, primary_color: e.target.value } })} /></div>
                 <div><Label>Campaign tag</Label><Input value={form.campaign} onChange={(e) => setForm({ ...form, campaign: e.target.value })} placeholder="e.g. spring-launch" /></div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Corner radius</Label>
+                  <Select
+                    value={String(form.settings.radius)}
+                    onValueChange={(v) => setForm({ ...form, settings: { ...form.settings, radius: Number(v) } })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Sharp (0px)</SelectItem>
+                      <SelectItem value="6">Subtle (6px)</SelectItem>
+                      <SelectItem value="12">Rounded (12px)</SelectItem>
+                      <SelectItem value="20">Rounder (20px)</SelectItem>
+                      <SelectItem value="9999">Pill (full)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col">
+                  <Label className="mb-2">Preview</Label>
+                  <div
+                    className="flex-1 border p-3 flex flex-col gap-2"
+                    style={{ borderRadius: form.settings.radius, borderColor: form.settings.primary_color, borderWidth: 1 }}
+                  >
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <svg key={i} xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill={form.settings.primary_color}>
+                          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-tight line-clamp-2">Great product, loved every bit of it!</p>
+                    <div className="flex items-center gap-1.5 mt-auto pt-2 border-t" style={{ borderColor: `${form.settings.primary_color}33` }}>
+                      <div className="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style={{ background: form.settings.primary_color }}>
+                        A
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-semibold">Alex M.</div>
+                        <div className="text-[9px] text-muted-foreground">CEO, Acme</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <Button type="submit" className="w-full">Create widget</Button>
             </form>
           </DialogContent>
@@ -125,6 +168,13 @@ const Widgets = () => {
                     {w.widget_name}
                     {w.campaign && <span className="text-[10px] uppercase tracking-wide bg-primary-light text-primary px-1.5 py-0.5 rounded font-semibold">{w.campaign}</span>}
                   </div>
+                  {(w.settings as any)?.primary_color && (
+                    <span
+                      className="inline-block h-3 w-3 rounded-full border border-white shadow-sm"
+                      style={{ background: (w.settings as any).primary_color }}
+                      title={(w.settings as any).primary_color}
+                    />
+                  )}
                   <div className="text-xs text-muted-foreground capitalize">{w.widget_type} · {w.testimonial_ids?.length || 0} testimonials · {w.views} views</div>
                 </div>
                 <div className="flex gap-2">
