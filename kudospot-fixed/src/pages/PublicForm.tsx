@@ -10,6 +10,7 @@ import { Star, Check } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/track";
+import { Helmet } from "react-helmet";
 
 const PublicForm = () => {
   const { slug } = useParams();
@@ -90,10 +91,19 @@ const PublicForm = () => {
 
   const accent = form.brand_color || "#7C3AED";
   const questions: string[] = Array.isArray(form.questions) ? form.questions : [];
+  const pageTitle = form.form_name || form.headline || "Share your experience";
+  const pageDesc = form.subheadline || `Share your experience with ${pageTitle}.`;
 
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-secondary/30 p-4">
+        <Helmet>
+          <title>{pageTitle}</title>
+          <meta name="description" content={pageDesc} />
+          <meta property="og:title" content={pageTitle} />
+          <meta property="og:description" content={pageDesc} />
+          <meta name="robots" content="noindex" />
+        </Helmet>
         <Card className="max-w-md w-full p-10 text-center">
           {form.logo_url && <img src={form.logo_url} alt="Logo" className="h-12 mx-auto mb-4 object-contain" />}
           <div className="h-14 w-14 rounded-full mx-auto mb-4 flex items-center justify-center text-white" style={{ background: accent }}>
@@ -107,6 +117,13 @@ const PublicForm = () => {
 
   return (
     <div className="min-h-screen bg-secondary/30 py-10 px-4">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <Card className="max-w-xl mx-auto p-8">
         {form.logo_url ? (
           <img src={form.logo_url} alt="Logo" className="h-12 mb-5 object-contain" />
