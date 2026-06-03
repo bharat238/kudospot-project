@@ -58,7 +58,7 @@ const PublicForm = () => {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("testimonials").insert({
+      const { data: insertedData, error } = await supabase.from("testimonials").insert({
         user_id: form.user_id,
         customer_name: data.customer_name,
         customer_role: data.customer_role || null,
@@ -69,12 +69,15 @@ const PublicForm = () => {
         source: "form",
         status: "pending",
         campaign: form.campaign || null,
-      });
+      }).select("id").single();
       if (error) {
         toast.error(error.message);
         return;
       }
       trackEvent({ user_id: form.user_id, event_type: "form_submit", entity_id: form.id, entity_type: "form", campaign: form.campaign });
+      if (insertedData?.id) {
+        supabase.functions.invoke("notify-owner", { body: { testimonial_id: insertedData.id } }).catch(() => {});
+      }
       setSubmitted(true);
     } finally {
       // keep submit button disabled for 3s to avoid double clicks
