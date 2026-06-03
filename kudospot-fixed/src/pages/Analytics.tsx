@@ -83,8 +83,15 @@ const Analytics = () => {
         .eq("approval_status", "approved");
       console.log("Approved count:", approvedCountResponse, "Error:", approvedError);
 
+      const { count: eventApprovalCount } = await supabase
+        .from("analytics_events")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("event_type", "approval_approved");
+      console.log("Approval event count:", eventApprovalCount);
+
       const sent = sentCountResponse || 0;
-      const approved = approvedCountResponse || 0;
+      const approved = Math.max(approvedCountResponse || 0, eventApprovalCount || 0);
       setSentCount(sent);
       setApprovedCount(approved);
       setApprovalRate(sent > 0 ? Math.round((approved / sent) * 100) : 0);

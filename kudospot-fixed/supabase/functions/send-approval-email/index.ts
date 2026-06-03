@@ -5,6 +5,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// In-memory rate limiter — resets on cold start, good enough for edge
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+    return false;
+  }
+  if (entry.count >= 5) return true;
+  entry.count++;
+  return false;
+}
+
 Deno.serve(async (req) => {
   console.log("STEP 1: Function handler called");
   console.log("Method:", req.method);
@@ -12,6 +27,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     console.log("STEP 2: OPTIONS request");
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limiting — must be before any other processing
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  if (isRateLimited(ip)) {
+    return new Response(
+      JSON.stringify({ error: "Too many requests. Try again in a minute." }),
+      {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 
   try {

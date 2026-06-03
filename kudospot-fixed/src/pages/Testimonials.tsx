@@ -102,6 +102,13 @@ const Testimonials = () => {
       const { error } = await supabase.from("testimonials").update({ approved_text: text, status: "approved", approved_at: new Date().toISOString() }).eq("id", t.id);
       if (error) throw error;
       toast.success("Testimonial approved!");
+      trackEvent({
+        user_id: user!.id,
+        event_type: "approval_approved",
+        entity_id: t.id,
+        entity_type: "approval",
+        campaign: t.campaign ?? undefined,
+      });
       
       // Feature 9: Trigger approval email
       if (t.customer_email && t.ai_rewritten_text) {
