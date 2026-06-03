@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, CheckSquare, Search, Send, Mail } from "lucide-react";
+import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, CheckSquare, Search, Send, Mail, Download } from "lucide-react";
 import { trackEvent } from "@/lib/track";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
@@ -212,6 +212,62 @@ const Testimonials = () => {
     load();
   };
 
+  const exportCSV = () => {
+    if (filtered.length === 0) {
+      toast.error("No testimonials to export.");
+      return;
+    }
+
+    const headers = [
+      "customer_name",
+      "customer_role",
+      "customer_company",
+      "customer_email",
+      "rating",
+      "status",
+      "source",
+      "campaign",
+      "original_text",
+      "ai_rewritten_text",
+      "approved_text",
+      "created_at",
+    ];
+
+    const escape = (val: any): string => {
+      if (val === null || val === undefined) return "";
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = filtered.map((t) =>
+      [
+        escape(t.customer_name),
+        escape(t.customer_role),
+        escape(t.customer_company),
+        escape(t.customer_email),
+        escape(t.rating),
+        escape(t.status),
+        escape(t.source),
+        escape(t.campaign),
+        escape(t.original_text),
+        escape(t.ai_rewritten_text),
+        escape(t.approved_text),
+        escape(t.created_at),
+      ].join(",")
+    );
+
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+    link.download = `kudospot-testimonials-${filter}-${date}.csv`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filtered.length} testimonial${filtered.length === 1 ? "" : "s"} as CSV`);
+  };
+
   return (
     <AppShell>
       <div className="mb-8 flex items-center justify-between">
@@ -219,40 +275,45 @@ const Testimonials = () => {
           <h1 className="text-3xl font-bold mb-1">Testimonials</h1>
           <p className="text-muted-foreground">Collect, rewrite, approve.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Add testimonial</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>New testimonial</DialogTitle></DialogHeader>
-            <form onSubmit={addTestimonial} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Customer name *</Label><Input required value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></div>
-                <div><Label>Role</Label><Input value={form.customer_role} onChange={(e) => setForm({ ...form, customer_role: e.target.value })} /></div>
-              </div>
-              <div><Label>Company</Label><Input value={form.customer_company} onChange={(e) => setForm({ ...form, customer_company: e.target.value })} /></div>
-              <div>
-                <Label>Customer email</Label>
-                <Input
-                  type="email"
-                  placeholder="customer@example.com"
-                  value={form.customer_email}
-                  onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Add email to send automatic approval requests</p>
-              </div>
-              <div><Label>Rating</Label>
-                <div className="flex gap-1 mt-1">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button type="button" key={n} onClick={() => setForm({ ...form, rating: n })}>
-                      <Star className={`h-6 w-6 ${n <= form.rating ? "fill-warning text-warning" : "text-muted"}`} />
-                    </button>
-                  ))}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCSV} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 mr-1" /> Export CSV
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Add testimonial</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>New testimonial</DialogTitle></DialogHeader>
+              <form onSubmit={addTestimonial} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Customer name *</Label><Input required value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></div>
+                  <div><Label>Role</Label><Input value={form.customer_role} onChange={(e) => setForm({ ...form, customer_role: e.target.value })} /></div>
                 </div>
-              </div>
-              <div><Label>Testimonial *</Label><Textarea required rows={5} value={form.original_text} onChange={(e) => setForm({ ...form, original_text: e.target.value })} placeholder="Paste the original testimonial here…" /></div>
-              <Button type="submit" className="w-full">Add</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <div><Label>Company</Label><Input value={form.customer_company} onChange={(e) => setForm({ ...form, customer_company: e.target.value })} /></div>
+                <div>
+                  <Label>Customer email</Label>
+                  <Input
+                    type="email"
+                    placeholder="customer@example.com"
+                    value={form.customer_email}
+                    onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Add email to send automatic approval requests</p>
+                </div>
+                <div><Label>Rating</Label>
+                  <div className="flex gap-1 mt-1">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button type="button" key={n} onClick={() => setForm({ ...form, rating: n })}>
+                        <Star className={`h-6 w-6 ${n <= form.rating ? "fill-warning text-warning" : "text-muted"}`} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div><Label>Testimonial *</Label><Textarea required rows={5} value={form.original_text} onChange={(e) => setForm({ ...form, original_text: e.target.value })} placeholder="Paste the original testimonial here…" /></div>
+                <Button type="submit" className="w-full">Add</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6">
