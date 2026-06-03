@@ -16,6 +16,7 @@ const Dashboard = () => {
   const [recent, setRecent] = useState<any[]>([]);
   const [profile, setProfile] = useState<any | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [wallSlug, setWallSlug] = useState<string | null>(null);
 
   const reloadProfile = async () => {
     if (!user) return;
@@ -27,6 +28,16 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     reloadProfile();
+    // Fetch wall slug from collection_forms
+    supabase
+      .from("collection_forms")
+      .select("public_slug")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.public_slug) setWallSlug(data.public_slug);
+      });
     (async () => {
       const { data } = await supabase
         .from("testimonials")
@@ -77,18 +88,20 @@ const Dashboard = () => {
             </div> 
             <div> 
               <p className="font-medium text-sm">Your Wall of Love is live</p> 
-              <p className="text-xs text-muted-foreground font-mono truncate max-w-xs"> 
-                kudospot.pages.dev/wall/{user?.id} 
-              </p> 
-            </div> 
-          </div> 
-          <div className="flex items-center gap-2"> 
+              <p className="text-xs text-muted-foreground font-mono truncate max-w-xs">
+                {wallSlug ? `kudospot.pages.dev/wall/${wallSlug}` : "Wall URL loading..."}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
             <Button 
               size="sm" 
               variant="outline" 
+              disabled={!wallSlug}
               onClick={() => { 
+                if (!wallSlug) return;
                 navigator.clipboard.writeText( 
-                  `https://kudospot.pages.dev/wall/${user?.id}` 
+                  `https://kudospot.pages.dev/wall/${wallSlug}` 
                 ); 
                 toast.success("Wall of Love URL copied!"); 
               }} 
@@ -98,8 +111,9 @@ const Dashboard = () => {
             <Button 
               size="sm" 
               variant="outline" 
-              onClick={() => window.open( 
-                `https://kudospot.pages.dev/wall/${user?.id}`,  
+              disabled={!wallSlug}
+              onClick={() => wallSlug && window.open( 
+                `https://kudospot.pages.dev/wall/${wallSlug}`,
                 "_blank" 
               )} 
             > 

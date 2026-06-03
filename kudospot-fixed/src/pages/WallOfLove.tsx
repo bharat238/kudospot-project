@@ -9,28 +9,43 @@ import { toast } from "sonner";
 import { Helmet } from "react-helmet";
 
 const WallOfLove = () => {
-  const { userId } = useParams();
+  const { slug } = useParams();
   const [profile, setProfile] = useState<any>(null);
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!userId) return;
+      if (!slug) return;
       setLoading(true);
       try {
-        // Fetch profile and testimonials in parallel using the userId from URL
+        // Step 1: resolve slug → user_id via collection_forms
+        const { data: formData, error: formErr } = await supabase
+          .from("collection_forms")
+          .select("user_id")
+          .eq("public_slug", slug)
+          .maybeSingle();
+
+        if (formErr || !formData) {
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        const resolvedUserId = formData.user_id;
+
+        // Step 2: fetch profile and testimonials in parallel using resolved user_id
         const [profileRes, testimonialsRes] = await Promise.all([
-          supabase.from("profiles").select("business_name, business_logo_url").eq("id", userId).maybeSingle(),
+          supabase.from("profiles").select("business_name, business_logo_url").eq("id", resolvedUserId).maybeSingle(),
           supabase.from("testimonials")
             .select("id, customer_name, customer_role, customer_company, customer_avatar_url, approved_text, ai_rewritten_text, original_text, rating, created_at")
-            .eq("user_id", userId)
+            .eq("user_id", resolvedUserId)
             .eq("status", "approved")
             .order("created_at", { ascending: false })
         ]);
 
         if (profileRes.error) throw profileRes.error;
-        
+
         setProfile(profileRes.data);
         setTestimonials(testimonialsRes.data || []);
       } catch (err) {
@@ -41,7 +56,7 @@ const WallOfLove = () => {
     };
 
     fetchData();
-  }, [userId]);
+  }, [slug]);
 
   const share = () => {
     navigator.clipboard.writeText(window.location.href);
