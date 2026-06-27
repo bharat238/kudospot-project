@@ -1,4 +1,4 @@
-project_id = "albijxdjlsxukluhciuc"
+project_id = "ybbocvdmpjrhivybiatp"
 
 [functions.rewrite-testimonial]
 verify_jwt = true
