@@ -39,3 +39,9 @@ CREATE POLICY "Public read testimonials via token or publish" ON public.testimon
     OR EXISTS (SELECT 1 FROM public.widgets w WHERE w.is_published = true AND testimonials.id = ANY(w.testimonial_ids))
     OR EXISTS (SELECT 1 FROM public.case_studies c WHERE c.is_published = true AND testimonials.id = ANY(c.testimonial_ids))
   );
+
+-- Case study view counter RPC (called from PublicCaseStudy.tsx)
+CREATE OR REPLACE FUNCTION public.increment_case_study_views(cs_id UUID)
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  UPDATE public.case_studies SET views = COALESCE(views, 0) + 1 WHERE id = cs_id;
+$$;

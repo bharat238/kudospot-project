@@ -76,9 +76,15 @@ const PublicForm = () => {
         return;
       }
       trackEvent({ user_id: form.user_id, event_type: "form_submit", entity_id: form.id, entity_type: "form", campaign: form.campaign });
-      if (insertedData?.id) {
-        supabase.functions.invoke("notify-owner", { body: { testimonial_id: insertedData.id } }).catch(() => {});
-      }
+      // Fire-and-forget owner notification — do not await, never block the submit
+      supabase.functions.invoke("notify-owner", {
+        body: {
+          user_id: form.user_id,
+          customer_name: data.customer_name,
+          testimonial_snippet: data.original_text,
+          form_name: form.form_name || "KudoSpot form",
+        },
+      }).catch(() => {/* silent — owner notification is non-critical */});
       setSubmitted(true);
     } finally {
       // keep submit button disabled for 3s to avoid double clicks

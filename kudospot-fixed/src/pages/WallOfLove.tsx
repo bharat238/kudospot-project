@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Star, Share2, Loader2, Quote } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { toast } from "sonner";
-import { Helmet } from "react-helmet";
 
 const WallOfLove = () => {
   const { slug } = useParams();
@@ -58,6 +57,25 @@ const WallOfLove = () => {
     fetchData();
   }, [slug]);
 
+  const businessName = profile?.business_name || "Our Business";
+  const testimonialCount = testimonials.length;
+
+  useEffect(() => {
+    if (!profile) return;
+    const bName = profile.business_name || "Our Business";
+    document.title = `${bName} — Wall of Love`;
+    const setMeta = (name: string, content: string, prop = false) => {
+      const attr = prop ? "property" : "name";
+      let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null;
+      if (!el) { el = document.createElement("meta"); el.setAttribute(attr, name); document.head.appendChild(el); }
+      el.setAttribute("content", content);
+    };
+    setMeta("description", `Read what customers say about ${bName}.`);
+    setMeta("og:title", `${bName} — Wall of Love`, true);
+    setMeta("og:description", `${testimonials.length} happy customers can't be wrong.`, true);
+    return () => { document.title = "KudoSpot — Turn testimonials into revenue"; };
+  }, [profile, testimonials.length]);
+
   const share = () => {
     navigator.clipboard.writeText(window.location.href);
     toast.success("Link copied to clipboard!");
@@ -83,17 +101,8 @@ const WallOfLove = () => {
     );
   }
 
-  const businessName = profile.business_name || "Our Business";
-  const testimonialCount = testimonials.length;
-
   return (
     <div className="min-h-screen bg-[#faf5ff] flex flex-col font-sans">
-      <Helmet>
-        <title>{businessName} — Wall of Love</title>
-        <meta name="description" content={`Read what customers say about ${businessName}.`} />
-        <meta property="og:title" content={`${businessName} — Wall of Love`} />
-        <meta property="og:description" content={`${testimonialCount} happy customers can't be wrong.`} />
-      </Helmet>
 
       <header className="py-16 px-4 text-center max-w-4xl mx-auto w-full">
         {profile.business_logo_url && (
