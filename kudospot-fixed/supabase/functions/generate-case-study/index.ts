@@ -5,6 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Sanitize user text before sending to AI — prevent prompt injection
+function sanitizeForAI(text: string, maxLength = 3000): string {
+  return text
+    .slice(0, maxLength)
+    .replace(/ignore previous instructions/gi, "[filtered]")
+    .replace(/system prompt/gi, "[filtered]")
+    .replace(/you are now/gi, "[filtered]")
+    .trim();
+}
+
 // Simple in-memory rate limiter (resets on cold start — good enough for edge)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
@@ -58,7 +68,7 @@ Deno.serve(async (req) => {
     }
 
     const testimonialBlock = testimonials.map((t, i) =>
-      `--- Testimonial ${i + 1} ---\nFrom: ${t.customer_name}${t.customer_role ? `, ${t.customer_role}` : ""}${t.customer_company ? ` at ${t.customer_company}` : ""}\nRating: ${t.rating ?? "n/a"}\n${t.approved_text || t.ai_rewritten_text || t.original_text}`
+      `--- Testimonial ${i + 1} ---\nFrom: ${t.customer_name}${t.customer_role ? `, ${t.customer_role}` : ""}${t.customer_company ? ` at ${t.customer_company}` : ""}\nRating: ${t.rating ?? "n/a"}\n${sanitizeForAI(t.approved_text || t.ai_rewritten_text || t.original_text || '')}`
     ).join("\n\n");
 
     const systemPrompt = `You are a world-class B2B case study writer. Transform customer testimonials into a compelling Problem → Solution → Results case study. NEVER fabricate stats not implied by the testimonials. Use confident, active language. You MUST respond with valid JSON only — no markdown, no preamble, no explanation. Return a JSON object with exactly these keys: title, challenge, solution, results, key_stats (array of 3 strings), pull_quote, about_client.`;
@@ -66,7 +76,7 @@ Deno.serve(async (req) => {
     const userPrompt = `Business: ${profile?.business_name || "the business"}
 Brand voice: ${profile?.brand_voice || "professional"}
 Client: ${client_name || "the client"}
-${context ? `Context: ${context}` : ""}
+${context ? `Context: ${sanitizeForAI(context)}` : ""}
 
 Testimonials:
 ${testimonialBlock}
@@ -74,7 +84,7 @@ ${testimonialBlock}
 Generate the case study as JSON only.`;
 
     const apiKey = Deno.env.get("GROQ_API_KEY");
-    if (!apiKey) return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured in Supabase secrets." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!apiKey) return new Response(JSON.stringify({ error: "AI service temporarily unavailable. Please try again later." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const aiResp = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",

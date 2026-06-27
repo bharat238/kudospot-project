@@ -25,3 +25,8 @@ dist-ssr
 
 # Local environment secret files
 .env
+.env.local
+.env.*.local
+node_modules/
+dist/
+.supabase/

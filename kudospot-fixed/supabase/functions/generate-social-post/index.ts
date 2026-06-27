@@ -5,6 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Sanitize user text before sending to AI — prevent prompt injection
+function sanitizeForAI(text: string, maxLength = 3000): string {
+  return text
+    .slice(0, maxLength)
+    .replace(/ignore previous instructions/gi, "[filtered]")
+    .replace(/system prompt/gi, "[filtered]")
+    .replace(/you are now/gi, "[filtered]")
+    .trim();
+}
+
 // Simple in-memory rate limiter (resets on cold start — good enough for edge)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
@@ -83,14 +93,14 @@ Business: ${profile?.business_name || "our business"}
 Brand voice: ${profile?.brand_voice || "professional"}
 Customer: ${t.customer_name}${t.customer_role ? `, ${t.customer_role}` : ""}${t.customer_company ? ` at ${t.customer_company}` : ""}
 Testimonial:
-"${text}"
+"${sanitizeForAI(text || '')}"
 
 Write the post.`;
 
     const apiKey = Deno.env.get("GROQ_API_KEY");
     if (!apiKey) {
       console.error("GROQ_API_KEY not found in env");
-      return new Response(JSON.stringify({ error: "GROQ_API_KEY not configured in Supabase secrets." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "AI service temporarily unavailable. Please try again later." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     console.log("Calling Groq API...");

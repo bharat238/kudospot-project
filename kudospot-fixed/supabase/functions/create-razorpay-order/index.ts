@@ -5,6 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) { rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 }); return false; }
+  if (entry.count >= 10) return true;
+  entry.count++;
+  return false;
+}
+
 const PLAN_AMOUNTS: Record<string, number> = {
   starter: 49900,  // ₹499 in paise
   pro: 129900,     // ₹1299 in paise
@@ -12,6 +22,11 @@ const PLAN_AMOUNTS: Record<string, number> = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  if (isRateLimited(ip)) {
+    return new Response(JSON.stringify({ error: "Too many requests. Try again in a minute." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
