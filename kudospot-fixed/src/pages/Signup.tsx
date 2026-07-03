@@ -16,6 +16,10 @@ const GoogleIcon = () => (
   </svg>
 );
 
+function isPasswordStrong(pw: string): boolean {
+  return pw.length >= 8 && /[a-zA-Z]/.test(pw) && /[0-9]/.test(pw);
+}
+
 const Signup = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -27,6 +31,10 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isPasswordStrong(password)) {
+      toast.error("Password must be at least 8 characters and include both a letter and a number.");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email, password,
@@ -36,7 +44,16 @@ const Signup = () => {
       },
     });
     setLoading(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      const msg = error.message.toLowerCase();
+      const isDuplicate = msg.includes("already registered") || msg.includes("already exists") || msg.includes("user already");
+      toast.error(
+        isDuplicate
+          ? "Unable to create an account with these details. If you already have one, try logging in instead."
+          : error.message
+      );
+      return;
+    }
     toast.success("Welcome to KudoSpot!");
     navigate("/dashboard");
   };
@@ -86,7 +103,8 @@ const Signup = () => {
             </div>
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input id="password" type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <p className="text-xs text-muted-foreground mt-1">At least 8 characters, with a letter and a number.</p>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating…" : "Create account"}
