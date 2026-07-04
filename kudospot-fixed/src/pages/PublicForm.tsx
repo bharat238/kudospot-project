@@ -59,20 +59,25 @@ const PublicForm = () => {
 
     setSubmitting(true);
     try {
-      const { data: insertedData, error } = await supabase.from("testimonials").insert({
-        user_id: form.user_id,
-        customer_name: data.customer_name,
-        customer_role: data.customer_role || null,
-        customer_company: data.customer_company || null,
-        customer_email: data.customer_email || null,
-        original_text: data.original_text,
-        rating: form.collect_rating ? data.rating : null,
-        source: "form",
-        status: "pending",
-        campaign: form.campaign || null,
-      }).select("id").single();
+      const { data: responseData, error } = await supabase.functions.invoke("submit-testimonial", {
+        body: {
+          user_id: form.user_id,
+          customer_name: data.customer_name,
+          customer_role: data.customer_role || null,
+          customer_company: data.customer_company || null,
+          customer_email: data.customer_email || null,
+          original_text: data.original_text,
+          rating: form.collect_rating ? data.rating : null,
+          campaign: form.campaign || null,
+        },
+      });
       if (error) {
-        toast.error(error.message);
+        const status = (error as any)?.status;
+        if (status === 429) {
+          toast.error("Too many submissions — please wait a minute and try again.");
+        } else {
+          toast.error("Something went wrong. Please try again.");
+        }
         return;
       }
       trackEvent({ user_id: form.user_id, event_type: "form_submit", entity_id: form.id, entity_type: "form", campaign: form.campaign });
