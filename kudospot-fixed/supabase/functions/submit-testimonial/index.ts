@@ -68,12 +68,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: form, error: formError } = await supabase
+    const { data: forms, error: formError } = await supabase
       .from("collection_forms")
       .select("id")
       .eq("user_id", user_id)
       .eq("is_active", true)
-      .maybeSingle();
+      .limit(1);
 
     if (formError) {
       console.error("submit-testimonial form lookup error", formError);
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!form) {
+    if (!forms || forms.length === 0) {
       return new Response(
         JSON.stringify({ error: "No active form found for this user." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
