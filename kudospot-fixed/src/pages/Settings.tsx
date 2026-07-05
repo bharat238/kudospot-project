@@ -91,12 +91,13 @@ const Settings = () => {
         <p className="text-muted-foreground">Profile, branding, and billing.</p>
       </div>
 
-      <Tabs defaultValue="profile" className="max-w-2xl">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="billing">Billing</TabsTrigger>
+      <Tabs defaultValue="profile" className="flex flex-col lg:flex-row gap-8">
+        <TabsList className="flex flex-row lg:flex-col gap-1 lg:w-48 lg:shrink-0 h-fit bg-transparent p-0">
+          <TabsTrigger value="profile" className="justify-start w-full data-[state=active]:bg-primary-light data-[state=active]:text-primary rounded-lg px-3 py-2 text-sm font-medium">Profile</TabsTrigger>
+          <TabsTrigger value="billing" className="justify-start w-full data-[state=active]:bg-primary-light data-[state=active]:text-primary rounded-lg px-3 py-2 text-sm font-medium">Billing</TabsTrigger>
         </TabsList>
 
+        <div className="flex-1 max-w-2xl">
         <TabsContent value="profile">
           <Card className="p-6">
             <form onSubmit={save} className="space-y-5">
@@ -219,6 +220,7 @@ const Settings = () => {
             </Card>
           </div>
         </TabsContent>
+        </div>
       </Tabs>
     </AppShell>
   );

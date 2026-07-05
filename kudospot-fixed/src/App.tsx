@@ -28,6 +28,13 @@ import WallOfLove from "./pages/WallOfLove";
 import NotFound from "./pages/NotFound.tsx";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Pricing from "./pages/Pricing";
+import Affiliates from "./pages/Affiliates";
+import Contact from "./pages/Contact";
+import Changelog from "./pages/Changelog";
+import Help from "./pages/Help";
+import VsSenja from "./pages/compare/VsSenja";
+import ForFreelancers from "./pages/for/Freelancers";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +68,13 @@ const App = () => (
             <Route path="/upgrade" element={<ProtectedRoute><Upgrade /></ProtectedRoute>} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/affiliates" element={<Affiliates />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/changelog" element={<Changelog />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/compare/senja" element={<VsSenja />} />
+            <Route path="/for/freelancers" element={<ForFreelancers />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

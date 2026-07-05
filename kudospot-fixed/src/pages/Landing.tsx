@@ -199,16 +199,44 @@ const Landing = () => {
       </section>
 
       <footer className="border-t border-border/60 py-10 text-sm text-muted-foreground">
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 font-medium text-foreground">
-            <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-5 w-5" />
-            KudoSpot
+        <div className="container mx-auto grid md:grid-cols-4 gap-8 mb-8">
+          <div>
+            <div className="flex items-center gap-2 font-medium text-foreground mb-4">
+              <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-5 w-5" />
+              KudoSpot
+            </div>
+            <p className="text-xs">Built for founders who want proof that works.</p>
           </div>
-          <p className="text-xs">© {new Date().getFullYear()} KudoSpot. Built for founders who want proof that works.</p>
-          <div className="flex items-center gap-6 text-xs">
-            <Link to="/privacy" className="hover:text-foreground transition">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-foreground transition">Terms of Service</Link>
-            <a href="mailto:hello@kudospot.io" className="hover:text-foreground transition">Contact</a>
+          <div>
+            <div className="font-medium text-foreground mb-3">Product</div>
+            <div className="space-y-2 text-xs">
+              <Link to="/pricing" className="hover:text-foreground transition block">Pricing</Link>
+              <Link to="/changelog" className="hover:text-foreground transition block">Changelog</Link>
+              <a href="mailto:hello@kudospot.io" className="hover:text-foreground transition block">Feature request</a>
+            </div>
+          </div>
+          <div>
+            <div className="font-medium text-foreground mb-3">Company</div>
+            <div className="space-y-2 text-xs">
+              <Link to="/contact" className="hover:text-foreground transition block">Contact</Link>
+              <Link to="/affiliates" className="hover:text-foreground transition block">Affiliates</Link>
+              <a href="mailto:hello@kudospot.io" className="hover:text-foreground transition block">Email us</a>
+            </div>
+          </div>
+          <div>
+            <div className="font-medium text-foreground mb-3">Resources</div>
+            <div className="space-y-2 text-xs">
+              <Link to="/help" className="hover:text-foreground transition block">Help & FAQ</Link>
+              <Link to="/privacy" className="hover:text-foreground transition block">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-foreground transition block">Terms of Service</Link>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-border/60 pt-6 flex flex-col md:flex-row items-center justify-between">
+          <p className="text-xs">© {new Date().getFullYear()} KudoSpot. All rights reserved.</p>
+          <div className="flex items-center gap-4 text-xs mt-4 md:mt-0">
+            <Link to="/compare/senja" className="hover:text-foreground transition">KudoSpot vs Senja</Link>
+            <Link to="/for/freelancers" className="hover:text-foreground transition">For Freelancers</Link>
           </div>
         </div>
       </footer>
