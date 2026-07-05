@@ -284,7 +284,7 @@ const Testimonials = () => {
             <DialogContent>
               <DialogHeader><DialogTitle>New testimonial</DialogTitle></DialogHeader>
               <form onSubmit={addTestimonial} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div><Label>Customer name *</Label><Input required value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></div>
                   <div><Label>Role</Label><Input value={form.customer_role} onChange={(e) => setForm({ ...form, customer_role: e.target.value })} /></div>
                 </div>

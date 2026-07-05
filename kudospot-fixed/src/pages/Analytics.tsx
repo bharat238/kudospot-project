@@ -508,34 +508,36 @@ const Analytics = () => {
             {bySource.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">No traffic yet — share a widget or form to start tracking.</p>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="text-xs text-muted-foreground uppercase border-b">
-                  <tr>
-                    <th className="text-left py-2 font-medium">Source</th>
-                    <th className="text-right py-2 font-medium">Views</th>
-                    <th className="text-right py-2 font-medium">Clicks</th>
-                    <th className="text-right py-2 font-medium">Submits</th>
-                    <th className="text-right py-2 font-medium">Approvals</th>
-                    <th className="text-right py-2 font-medium">Conv. rate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bySource.map((r) => {
-                    const total = r.views + r.submits;
-                    const conv = total ? Math.round(((r.clicks + r.approvals) / total) * 1000) / 10 : 0;
-                    return (
-                      <tr key={r.source} className="border-b last:border-0">
-                        <td className="py-2.5 font-medium">{r.source}</td>
-                        <td className="text-right">{r.views}</td>
-                        <td className="text-right">{r.clicks}</td>
-                        <td className="text-right">{r.submits}</td>
-                        <td className="text-right text-success font-medium">{r.approvals}</td>
-                        <td className="text-right">{conv}%</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-muted-foreground uppercase border-b">
+                    <tr>
+                      <th className="text-left py-2 font-medium">Source</th>
+                      <th className="text-right py-2 font-medium">Views</th>
+                      <th className="text-right py-2 font-medium">Clicks</th>
+                      <th className="text-right py-2 font-medium">Submits</th>
+                      <th className="text-right py-2 font-medium">Approvals</th>
+                      <th className="text-right py-2 font-medium">Conv. rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bySource.map((r) => {
+                      const total = r.views + r.submits;
+                      const conv = total ? Math.round(((r.clicks + r.approvals) / total) * 1000) / 10 : 0;
+                      return (
+                        <tr key={r.source} className="border-b last:border-0">
+                          <td className="py-2.5 font-medium">{r.source}</td>
+                          <td className="text-right">{r.views}</td>
+                          <td className="text-right">{r.clicks}</td>
+                          <td className="text-right">{r.submits}</td>
+                          <td className="text-right text-success font-medium">{r.approvals}</td>
+                          <td className="text-right">{conv}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </Card>
 
@@ -547,31 +549,33 @@ const Analytics = () => {
             {byCampaign.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">Add a campaign tag to your forms or widgets to compare.</p>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="text-xs text-muted-foreground uppercase border-b">
-                  <tr>
-                    <th className="text-left py-2 font-medium">Campaign</th>
-                    <th className="text-right py-2 font-medium">Views</th>
-                    <th className="text-right py-2 font-medium">Submits</th>
-                    <th className="text-right py-2 font-medium">Approvals</th>
-                    <th className="text-right py-2 font-medium">Conv. rate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {byCampaign.map((r) => {
-                    const conv = r.submits ? Math.round((r.approvals / r.submits) * 1000) / 10 : 0;
-                    return (
-                      <tr key={r.campaign} className="border-b last:border-0">
-                        <td className="py-2.5 font-medium">{r.campaign}</td>
-                        <td className="text-right">{r.views}</td>
-                        <td className="text-right">{r.submits}</td>
-                        <td className="text-right text-success font-medium">{r.approvals}</td>
-                        <td className="text-right">{conv}%</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-muted-foreground uppercase border-b">
+                    <tr>
+                      <th className="text-left py-2 font-medium">Campaign</th>
+                      <th className="text-right py-2 font-medium">Views</th>
+                      <th className="text-right py-2 font-medium">Submits</th>
+                      <th className="text-right py-2 font-medium">Approvals</th>
+                      <th className="text-right py-2 font-medium">Conv. rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {byCampaign.map((r) => {
+                      const conv = r.submits ? Math.round((r.approvals / r.submits) * 1000) / 10 : 0;
+                      return (
+                        <tr key={r.campaign} className="border-b last:border-0">
+                          <td className="py-2.5 font-medium">{r.campaign}</td>
+                          <td className="text-right">{r.views}</td>
+                          <td className="text-right">{r.submits}</td>
+                          <td className="text-right text-success font-medium">{r.approvals}</td>
+                          <td className="text-right">{conv}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </Card>
 

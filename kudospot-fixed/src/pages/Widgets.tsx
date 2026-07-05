@@ -103,11 +103,11 @@ const Widgets = () => {
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Accent color</Label><Input type="color" value={form.settings.primary_color} onChange={(e) => setForm({ ...form, settings: { ...form.settings, primary_color: e.target.value } })} /></div>
                 <div><Label>Campaign tag</Label><Input value={form.campaign} onChange={(e) => setForm({ ...form, campaign: e.target.value })} placeholder="e.g. spring-launch" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>Corner radius</Label>
                   <Select

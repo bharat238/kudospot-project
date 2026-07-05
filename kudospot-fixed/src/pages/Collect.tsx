@@ -321,7 +321,7 @@ const Collect = () => {
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>{editing ? "Edit form" : "New collection form"}</DialogTitle></DialogHeader>
                 <form onSubmit={saveForm} className="space-y-5">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><Label>Form name (internal)</Label><Input required value={form.form_name} onChange={(e) => setForm({ ...form, form_name: e.target.value })} placeholder="e.g. Post-purchase ask" /></div>
                     <div><Label>Campaign tag</Label><Input value={form.campaign || ""} onChange={(e) => setForm({ ...form, campaign: e.target.value })} placeholder="e.g. spring-launch" /></div>
                   </div>
@@ -345,7 +345,7 @@ const Collect = () => {
                         </label>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <Label>Brand color</Label>
                         <div className="flex gap-2 mt-1">
