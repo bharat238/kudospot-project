@@ -9,6 +9,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Testimonials from "./pages/Testimonials";
 import Settings from "./pages/Settings";
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/collect/:slug" element={<PublicForm />} />
             <Route path="/approve/:token" element={<Approve />} />
             <Route path="/decline/:token" element={<Decline />} />

@@ -68,7 +68,7 @@ const Login = () => {
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-1.5">
                 <Label htmlFor="password">Password</Label>
                 <Link to="/forgot-password" className="text-xs text-primary hover:underline">Forgot password?</Link>
               </div>
