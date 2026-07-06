@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, X, GripVertical, Zap, Copy, ExternalLink } from "lucide-react";
+import { Plus, X, GripVertical, Zap, Copy, ExternalLink, HelpCircle, Mail, FileText, Shield } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { PLAN_LIMITS, type PlanName } from "@/hooks/usePlanLimits";
 
@@ -91,10 +92,11 @@ const Settings = () => {
         <p className="text-muted-foreground">Profile, branding, and billing.</p>
       </div>
 
-      <Tabs defaultValue="profile" className="flex flex-col lg:flex-row gap-8">
-        <TabsList className="flex flex-row lg:flex-col gap-1 lg:w-48 lg:shrink-0 h-fit bg-transparent p-0">
+      <Tabs defaultValue="profile" className="flex flex-col lg:flex-row gap-6">
+        <TabsList className="flex flex-row lg:flex-col gap-1 lg:w-44 lg:shrink-0 h-fit bg-transparent p-0 lg:border-r lg:border-border lg:pr-6">
           <TabsTrigger value="profile" className="justify-start w-full data-[state=active]:bg-primary-light data-[state=active]:text-primary rounded-lg px-3 py-2 text-sm font-medium">Profile</TabsTrigger>
           <TabsTrigger value="billing" className="justify-start w-full data-[state=active]:bg-primary-light data-[state=active]:text-primary rounded-lg px-3 py-2 text-sm font-medium">Billing</TabsTrigger>
+          <TabsTrigger value="support" className="justify-start w-full data-[state=active]:bg-primary-light data-[state=active]:text-primary rounded-lg px-3 py-2 text-sm font-medium">Support</TabsTrigger>
         </TabsList>
 
         <div className="flex-1 max-w-2xl">
@@ -219,6 +221,53 @@ const Settings = () => {
               </div>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="support">
+          <Card className="p-6">
+            <div className="mb-6">
+              <h2 className="font-semibold text-lg mb-1">Support & Legal</h2>
+              <p className="text-xs text-muted-foreground">Get help, share feedback, or review our policies.</p>
+            </div>
+            <div className="space-y-2">
+              <Link to="/help">
+                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Help & FAQ</span>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </Link>
+              <Link to="/contact">
+                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Contact us</span>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </Link>
+              <Link to="/privacy">
+                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Privacy Policy</span>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </Link>
+              <Link to="/terms">
+                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Terms of Service</span>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </Link>
+            </div>
+          </Card>
         </TabsContent>
         </div>
       </Tabs>
