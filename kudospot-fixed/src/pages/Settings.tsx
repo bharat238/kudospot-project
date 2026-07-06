@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, X, GripVertical, Zap, Copy, ExternalLink, HelpCircle, Mail, FileText, Shield } from "lucide-react";
+import { Plus, X, GripVertical, Zap, Copy, ChevronRight, HelpCircle, Mail, FileText, Shield } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { PLAN_LIMITS, type PlanName } from "@/hooks/usePlanLimits";
 
@@ -145,42 +146,42 @@ const Settings = () => {
           <Card className="p-6">
             <p className="text-xs text-muted-foreground mb-6">Get help, share feedback, or review our policies.</p>
             <div className="space-y-2">
-              <a href="/help" target="_blank" rel="noopener noreferrer">
+              <Link to="/help">
                 <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
                   <div className="flex items-center gap-3">
                     <HelpCircle className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">Help & FAQ</span>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
-              </a>
-              <a href="/contact" target="_blank" rel="noopener noreferrer">
+              </Link>
+              <Link to="/contact">
                 <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
                   <div className="flex items-center gap-3">
                     <Mail className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">Contact us</span>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
-              </a>
-              <a href="/privacy" target="_blank" rel="noopener noreferrer">
+              </Link>
+              <Link to="/privacy">
                 <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
                   <div className="flex items-center gap-3">
                     <Shield className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">Privacy Policy</span>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
-              </a>
-              <a href="/terms" target="_blank" rel="noopener noreferrer">
+              </Link>
+              <Link to="/terms">
                 <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm font-medium">Terms of Service</span>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
-              </a>
+              </Link>
             </div>
           </Card>
         </div>
