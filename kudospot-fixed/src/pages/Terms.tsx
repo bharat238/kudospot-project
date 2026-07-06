@@ -1,17 +1,27 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Terms() {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b py-4 px-6 flex items-center gap-4">
-        <Link to="/">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <KudoSpotIcon className="h-4 w-4" /> KudoSpot
-          </Button>
-        </Link>
-        <span className="text-muted-foreground text-sm">/ Terms of Service</span>
+      <header className="border-b py-4 px-6 flex items-center gap-4 justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <KudoSpotIcon className="h-4 w-4" /> KudoSpot
+            </Button>
+          </Link>
+          <span className="text-muted-foreground text-sm">/ Terms of Service</span>
+        </div>
+        {user ? (
+          <Link to="/dashboard">
+            <Button variant="outline" size="sm">Back to Dashboard</Button>
+          </Link>
+        ) : null}
       </header>
       <main className="max-w-3xl mx-auto py-12 px-6">
         <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>

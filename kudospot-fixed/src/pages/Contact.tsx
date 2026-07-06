@@ -2,8 +2,11 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Mail, MessageSquare, Zap } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Contact = () => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
@@ -14,12 +17,20 @@ const Contact = () => {
             KudoSpot
           </Link>
           <div className="flex items-center gap-3">
-            <Link to="/login">
-              <Button variant="ghost" size="sm">Log in</Button>
-            </Link>
-            <Link to="/signup">
-              <Button size="sm">Get started</Button>
-            </Link>
+            {user ? (
+              <Link to="/dashboard">
+                <Button variant="outline" size="sm">Back to Dashboard</Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" size="sm">Log in</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">Get started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

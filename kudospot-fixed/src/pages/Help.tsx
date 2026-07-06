@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useAuth } from "@/contexts/AuthContext";
 
 const categories = [
   {
@@ -69,6 +70,8 @@ const categories = [
 ];
 
 const Help = () => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
@@ -79,12 +82,20 @@ const Help = () => {
             KudoSpot
           </Link>
           <div className="flex items-center gap-3">
-            <Link to="/login">
-              <Button variant="ghost" size="sm">Log in</Button>
-            </Link>
-            <Link to="/signup">
-              <Button size="sm">Get started</Button>
-            </Link>
+            {user ? (
+              <Link to="/dashboard">
+                <Button variant="outline" size="sm">Back to Dashboard</Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" size="sm">Log in</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">Get started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
