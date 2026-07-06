@@ -48,6 +48,7 @@ const Analytics = () => {
   const [sentCount, setSentCount] = useState<number | null>(null);
   const [approvedCount, setApprovedCount] = useState<number | null>(null);
   const [approvalRate, setApprovalRate] = useState<number | null>(null);
+  const [widgetNames, setWidgetNames] = useState<Record<string, string>>({});
 
   const loadEvents = useCallback(async () => {
     if (!user) return;
@@ -106,6 +107,21 @@ const Analytics = () => {
   }, [user, range]);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchWidgetNames = async () => {
+      const { data } = await supabase.from("widgets").select("id, name").eq("user_id", user.id);
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((w: any) => {
+          map[w.id] = w.name;
+        });
+        setWidgetNames(map);
+      }
+    };
+    fetchWidgetNames();
+  }, [user]);
 
   // Apply client-side filters
   const filtered = useMemo(() => {
@@ -319,13 +335,20 @@ const Analytics = () => {
 
   const chartDataByDay = useMemo(() => {
     const grouped: Record<string, number> = {};
+    const rawTimestampMap: Record<string, number> = {};
     filtered
       .filter((e) => e.event_type === "form_submit" || e.event_type === "approval_approved")
       .forEach((e) => {
         const d = new Date(e.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
         grouped[d] = (grouped[d] || 0) + 1;
+        if (!rawTimestampMap[d]) {
+          rawTimestampMap[d] = new Date(e.created_at).getTime();
+        }
       });
-    return Object.entries(grouped).map(([date, count]) => ({ date, count }));
+    return Object.entries(grouped)
+      .map(([date, count]) => ({ date, count, _sortKey: rawTimestampMap[date] }))
+      .sort((a, b) => a._sortKey - b._sortKey)
+      .map(({ date, count }) => ({ date, count }));
   }, [filtered]);
 
   const widgetChartData = useMemo(() => {
@@ -334,12 +357,12 @@ const Analytics = () => {
       .filter((e) => e.event_type === "widget_view" || e.event_type === "widget_click")
       .forEach((e) => {
         const key = e.entity_id || "unknown";
-        if (!grouped[key]) grouped[key] = { widget: key.slice(0, 8) + "…", views: 0, clicks: 0 };
+        if (!grouped[key]) grouped[key] = { widget: widgetNames[key] || (key.slice(0, 8) + "…"), views: 0, clicks: 0 };
         if (e.event_type === "widget_view") grouped[key].views++;
         else grouped[key].clicks++;
       });
     return Object.values(grouped);
-  }, [filtered]);
+  }, [filtered, widgetNames]);
 
   const sparkMax = Math.max(1, ...sparkline.map((b) => b.widgetViews + b.caseViews + b.approvals));
   const filterLabel = [
@@ -451,17 +474,17 @@ const Analytics = () => {
                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
                   {campaignFilter === "__none__" ? "untagged" : campaignFilter}
                 </span>
-              ) : byCampaign.length === 0 ? (
+              ) : byCampaign.filter((c) => c.approvals > 0).length === 0 ? (
                 <span className="text-xs text-muted-foreground">none tagged</span>
               ) : (
-                byCampaign.slice(0, 8).map((c) => (
+                byCampaign.filter((c) => c.approvals > 0).slice(0, 8).map((c) => (
                   <span key={c.campaign} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
                     {c.campaign} <span className="text-muted-foreground">· {c.approvals}</span>
                   </span>
                 ))
               )}
-              {byCampaign.length > 8 && campaignFilter === ALL && (
-                <span className="text-xs text-muted-foreground">+{byCampaign.length - 8} more</span>
+              {byCampaign.filter((c) => c.approvals > 0).length > 8 && campaignFilter === ALL && (
+                <span className="text-xs text-muted-foreground">+{byCampaign.filter((c) => c.approvals > 0).length - 8} more</span>
               )}
             </div>
             {filterLabel && (

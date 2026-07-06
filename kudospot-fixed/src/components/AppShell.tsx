@@ -97,7 +97,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         </Sheet>
       </header>
 
-      <main className="flex-1 md:ml-60 p-4 md:p-8 max-w-6xl pt-20 md:pt-8">{children}</main>
+      <main className="flex-1 md:ml-60 p-4 md:p-8 max-w-6xl pt-20 md:pt-8 overflow-x-hidden min-w-0">{children}</main>
     </div>
   );
 };

@@ -270,7 +270,7 @@ const Testimonials = () => {
 
   return (
     <AppShell>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold mb-1">Testimonials</h1>
           <p className="text-muted-foreground">Collect, rewrite, approve.</p>
@@ -318,13 +318,15 @@ const Testimonials = () => {
 
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <Tabs value={filter} onValueChange={setFilter} className="flex-1">
-          <TabsList>
-            <TabsTrigger value="all">All ({items.length})</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="ai_rewritten">Rewritten</TabsTrigger>
-            <TabsTrigger value="approved">Approved</TabsTrigger>
-            <TabsTrigger value="rejected">Rejected</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList>
+              <TabsTrigger value="all">All ({items.length})</TabsTrigger>
+              <TabsTrigger value="pending">Pending</TabsTrigger>
+              <TabsTrigger value="ai_rewritten">Rewritten</TabsTrigger>
+              <TabsTrigger value="approved">Approved</TabsTrigger>
+              <TabsTrigger value="rejected">Rejected</TabsTrigger>
+            </TabsList>
+          </div>
         </Tabs>
         <div className="relative w-full md:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
