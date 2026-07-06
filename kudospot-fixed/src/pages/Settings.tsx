@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,15 +90,10 @@ const Settings = () => {
         <p className="text-muted-foreground">Profile, branding, and billing.</p>
       </div>
 
-      <Tabs defaultValue="profile" className="flex flex-col lg:flex-row gap-6">
-        <TabsList className="flex flex-row lg:flex-col gap-1 lg:w-44 lg:shrink-0 h-fit bg-transparent p-0 lg:border-r lg:border-border lg:pr-6">
-          <TabsTrigger value="profile" className="justify-start w-full data-[state=active]:bg-primary-light data-[state=active]:text-primary rounded-lg px-3 py-2 text-sm font-medium">Profile</TabsTrigger>
-          <TabsTrigger value="billing" className="justify-start w-full data-[state=active]:bg-primary-light data-[state=active]:text-primary rounded-lg px-3 py-2 text-sm font-medium">Billing</TabsTrigger>
-          <TabsTrigger value="support" className="justify-start w-full data-[state=active]:bg-primary-light data-[state=active]:text-primary rounded-lg px-3 py-2 text-sm font-medium">Support</TabsTrigger>
-        </TabsList>
-
-        <div className="flex-1 max-w-2xl">
-        <TabsContent value="profile">
+      <div className="max-w-2xl space-y-6">
+        {/* Profile Section */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Profile</h2>
           <Card className="p-6">
             <form onSubmit={save} className="space-y-5">
               <div><Label>Your name</Label><Input value={profile.full_name || ""} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} /></div>
@@ -144,9 +137,57 @@ const Settings = () => {
               <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
             </form>
           </Card>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="billing">
+        {/* Support & Legal Section */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Support & Legal</h2>
+          <Card className="p-6">
+            <p className="text-xs text-muted-foreground mb-6">Get help, share feedback, or review our policies.</p>
+            <div className="space-y-2">
+              <a href="/help" target="_blank" rel="noopener noreferrer">
+                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Help & FAQ</span>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </a>
+              <a href="/contact" target="_blank" rel="noopener noreferrer">
+                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Contact us</span>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </a>
+              <a href="/privacy" target="_blank" rel="noopener noreferrer">
+                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Privacy Policy</span>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </a>
+              <a href="/terms" target="_blank" rel="noopener noreferrer">
+                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Terms of Service</span>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </a>
+            </div>
+          </Card>
+        </div>
+
+        {/* Billing Section */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Billing</h2>
           <div className="space-y-4">
             <Card className="p-6">
               <div className="flex items-start justify-between mb-3">
@@ -221,56 +262,8 @@ const Settings = () => {
               </div>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="support">
-          <Card className="p-6">
-            <div className="mb-6">
-              <h2 className="font-semibold text-lg mb-1">Support & Legal</h2>
-              <p className="text-xs text-muted-foreground">Get help, share feedback, or review our policies.</p>
-            </div>
-            <div className="space-y-2">
-              <Link to="/help">
-                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">Help & FAQ</span>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </Link>
-              <Link to="/contact">
-                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">Contact us</span>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </Link>
-              <Link to="/privacy">
-                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <Shield className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">Privacy Policy</span>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </Link>
-              <Link to="/terms">
-                <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">Terms of Service</span>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </Link>
-            </div>
-          </Card>
-        </TabsContent>
         </div>
-      </Tabs>
+      </div>
     </AppShell>
   );
 };
