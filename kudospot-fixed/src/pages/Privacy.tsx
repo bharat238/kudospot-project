@@ -1,10 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChevronLeft } from "lucide-react";
 
 export default function Privacy() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
@@ -18,9 +20,20 @@ export default function Privacy() {
           <span className="text-muted-foreground text-sm">/ Privacy Policy</span>
         </div>
         {user ? (
-          <Link to="/dashboard">
-            <Button variant="outline" size="sm">Back to Dashboard</Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate("/dashboard");
+              }
+            }}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
         ) : null}
       </header>
       <main className="max-w-3xl mx-auto py-12 px-6">

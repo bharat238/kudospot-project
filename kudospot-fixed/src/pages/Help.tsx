@@ -1,7 +1,8 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChevronLeft } from "lucide-react";
 
 const categories = [
   {
@@ -71,6 +72,7 @@ const categories = [
 
 const Help = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
@@ -83,9 +85,20 @@ const Help = () => {
           </Link>
           <div className="flex items-center gap-3">
             {user ? (
-              <Link to="/dashboard">
-                <Button variant="outline" size="sm">Back to Dashboard</Button>
-              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (window.history.length > 1) {
+                    navigate(-1);
+                  } else {
+                    navigate("/dashboard");
+                  }
+                }}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
             ) : (
               <>
                 <Link to="/login">
