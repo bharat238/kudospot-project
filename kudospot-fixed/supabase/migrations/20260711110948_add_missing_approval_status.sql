@@ -20,4 +20,4 @@ WHERE approval_status = 'not_sent' AND status = 'approved';
 
 UPDATE public.testimonials
 SET approval_status = 'sent'
-WHERE approval_status = 'not_sent' AND approval_email_sent_at IS NOT NULL;
+WHERE approval_status = 'not_sent' AND approval_sent_at IS NOT NULL;

@@ -352,7 +352,7 @@ export type Database = {
       testimonials: {
         Row: {
           ai_rewritten_text: string | null
-          approval_email_sent_at: string | null
+          approval_sent_at: string | null
           approval_status: string
           approval_token: string | null
           approved_at: string | null
@@ -375,7 +375,7 @@ export type Database = {
         }
         Insert: {
           ai_rewritten_text?: string | null
-          approval_email_sent_at?: string | null
+          approval_sent_at?: string | null
           approval_status?: string
           approval_token?: string | null
           approved_at?: string | null
@@ -398,7 +398,7 @@ export type Database = {
         }
         Update: {
           ai_rewritten_text?: string | null
-          approval_email_sent_at?: string | null
+          approval_sent_at?: string | null
           approval_status?: string
           approval_token?: string | null
           approved_at?: string | null
