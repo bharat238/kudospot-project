@@ -352,6 +352,9 @@ export type Database = {
       testimonials: {
         Row: {
           ai_rewritten_text: string | null
+          approval_email_sent_at: string | null
+          approval_status: string
+          approval_token: string | null
           approved_at: string | null
           approved_text: string | null
           campaign: string | null
@@ -372,6 +375,9 @@ export type Database = {
         }
         Insert: {
           ai_rewritten_text?: string | null
+          approval_email_sent_at?: string | null
+          approval_status?: string
+          approval_token?: string | null
           approved_at?: string | null
           approved_text?: string | null
           campaign?: string | null
@@ -392,6 +398,9 @@ export type Database = {
         }
         Update: {
           ai_rewritten_text?: string | null
+          approval_email_sent_at?: string | null
+          approval_status?: string
+          approval_token?: string | null
           approved_at?: string | null
           approved_text?: string | null
           campaign?: string | null
@@ -465,6 +474,10 @@ export type Database = {
       }
       increment_widget_views: {
         Args: { widget_id: string }
+        Returns: undefined
+      }
+      increment_case_study_views: {
+        Args: { cs_id: string }
         Returns: undefined
       }
     }

@@ -23,7 +23,11 @@ const CaseStudies = () => {
   const { user } = useAuth();
   const { canAddCaseStudy, showUpgradeToast } = usePlanLimits();
   const [items, setItems] = useState<Tables<"case_studies">[]>([]);
-  const [testimonials, setTestimonials] = useState<Tables<"testimonials">[]>([]);
+  type TestimonialPickerItem = Pick<
+    Tables<"testimonials">,
+    "id" | "customer_name" | "approved_text" | "ai_rewritten_text" | "original_text"
+  >;
+  const [testimonials, setTestimonials] = useState<TestimonialPickerItem[]>([]);
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [active, setActive] = useState<Tables<"case_studies"> | null>(null);

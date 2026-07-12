@@ -15,13 +15,20 @@ import { usePlanLimits } from "@/hooks/usePlanLimits";
 
 import type { Database } from "@/integrations/supabase/types";
 type SocialPost = Database["public"]["Tables"]["social_posts"]["Row"];
+type SocialPostWithTestimonial = SocialPost & {
+  customer_name: string;
+  customer_role: string | null;
+  approved_text: string | null;
+  ai_rewritten_text: string | null;
+  original_text: string | null;
+};
 
 const ICONS: Record<string, any> = { linkedin: Linkedin, instagram: Instagram, twitter: Twitter };
 
 const SocialPosts = () => {
   const { user } = useAuth();
   const { plan, canDoAIRewrite, showUpgradeToast } = usePlanLimits();
-  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [posts, setPosts] = useState<SocialPostWithTestimonial[]>([]);
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,20 +54,34 @@ const SocialPosts = () => {
       // Step 2: get unique testimonial IDs
       const testimonialIds = [...new Set((postsData || []).map(p => p.testimonial_id).filter(Boolean))];
 
-      // Step 3: fetch customer names for those testimonials
+      // Step 3: fetch the testimonial fields actually needed downstream —
+      // not just the name for the card list, but also role + quote text
+      // for the off-screen PNG graphic export (downloadGraphic/quoteText
+      // below previously referenced a `p.testimonials` join that no longer
+      // exists post-fix, silently breaking the "Download PNG" feature).
       const { data: testimonialsData } = await supabase
         .from("testimonials")
-        .select("id, customer_name")
+        .select("id, customer_name, customer_role, approved_text, ai_rewritten_text, original_text")
         .in("id", testimonialIds);
 
-      // Step 4: build a lookup map
-      const nameMap = Object.fromEntries((testimonialsData || []).map(t => [t.id, t.customer_name]) ?? []);
+      // Step 4: build a lookup map keyed by testimonial id
+      const testimonialMap = Object.fromEntries(
+        (testimonialsData || []).map((t) => [t.id, t])
+      );
 
-      // Step 5: merge into posts
-      const postsWithNames = (postsData || []).map(p => ({
-        ...p,
-        customer_name: nameMap[p.testimonial_id] ?? "—",
-      })) as (SocialPost & { customer_name: string })[];
+      // Step 5: merge the fields the UI and the PNG export both need,
+      // flat onto each post (no nested join object).
+      const postsWithNames = (postsData || []).map((p) => {
+        const source = testimonialMap[p.testimonial_id];
+        return {
+          ...p,
+          customer_name: source?.customer_name ?? "—",
+          customer_role: source?.customer_role ?? null,
+          approved_text: source?.approved_text ?? null,
+          ai_rewritten_text: source?.ai_rewritten_text ?? null,
+          original_text: source?.original_text ?? null,
+        };
+      }) as SocialPostWithTestimonial[];
 
       setPosts(postsWithNames);
 
@@ -191,7 +212,7 @@ const SocialPosts = () => {
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4 text-primary" />
                     <span className="font-semibold capitalize">{p.platform}</span>
-                    <span className="text-xs text-muted-foreground">· {(p as any).customer_name}</span>
+                    <span className="text-xs text-muted-foreground">· {p.customer_name}</span>
                   </div>
                   <div className="flex gap-1">
                     <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(p.caption_text); toast.success("Caption copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
@@ -224,14 +245,14 @@ const SocialPosts = () => {
             <div>
               <Quote size={72} color="#7C3AED" strokeWidth={2} />
               <p style={{ fontSize: 38, fontWeight: 500, lineHeight: 1.4, marginTop: 32, color: "#222" }}>
-                "{quoteText(p.testimonials)}"
+                "{quoteText(p)}"
               </p>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
               <div>
-                <div style={{ fontSize: 28, fontWeight: 700 }}>{p.testimonials?.customer_name}</div>
-                {p.testimonials?.customer_role && (
-                  <div style={{ fontSize: 22, color: "#666", marginTop: 4 }}>{p.testimonials.customer_role}</div>
+                <div style={{ fontSize: 28, fontWeight: 700 }}>{p.customer_name}</div>
+                {p.customer_role && (
+                  <div style={{ fontSize: 22, color: "#666", marginTop: 4 }}>{p.customer_role}</div>
                 )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>

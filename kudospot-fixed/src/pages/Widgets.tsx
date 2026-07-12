@@ -25,7 +25,11 @@ const Widgets = () => {
   const { user } = useAuth();
   const { canAddWidget, showUpgradeToast } = usePlanLimits();
   const [widgets, setWidgets] = useState<Tables<"widgets">[]>([]);
-  const [testimonials, setTestimonials] = useState<Tables<"testimonials">[]>([]);
+  type TestimonialPickerItem = Pick<
+    Tables<"testimonials">,
+    "id" | "customer_name" | "approved_text" | "ai_rewritten_text" | "original_text" | "rating"
+  >;
+  const [testimonials, setTestimonials] = useState<TestimonialPickerItem[]>([]);
   const [open, setOpen] = useState(false);
   const blank = { widget_name: "", widget_type: "wall", testimonial_ids: [] as string[], campaign: "" as string, settings: { primary_color: "#7C3AED", radius: 12 } };
   const [form, setForm] = useState<any>(blank);

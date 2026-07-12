@@ -26,3 +26,10 @@ verify_jwt = true
 
 [functions.notify-owner]
 verify_jwt = false
+
+
+[functions.submit-testimonial]
+verify_jwt = false
+
+[functions.approve-testimonial]
+verify_jwt = false
