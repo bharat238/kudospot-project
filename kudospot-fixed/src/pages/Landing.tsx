@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, Megaphone, BarChart3, MessageSquareQuote, ArrowRight, Star } from "lucide-react";
+import { Check, Megaphone, BarChart3, MessageSquareQuote, ArrowRight, Star, Menu, X } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 
 const Landing = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
@@ -15,15 +19,60 @@ const Landing = () => {
             <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-8 w-8" />
             KudoSpot
           </Link>
+          
+          {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition">Features</a>
             <a href="#pricing" className="hover:text-foreground transition">Pricing</a>
             <a href="#faq" className="hover:text-foreground transition">FAQ</a>
           </nav>
-          <div className="flex items-center gap-3">
+          
+          <div className="hidden md:flex items-center gap-3">
             <Link to="/login"><Button variant="ghost" size="sm">Log in</Button></Link>
             <Link to="/signup"><Button size="sm">Get started</Button></Link>
           </div>
+          
+          {/* Mobile hamburger */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <nav className="flex flex-col gap-6 pt-10">
+                <a 
+                  href="#features" 
+                  className="text-lg font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Features
+                </a>
+                <a 
+                  href="#pricing" 
+                  className="text-lg font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Pricing
+                </a>
+                <a 
+                  href="#faq" 
+                  className="text-lg font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  FAQ
+                </a>
+                <div className="flex flex-col gap-3 mt-4">
+                  <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full">Log in</Button>
+                  </Link>
+                  <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full">Get started</Button>
+                  </Link>
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 

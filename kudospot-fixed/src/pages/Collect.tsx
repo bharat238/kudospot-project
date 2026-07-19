@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -124,6 +124,13 @@ const Collect = () => {
     loadSequences();
     loadSends();
   }, [user]);
+  
+  // Auto-select the first form when there's only one
+  useEffect(() => {
+    if (forms.length === 1 && !sendForm.form_id) {
+      setSendForm(prev => ({ ...prev, form_id: forms[0].id }));
+    }
+  }, [forms]);
 
   // ── forms CRUD ────────────────────────────────────────────────────────
   const saveForm = async (e: React.FormEvent) => {
@@ -319,7 +326,10 @@ const Collect = () => {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader><DialogTitle>{editing ? "Edit form" : "New collection form"}</DialogTitle></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle>{editing ? "Edit form" : "New collection form"}</DialogTitle>
+                  <DialogDescription>{editing ? "Update your collection form settings." : "Create a new collection form to gather testimonials."}</DialogDescription>
+                </DialogHeader>
                 <form onSubmit={saveForm} className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><Label>Form name (internal)</Label><Input required value={form.form_name} onChange={(e) => setForm({ ...form, form_name: e.target.value })} placeholder="e.g. Post-purchase ask" /></div>
@@ -451,7 +461,10 @@ const Collect = () => {
                 <Button onClick={startNewSeq}><Plus className="h-4 w-4 mr-1" /> New sequence</Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader><DialogTitle>{editingSeq ? "Edit sequence" : "New email sequence"}</DialogTitle></DialogHeader>
+                <DialogHeader>
+                  <DialogTitle>{editingSeq ? "Edit sequence" : "New email sequence"}</DialogTitle>
+                  <DialogDescription>{editingSeq ? "Update your email sequence settings." : "Create a new email sequence to request testimonials."}</DialogDescription>
+                </DialogHeader>
                 <form onSubmit={saveSeq} className="space-y-5">
                   <div>
                     <Label>Sequence name</Label>
@@ -558,7 +571,7 @@ const Collect = () => {
                     </select>
                   </div>
                 )}
-                <Button className="w-full" onClick={sendSingleRequest} disabled={sending || !sendForm.customer_email}>
+                <Button className="w-full" onClick={sendSingleRequest} disabled={sending || !sendForm.customer_name || !sendForm.customer_email}>
                   <Send className="h-4 w-4 mr-1" /> Log & copy link
                 </Button>
                 {forms.length === 0 && (

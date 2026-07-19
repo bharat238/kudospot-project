@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -119,7 +119,10 @@ const CaseStudies = () => {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Generate</Button></DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Generate case study</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Generate case study</DialogTitle>
+              <DialogDescription>Generate a new case study from your approved testimonials.</DialogDescription>
+            </DialogHeader>
             <form onSubmit={generate} className="space-y-4">
               <div><Label>Client name</Label><Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} placeholder="Acme Inc." /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -183,7 +186,10 @@ const CaseStudies = () => {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           {active && (
             <>
-              <DialogHeader><DialogTitle>Case study</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Case study</DialogTitle>
+                <DialogDescription>View and manage this case study.</DialogDescription>
+              </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Title</Label><Input value={active.title || ""} onChange={(e) => update("title", e.target.value)} /></div>

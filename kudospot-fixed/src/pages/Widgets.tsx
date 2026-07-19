@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,7 +73,10 @@ const Widgets = () => {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> New widget</Button></DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>New widget</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>New widget</DialogTitle>
+              <DialogDescription>Create a new testimonial widget to embed on your website.</DialogDescription>
+            </DialogHeader>
             <form onSubmit={create} className="space-y-4">
               <div><Label>Name</Label><Input required value={form.widget_name} onChange={(e) => setForm({ ...form, widget_name: e.target.value })} placeholder="Homepage wall" /></div>
               <div>

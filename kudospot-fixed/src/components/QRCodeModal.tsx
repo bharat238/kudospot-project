@@ -5,6 +5,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
+  DialogDescription, 
 } from "@/components/ui/dialog"; 
 import { Button } from "@/components/ui/button"; 
 import { Download, Copy, Share2 } from "lucide-react"; 
@@ -101,6 +102,7 @@ export const QRCodeModal = ({
       <DialogContent className="max-w-sm"> 
         <DialogHeader> 
           <DialogTitle>QR Code — {formName}</DialogTitle> 
+          <DialogDescription>QR code for your testimonial collection form.</DialogDescription> 
         </DialogHeader> 
  
         <div className="flex flex-col items-center gap-4 py-2"> 

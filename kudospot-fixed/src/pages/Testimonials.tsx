@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,11 +31,14 @@ const Testimonials = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<Testimonial | null>(null);
+  const [editing, setEditing] = useState<Testimonial | null>(null);
   const [rewritingIds, setRewritingIds] = useState<Set<string>>(new Set());
+  const [sendingIds, setSendingIds] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // form state
   const [form, setForm] = useState({ customer_name: "", customer_role: "", customer_company: "", customer_email: "", original_text: "", rating: 5 });
+  const [formErrors, setFormErrors] = useState<{ customer_name?: string; original_text?: string }>({});
 
   const load = async () => {
     if (!user) return;
@@ -46,6 +49,23 @@ const Testimonials = () => {
   };
 
   useEffect(() => { load(); }, [user]);
+  
+  // When editing changes, pre-fill the form
+  useEffect(() => {
+    if (editing) {
+      setForm({
+        customer_name: editing.customer_name || "",
+        customer_role: editing.customer_role || "",
+        customer_company: editing.customer_company || "",
+        customer_email: editing.customer_email || "",
+        original_text: editing.original_text || "",
+        rating: editing.rating || 5,
+      });
+      setOpen(true);
+    } else {
+      setForm({ customer_name: "", customer_role: "", customer_company: "", customer_email: "", original_text: "", rating: 5 });
+    }
+  }, [editing]);
 
   const filtered = items.filter((t) => {
     const matchesFilter = filter === "all" || t.status === filter;
@@ -61,10 +81,39 @@ const Testimonials = () => {
   const addTestimonial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!canAddTestimonial(items.length)) return showUpgradeToast("more testimonials");
-    const { error } = await supabase.from("testimonials").insert({ ...form, user_id: user.id, status: "pending", source: "manual" });
-    if (error) return toast.error(error.message);
-    toast.success("Testimonial added");
+    
+    // Validate
+    const errors: { customer_name?: string; original_text?: string } = {};
+    if (!form.customer_name.trim()) errors.customer_name = "Customer name is required";
+    if (!form.original_text.trim()) errors.original_text = "Testimonial is required";
+    
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    setFormErrors({});
+    
+    if (editing) {
+      // Update existing testimonial
+      const { error } = await supabase
+        .from("testimonials")
+        .update({ ...form })
+        .eq("id", editing.id);
+      if (error) return toast.error(error.message);
+      toast.success("Testimonial updated");
+      setEditing(null);
+    } else {
+      // Create new testimonial
+      if (!canAddTestimonial(items.length)) return showUpgradeToast("more testimonials");
+      const { error } = await supabase
+        .from("testimonials")
+        .insert({ ...form, user_id: user.id, status: "pending", source: "manual" });
+      if (error) return toast.error(error.message);
+      toast.success("Testimonial added");
+    }
+    
     setForm({ customer_name: "", customer_role: "", customer_company: "", customer_email: "", original_text: "", rating: 5 });
     setOpen(false);
     load();
@@ -123,60 +172,85 @@ const Testimonials = () => {
   };
 
   const sendApproval = async (testimonialId: string) => {
-    const { error } = await supabase.functions.invoke("send-approval-email", {
-      body: { testimonial_id: testimonialId }
-    });
-    if (error) toast.error("Failed to send approval email");
-    else {
+    if (sendingIds.has(testimonialId)) return;
+    setSendingIds(prev => new Set(prev).add(testimonialId));
+    try {
+      const { error } = await supabase.functions.invoke("send-approval-email", {
+        body: { testimonial_id: testimonialId }
+      });
+      if (error) throw error;
       toast.success("Approval email sent to customer!");
       load();
+    } catch (e: any) {
+      toast.error("Failed to send approval email");
+    } finally {
+      setSendingIds(prev => {
+        const next = new Set(prev);
+        next.delete(testimonialId);
+        return next;
+      });
     }
   };
 
   const createApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }) => {
     if (!user) return null;
+    if (sendingIds.has(t.id)) return null;
+    setSendingIds(prev => new Set(prev).add(t.id));
 
-    // If customer email exists, send via email automatically
-    if (t.customer_email && t.ai_rewritten_text) {
-      try {
-        const { data: emailData, error: emailError } = await supabase.functions.invoke("send-approval-email", {
-          body: { testimonial_id: t.id },
-        });
-        if (emailError) throw emailError;
-        trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
-        if (!opts?.silent) {
-          if (emailData?.approval_url) {
-            await navigator.clipboard.writeText(emailData.approval_url);
-            toast.success(emailData.message || "Approval email sent! Link also copied to clipboard.");
-          } else {
-            toast.success("Approval email sent to " + t.customer_email);
+    try {
+      // If customer email exists, send via email automatically
+      if (t.customer_email && t.ai_rewritten_text) {
+        try {
+          const { data: emailData, error: emailError } = await supabase.functions.invoke("send-approval-email", {
+            body: { testimonial_id: t.id },
+          });
+          if (emailError) throw emailError;
+          trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
+          if (!opts?.silent) {
+            if (emailData?.approval_url) {
+              await navigator.clipboard.writeText(emailData.approval_url);
+              toast.success(emailData.message || "Approval email sent! Link also copied to clipboard.");
+            } else {
+              toast.success("Approval email sent to " + t.customer_email);
+            }
           }
+          load();
+          return emailData?.approval_url || null;
+        } catch (e: any) {
+          toast.error(e.message || "Email send failed — falling back to link copy");
         }
-        return emailData?.approval_url || null;
-      } catch (e: any) {
-        toast.error(e.message || "Email send failed — falling back to link copy");
       }
-    }
 
-    // Fallback: create token and copy link manually
-    if (opts?.resend) {
-      await supabase.from("approval_tokens").update({ used_at: new Date().toISOString() }).eq("testimonial_id", t.id).is("used_at", null);
-    }
-    const { data, error } = await supabase.from("approval_tokens").insert({ testimonial_id: t.id, user_id: user.id, campaign: t.campaign || null }).select("token").single();
-    if (error) { toast.error(error.message); return null; }
-    const url = `${window.location.origin}/approve/${data.token}`;
-    await navigator.clipboard.writeText(url);
-    trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
-    if (!opts?.silent) {
-      if (!t.customer_email) {
-        toast.success("Approval link copied. No email on file — paste it and send manually.");
-      } else if (!t.ai_rewritten_text) {
-        toast.success("Approval link copied. Run AI Rewrite first for best results.");
-      } else {
-        toast.success(opts?.resend ? "Fresh link copied — old one invalidated" : "Approval link copied — share it with your customer");
+      // Fallback: create token and copy link manually
+      if (opts?.resend) {
+        await supabase.from("approval_tokens").update({ used_at: new Date().toISOString() }).eq("testimonial_id", t.id).is("used_at", null);
       }
+      const { data, error } = await supabase.from("approval_tokens").insert({ testimonial_id: t.id, user_id: user.id, campaign: t.campaign || null }).select("token").single();
+      if (error) throw error;
+      const url = `${window.location.origin}/approve/${data.token}`;
+      await navigator.clipboard.writeText(url);
+      trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
+      if (!opts?.silent) {
+        if (!t.customer_email) {
+          toast.success("Approval link copied. No email on file — paste it and send manually.");
+        } else if (!t.ai_rewritten_text) {
+          toast.success("Approval link copied. Run AI Rewrite first for best results.");
+        } else {
+          toast.success(opts?.resend ? "Fresh link copied — old one invalidated" : "Approval link copied — share it with your customer");
+        }
+      }
+      load();
+      return url;
+    } catch (e: any) {
+      toast.error(e.message || "Failed to create approval link");
+      return null;
+    } finally {
+      setSendingIds(prev => {
+        const next = new Set(prev);
+        next.delete(t.id);
+        return next;
+      });
     }
-    return url;
   };
 
   const remove = async (id: string) => {
@@ -279,13 +353,37 @@ const Testimonials = () => {
           <Button variant="outline" onClick={exportCSV} disabled={filtered.length === 0}>
             <Download className="h-4 w-4 mr-1" /> Export CSV
           </Button>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Add testimonial</Button></DialogTrigger>
+          <Dialog open={open} onOpenChange={(o) => {
+            if (!o) { setEditing(null); }
+            setOpen(o);
+          }}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditing(null)}>
+                <Plus className="h-4 w-4 mr-1" /> Add testimonial
+              </Button>
+            </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>New testimonial</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>{editing ? "Edit testimonial" : "New testimonial"}</DialogTitle>
+                <DialogDescription>{editing ? "Update the testimonial details." : "Add a new testimonial to your collection."}</DialogDescription>
+              </DialogHeader>
               <form onSubmit={addTestimonial} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><Label>Customer name *</Label><Input required value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></div>
+                  <div>
+                    <Label>Customer name *</Label>
+                    <Input 
+                      required 
+                      value={form.customer_name} 
+                      onChange={(e) => {
+                        setForm({ ...form, customer_name: e.target.value });
+                        if (formErrors.customer_name) {
+                          setFormErrors(prev => ({ ...prev, customer_name: undefined }));
+                        }
+                      }} 
+                      className={formErrors.customer_name ? "border-red-500" : ""}
+                    />
+                    {formErrors.customer_name && <p className="text-sm text-red-500 mt-1">{formErrors.customer_name}</p>}
+                  </div>
                   <div><Label>Role</Label><Input value={form.customer_role} onChange={(e) => setForm({ ...form, customer_role: e.target.value })} /></div>
                 </div>
                 <div><Label>Company</Label><Input value={form.customer_company} onChange={(e) => setForm({ ...form, customer_company: e.target.value })} /></div>
@@ -308,8 +406,24 @@ const Testimonials = () => {
                     ))}
                   </div>
                 </div>
-                <div><Label>Testimonial *</Label><Textarea required rows={5} value={form.original_text} onChange={(e) => setForm({ ...form, original_text: e.target.value })} placeholder="Paste the original testimonial here…" /></div>
-                <Button type="submit" className="w-full">Add</Button>
+                <div>
+                  <Label>Testimonial *</Label>
+                  <Textarea 
+                    required 
+                    rows={5} 
+                    value={form.original_text} 
+                    onChange={(e) => {
+                      setForm({ ...form, original_text: e.target.value });
+                      if (formErrors.original_text) {
+                        setFormErrors(prev => ({ ...prev, original_text: undefined }));
+                      }
+                    }} 
+                    placeholder="Paste the original testimonial here…" 
+                    className={formErrors.original_text ? "border-red-500" : ""}
+                  />
+                  {formErrors.original_text && <p className="text-sm text-red-500 mt-1">{formErrors.original_text}</p>}
+                </div>
+                <Button type="submit" className="w-full">{editing ? "Save changes" : "Add"}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -407,6 +521,7 @@ const Testimonials = () => {
                   <span>{active.customer_name}</span>
                   <StatusPill testimonial={active} />
                 </DialogTitle>
+                <DialogDescription>View and manage this testimonial.</DialogDescription>
               </DialogHeader>
               <div className="space-y-5">
                 <div className="text-sm text-muted-foreground">{[active.customer_role, active.customer_company].filter(Boolean).join(" · ")}</div>
@@ -416,6 +531,7 @@ const Testimonials = () => {
                   testimonial={active}
                   onResend={() => createApprovalLink(active, { resend: true })}
                   onCopy={() => createApprovalLink(active, { silent: false })}
+                  isSending={sendingIds.has(active.id)}
                 />
 
                 <div className={`grid ${active.ai_rewritten_text ? "md:grid-cols-2" : ""} gap-4`}>
@@ -445,6 +561,11 @@ const Testimonials = () => {
                 )}
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => { setActive(null); setEditing(active); }}>
+                    Edit
+                  </Button>
                   {!active.ai_rewritten_text && (
                     <Button onClick={() => rewrite(active)} disabled={rewritingIds.has(active.id)}>
                       {rewritingIds.has(active.id) ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Rewriting…</> : <><KudoSpotIcon className="h-4 w-4 mr-1" /> AI Rewrite</>}
@@ -461,9 +582,8 @@ const Testimonials = () => {
                     </Button>
                   )}
                   {active.ai_rewritten_text && active.customer_email && active.approval_status !== "approved" && (
-                    <Button variant="outline" size="sm" onClick={() => sendApproval(active.id)}>
-                      <Mail className="h-3.5 w-3.5 mr-1" />
-                      {active.approval_status === "sent" ? "Resend approval email" : "Send for approval"}
+                    <Button variant="outline" size="sm" onClick={() => sendApproval(active.id)} disabled={sendingIds.has(active.id)}>
+                      {sendingIds.has(active.id) ? <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Sending…</> : <><Mail className="h-3.5 w-3.5 mr-1" /> {active.approval_status === "sent" ? "Resend approval email" : "Send for approval"}</>}
                     </Button>
                   )}
                   <Button variant="ghost" className="text-destructive ml-auto" onClick={() => remove(active.id)}>
@@ -501,7 +621,7 @@ const StatusPill = ({ testimonial }: { testimonial: any }) => {
   return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-secondary text-muted-foreground border border-border">Pending</span>;
 };
 
-const ApprovalWorkflow = ({ testimonial, onResend, onCopy }: { testimonial: any; onResend: () => void; onCopy: () => void }) => {
+const ApprovalWorkflow = ({ testimonial, onResend, onCopy, isSending }: { testimonial: any; onResend: () => void; onCopy: () => void; isSending: boolean }) => {
   const [tokens, setTokens] = useState<any[]>([]);
   useEffect(() => {
     supabase.from("approval_tokens").select("*").eq("testimonial_id", testimonial.id).order("created_at", { ascending: false }).then(({ data }) => setTokens(data || []));
@@ -536,16 +656,16 @@ const ApprovalWorkflow = ({ testimonial, onResend, onCopy }: { testimonial: any;
       {status !== "approved" && status !== "rejected" && (
         <div className="flex flex-wrap gap-2 pt-2 border-t">
           {hasOpen ? (
-            <Button size="sm" variant="outline" onClick={onResend}>
-              <RotateCw className="h-3.5 w-3.5 mr-1" /> Resend approval link
+            <Button size="sm" variant="outline" onClick={onResend} disabled={isSending}>
+              {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RotateCw className="h-3.5 w-3.5 mr-1" />} Resend approval link
             </Button>
           ) : (
-            <Button size="sm" onClick={onCopy} disabled={!testimonial.ai_rewritten_text}>
-              <Link2 className="h-3.5 w-3.5 mr-1" /> Send approval link
+            <Button size="sm" onClick={onCopy} disabled={!testimonial.ai_rewritten_text || isSending}>
+              {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Link2 className="h-3.5 w-3.5 mr-1" />} Send approval link
             </Button>
           )}
           {tokens[0] && (
-            <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/approve/${tokens[0].token}`); toast.success("Latest link copied"); }}>
+            <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/approve/${tokens[0].token}`); toast.success("Latest link copied"); }} disabled={isSending}>
               <Copy className="h-3.5 w-3.5 mr-1" /> Copy latest
             </Button>
           )}

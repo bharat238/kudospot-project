@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,9 +34,16 @@ const SocialPosts = () => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [form, setForm] = useState({ testimonial_id: "", platform: "linkedin" });
   const graphicRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  const loadingMessages = [
+    "Analyzing testimonial...",
+    "Writing caption...",
+    "Almost done...",
+  ];
 
   const load = async () => {
     if (!user) return;
@@ -99,6 +106,17 @@ const SocialPosts = () => {
   };
 
   useEffect(() => { load(); }, [user]);
+  
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (generating) {
+      setLoadingMessageIndex(0);
+      interval = setInterval(() => {
+        setLoadingMessageIndex(prev => (prev + 1) % loadingMessages.length);
+      }, 1500);
+    }
+    return () => clearInterval(interval);
+  }, [generating]);
 
   const generate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,7 +182,10 @@ const SocialPosts = () => {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Generate</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Generate social post</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Generate social post</DialogTitle>
+              <DialogDescription>Generate a platform-specific social post from an approved testimonial.</DialogDescription>
+            </DialogHeader>
             <form onSubmit={generate} className="space-y-4">
               <div>
                 <Label>Testimonial</Label>
@@ -185,7 +206,7 @@ const SocialPosts = () => {
                 </Select>
               </div>
               <Button type="submit" disabled={generating} className="w-full">
-                {generating ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Generating…</> : <><KudoSpotIcon className="h-4 w-4 mr-1" /> Generate</>}
+                {generating ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {loadingMessages[loadingMessageIndex]}</> : <><KudoSpotIcon className="h-4 w-4 mr-1" /> Generate</>}
               </Button>
             </form>
           </DialogContent>

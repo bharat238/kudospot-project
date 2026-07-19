@@ -70,18 +70,20 @@ const Analytics = () => {
 
     // Fetch counts from testimonials table for more accurate approval metrics
     try {
+      // For "sent", count all testimonials that have been sent for approval (any status except pending, ai_rewritten before sent)
+      // For now, count all testimonials except brand new pending ones
       const { count: sentCountResponse, error: sentError } = await supabase
         .from("testimonials")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id)
-        .neq("approval_status", "not_sent");
+        .not("status", "in", "('pending')");
       console.log("Sent count:", sentCountResponse, "Error:", sentError);
 
       const { count: approvedCountResponse, error: approvedError } = await supabase
         .from("testimonials")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id)
-        .eq("approval_status", "approved");
+        .or("status.eq.approved,status.eq.published");
       console.log("Approved count:", approvedCountResponse, "Error:", approvedError);
 
       const { count: eventApprovalCount } = await supabase
@@ -545,8 +547,8 @@ const Analytics = () => {
                   </thead>
                   <tbody>
                     {bySource.map((r) => {
-                      const total = r.views + r.submits;
-                      const conv = total ? Math.round(((r.clicks + r.approvals) / total) * 1000) / 10 : 0;
+                      const total = r.views; // Use views as denominator for conversion rate
+                      const conv = total ? Math.min(100, Math.round((r.approvals / total) * 1000) / 10) : 0;
                       return (
                         <tr key={r.source} className="border-b last:border-0">
                           <td className="py-2.5 font-medium">{r.source}</td>
@@ -585,7 +587,7 @@ const Analytics = () => {
                   </thead>
                   <tbody>
                     {byCampaign.map((r) => {
-                      const conv = r.submits ? Math.round((r.approvals / r.submits) * 1000) / 10 : 0;
+                      const conv = r.submits ? Math.min(100, Math.round((r.approvals / r.submits) * 1000) / 10) : 0;
                       return (
                         <tr key={r.campaign} className="border-b last:border-0">
                           <td className="py-2.5 font-medium">{r.campaign}</td>
