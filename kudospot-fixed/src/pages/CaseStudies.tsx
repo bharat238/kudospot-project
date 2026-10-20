@@ -79,6 +79,10 @@ const CaseStudies = () => {
   const togglePublish = async (cs: CaseStudy) => {
     if (!user) return;
     const next = !cs.is_published;
+    if (next && !canAddCaseStudy(items.length)) {
+      showUpgradeToast("case studies");
+      return;
+    }
     const { error } = await supabase.from("case_studies").update({ is_published: next }).eq("id", cs.id).eq("user_id", user.id);
     if (error) return toast.error(error.message || "Publish status couldn't be changed.");
     toast.success(next ? "Case study published" : "Case study unpublished");
@@ -128,7 +132,7 @@ const CaseStudies = () => {
           <p className="text-muted-foreground">Turn approved testimonials into shareable stories.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Generate</Button></DialogTrigger>
+          <DialogTrigger asChild><Button onClick={(event) => { if (!canAddCaseStudy(items.length)) { event.preventDefault(); showUpgradeToast("case studies"); } }}><Plus className="h-4 w-4 mr-1" /> Generate</Button></DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Generate case study</DialogTitle>
