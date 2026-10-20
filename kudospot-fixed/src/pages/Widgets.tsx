@@ -258,7 +258,7 @@ const Widgets = () => {
             <Card key={widget.id} className="min-w-0 overflow-hidden rounded-2xl border-border/80 shadow-[0_2px_8px_rgba(15,23,42,0.035)]">
               <div className="flex items-start justify-between gap-3 p-5">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${accent}15`, color: (widget.settings as any)?.primary_color || DEFAULT_ACCENT }}><LayoutGrid className="h-5 w-5" /></div>
+                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${accent}15`, color: accent }}><LayoutGrid className="h-5 w-5" /></div>
                   <div className="min-w-0"><h2 className="truncate font-semibold">{widget.widget_name}</h2><p className="mt-1 text-xs capitalize text-muted-foreground">{TYPES.find((type) => type.value === widget.widget_type)?.label || widget.widget_type} · {widget.testimonial_ids?.length || 0} testimonials</p><div className="mt-2 flex flex-wrap items-center gap-2"><Badge variant={widget.is_published ? "default" : "secondary"} className={widget.is_published ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-50" : ""}>{widget.is_published ? "Published" : "Unpublished"}</Badge>{widget.campaign && <Badge variant="outline">{widget.campaign}</Badge>}</div></div>
                 </div>
                 <Button variant="ghost" size="icon" aria-label={`Delete ${widget.widget_name}`} title="Delete widget" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => void remove(widget)}><Trash2 className="h-4 w-4" /></Button>
