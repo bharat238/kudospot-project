@@ -142,6 +142,16 @@ Deno.serve(async (req) => {
       return json({ error: "Failed to submit testimonial." }, 500);
     }
 
+    const { error: analyticsError } = await supabaseAdmin.from("analytics_events").insert({
+      user_id: form.user_id,
+      event_type: "form_submit",
+      entity_id: form.id,
+      entity_type: "form",
+      source: "form",
+      campaign: form.campaign ?? null,
+    });
+    if (analyticsError) console.warn("Could not record form submission analytics:", analyticsError.message);
+
     return json({ id: inserted.id });
   } catch (error) {
     console.error("submit-testimonial failed:", error instanceof Error ? error.message : String(error));
