@@ -23,7 +23,7 @@ BEGIN
         USING ERRCODE = '42501';
     END IF;
 
-    SELECT coalesce(t.ai_rewritten_text, t.original_text)
+    SELECT coalesce(nullif(t.ai_rewritten_text, ''), t.original_text)
     INTO current_text
     FROM public.testimonials AS t
     WHERE t.id = NEW.testimonial_id
