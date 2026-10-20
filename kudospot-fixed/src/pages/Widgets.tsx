@@ -302,7 +302,7 @@ const Widgets = () => {
                             setForm({ ...form, testimonial_ids: next });
                           }} />
                           <span className="min-w-0 flex-1">
-                            <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">{testimonial.customer_name || "Customer"}{testimonial.rating && <span className="inline-flex items-center gap-0.5 text-xs text-amber-700"><Star className="h-3 w-3 fill-current" />{testimonial.rating}</span>}</span>
+                            <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">{testimonial.customer_name || "Customer"}{testimonial.rating && <span className="inline-flex items-center gap-0.5 text-xs text-[#829c2d]"><Star className="h-3 w-3 fill-current" />{testimonial.rating}</span>}</span>
                             <span className="mt-1 block line-clamp-2 text-xs leading-5 text-muted-foreground">{testimonial.approved_text || testimonial.ai_rewritten_text || testimonial.original_text}</span>
                           </span>
                         </label>
@@ -312,7 +312,7 @@ const Widgets = () => {
                 )}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-[160px_1fr_160px]">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[140px_minmax(0,1fr)_140px]">
                 <div className="space-y-2"><Label htmlFor="widget-accent">Accent color</Label><div className="flex h-10 items-center gap-2 rounded-lg border border-input bg-card px-2"><Input id="widget-accent" type="color" aria-label="Widget accent color" className="h-7 w-9 cursor-pointer border-0 bg-transparent p-0" value={form.settings.primary_color} onChange={(event) => setForm({ ...form, settings: { ...form.settings, primary_color: event.target.value } })} /><span className="text-xs font-mono text-muted-foreground">{form.settings.primary_color.toUpperCase()}</span></div></div>
                 <div className="space-y-2"><Label htmlFor="widget-campaign">Campaign tag <span className="font-normal text-muted-foreground">(optional)</span></Label><Input id="widget-campaign" maxLength={80} value={form.campaign} onChange={(event) => setForm({ ...form, campaign: event.target.value })} placeholder="Product launch, homepage..." /></div>
                 <div className="space-y-2"><Label htmlFor="widget-radius">Corners</Label><Select value={String(form.settings.radius)} onValueChange={(value) => setForm({ ...form, settings: { ...form.settings, radius: Number(value) } })}><SelectTrigger id="widget-radius"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="0">Square</SelectItem><SelectItem value="6">Subtle</SelectItem><SelectItem value="12">Rounded</SelectItem><SelectItem value="20">Extra rounded</SelectItem><SelectItem value="9999">Pill</SelectItem></SelectContent></Select></div>
