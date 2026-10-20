@@ -208,7 +208,7 @@ const Settings = () => {
                   <p className="text-sm text-muted-foreground">Your plan is active. Thank you for being a KudoSpot customer.</p>
                   <div className="mt-4 rounded-xl border border-border/70 bg-muted/40 p-4">
                     <p className="text-sm font-medium">Need to change your paid plan?</p>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">Paid plans are currently purchased with a one-time Razorpay payment and do not auto-renew. Contact support for a downgrade or billing review.</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">Paid plans grant 30 days of access per payment and do not auto-renew. Renew from Upgrade when you need another period, or contact support for billing help.</p>
                     <Button asChild variant="outline" size="sm" className="mt-3">
                       <a href="mailto:hello@kudospot.io?subject=KudoSpot%20billing%20support">Contact billing support</a>
                     </Button>
