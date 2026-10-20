@@ -658,7 +658,7 @@ const Testimonials = () => {
 const StatusPill = ({ testimonial }: { testimonial: any }) => {
   const { status, approval_status } = testimonial;
 
-  if (approval_status === "approved" || status === "published") {
+  if (approval_status === "approved") {
     return <span className="inline-flex items-center rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-success">Customer approved</span>;
   }
   if (approval_status === "declined" || status === "declined" || status === "rejected") {
@@ -696,7 +696,7 @@ const ApprovalWorkflow = ({ testimonial, refreshKey, onResend, onCopy, isSending
   }, [testimonial.id, testimonial.user_id, refreshKey]);
 
   const hasOpen = tokens.some((token) => !token.used_at);
-  const customerApproved = testimonial.approval_status === "approved" || testimonial.status === "published";
+  const customerApproved = testimonial.approval_status === "approved";
   const customerDeclined = testimonial.approval_status === "declined" || testimonial.status === "declined" || testimonial.status === "rejected";
   const customerResponded = customerApproved || customerDeclined;
   const waiting = testimonial.approval_status === "sent" || hasOpen;
