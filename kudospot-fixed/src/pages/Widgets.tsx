@@ -163,7 +163,7 @@ const Widgets = () => {
     setForm({
       widget_name: widget.widget_name || "",
       widget_type: widget.widget_type || "wall",
-      testimonial_ids: Array.isArray(widget.testimonial_ids) ? widget.testimonial_ids : [],
+      testimonial_ids: Array.isArray(widget.testimonial_ids) ? widget.testimonial_ids.filter((id) => testimonials.some((testimonial) => testimonial.id === id)) : [],
       campaign: widget.campaign || "",
       settings: {
         primary_color: typeof storedColor === "string" && /^#[0-9a-fA-F]{6}$/.test(storedColor) ? storedColor : DEFAULT_ACCENT,
