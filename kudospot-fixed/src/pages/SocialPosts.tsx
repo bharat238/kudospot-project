@@ -101,7 +101,7 @@ const SocialPosts = () => {
       setCaptionDrafts(Object.fromEntries(postsWithNames.map((post) => [post.id, post.caption_text || ""])));
 
       const [{ data: t }, { data: pr }] = await Promise.all([
-        supabase.from("testimonials").select("id, customer_name").eq("user_id", user.id).in("status", ["approved", "published"]),
+        supabase.from("testimonials").select("id, customer_name").eq("user_id", user.id).or("approval_status.eq.approved,status.eq.published"),
         supabase.from("profiles").select("business_name, business_logo_url").eq("id", user.id).maybeSingle(),
       ]);
       setTestimonials(t || []); setProfile(pr || null);
