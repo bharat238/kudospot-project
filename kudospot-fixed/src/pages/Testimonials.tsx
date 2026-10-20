@@ -306,41 +306,44 @@ const Testimonials = () => {
   const bulkApprove = async () => {
     if (!user || selected.size === 0 || bulkApproving) return;
 
-    const selectedItems = items.filter((item) => selected.has(item.id));
-    const sendable = selectedItems.filter((item) =>
-      Boolean(item.customer_email?.trim()) &&
+    const selectedItems = items.filter((item) =>
+      selected.has(item.id) &&
       item.approval_status !== "approved" &&
       item.approval_status !== "declined" &&
       item.status !== "declined" &&
+      item.status !== "rejected" &&
       item.status !== "published"
     );
-    const skipped = selectedItems.length - sendable.length;
-    if (sendable.length === 0) {
-      toast.error("Each selected testimonial needs a valid customer email before you can request approval.");
+    const skipped = selected.size - selectedItems.length;
+    if (selectedItems.length === 0) {
+      toast.error("Select testimonials that still need customer approval.");
       return;
     }
 
     setBulkApproving(true);
     try {
-      const results = await Promise.all(sendable.map(async (item) => {
-        try {
-          const { data, error } = await supabase.functions.invoke("send-approval-email", {
-            body: { testimonial_id: item.id },
-          });
-          if (error || !data?.success) return { item, success: false, manualShare: false, url: null };
-          trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: item.id, entity_type: "approval", campaign: item.campaign ?? undefined });
-          return { item, success: true };
-        } catch {
-          return { item, success: false };
-        }
+      const results = await Promise.all(selectedItems.map(async (item) => {
+        const result = await createApprovalLink(item, { silent: true });
+        return {
+          item,
+          success: Boolean(result?.emailSent),
+          manualShare: Boolean(result?.requiresManualShare && result.url),
+        };
       }));
 
-      const sent = results.filter((result) => result.success).length;
+      const emailed = results.filter((result) => result.success).length;
       const manualShare = results.filter((result) => result.manualShare).length;
-      const failed = results.filter((result) => !result.success && !result.manualShare).length;
-      if (sent > 0) toast.success(sent + " customer approval request" + (sent === 1 ? "" : "s") + " emailed. Testimonials remain private until customers approve.");
-      if (manualShare > 0) toast.error(manualShare + " approval link" + (manualShare === 1 ? " was" : "s were") + " created, but email delivery failed. Open each testimonial and copy the latest link to share manually.");
-      if (failed > 0 || skipped > 0) toast.error(failed + " request" + (failed === 1 ? "" : "s") + " failed and " + skipped + " item" + (skipped === 1 ? "" : "s") + " skipped. Check customer emails and retry.");
+      const failed = results.length - emailed - manualShare;
+
+      if (emailed > 0) {
+        toast.success(emailed + " customer approval request" + (emailed === 1 ? " was" : "s were") + " emailed. Testimonials remain private until customers approve.");
+      }
+      if (manualShare > 0) {
+        toast.error(manualShare + " approval link" + (manualShare === 1 ? " was" : "s were") + " created for manual sharing. Open each testimonial and use Copy latest to share the link.");
+      }
+      if (failed > 0 || skipped > 0) {
+        toast.error(failed + " request" + (failed === 1 ? "" : "s") + " failed and " + skipped + " item" + (skipped === 1 ? "" : "s") + " skipped. Check the testimonial details and retry.");
+      }
 
       setSelected(new Set());
       await load();
