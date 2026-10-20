@@ -95,7 +95,7 @@ const Dashboard = () => {
     total: testimonials.length,
     pending: testimonials.filter((item) => item.status === "pending" || item.status === "ai_rewritten").length,
     rewritten: testimonials.filter((item) => Boolean(item.ai_rewritten_text)).length,
-    approved: testimonials.filter((item) => item.approval_status === "approved" || item.status === "published").length,
+    approved: testimonials.filter((item) => item.approval_status === "approved").length,
     widgetViews: widgets.reduce((sum, widget) => sum + Number(widget.views || 0), 0),
     widgetClicks: widgets.reduce((sum, widget) => sum + Number(widget.clicks || 0), 0),
     activeForms: forms.filter((form) => form.is_active).length,
