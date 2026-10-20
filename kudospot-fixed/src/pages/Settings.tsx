@@ -94,7 +94,8 @@ const Settings = () => {
         <p className="text-muted-foreground">Profile, branding, and billing.</p>
       </div>
 
-      <div className="grid max-w-6xl grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">\n        <div className="min-w-0 space-y-6">
+      <div className="grid max-w-6xl grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="min-w-0 space-y-6">
         {/* Profile Section */}
         <div>
           <h2 className="text-lg font-semibold mb-3">Profile</h2>
@@ -143,7 +144,8 @@ const Settings = () => {
           </Card>
         </div>
 
-        </div>\n        <div className="min-w-0 space-y-6">\n        {/* Support & Legal Section */}
+        </div>
+        <div className="min-w-0 space-y-6">\n        {/* Support & Legal Section */}
         <div>
           <h2 className="text-lg font-semibold mb-3">Support & Legal</h2>
           <Card className="p-6">
