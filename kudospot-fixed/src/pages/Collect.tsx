@@ -56,17 +56,56 @@ const DEFAULT_SEQ_EMAILS = [
 
 // ─── helper to parse a simple CSV ──────────────────────────────────────────
 const parseCSV = (text: string): { name: string; email: string }[] => {
-  const lines = text.trim().split("\n");
-  if (lines.length < 2) return [];
-  const header = lines[0].toLowerCase().split(",").map((h) => h.trim());
-  const nameIdx = header.findIndex((h) => h.includes("name"));
-  const emailIdx = header.findIndex((h) => h.includes("email"));
+  // Handle quoted values (including commas and escaped quotes), BOMs and CRLF files.
+  const source = text.replace(/^\uFEFF/, "");
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (quoted) {
+      if (char === '"' && source[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"' && field.length === 0) {
+      quoted = true;
+    } else if (char === ",") {
+      row.push(field.trim());
+      field = "";
+    } else if (char === "\n") {
+      row.push(field.trim());
+      if (row.some((value) => value.length > 0)) rows.push(row);
+      row = [];
+      field = "";
+    } else if (char !== "\r") {
+      field += char;
+    }
+  }
+
+  row.push(field.trim());
+  if (row.some((value) => value.length > 0)) rows.push(row);
+  if (rows.length < 2) return [];
+
+  const header = rows[0].map((value) => value.toLowerCase().trim());
+  const nameIdx = header.findIndex((value) => value === "name" || value === "customer name");
+  const emailIdx = header.findIndex((value) => value === "email" || value === "customer email");
   if (emailIdx === -1) return [];
-  return lines.slice(1).flatMap((line) => {
-    const cols = line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-    const email = cols[emailIdx] || "";
-    const name = nameIdx !== -1 ? cols[nameIdx] || "" : "";
-    return email.includes("@") ? [{ name, email }] : [];
+
+  return rows.slice(1).flatMap((cols) => {
+    const email = (cols[emailIdx] || "").trim();
+    const name = nameIdx !== -1 ? (cols[nameIdx] || "").trim() : "";
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? [{ name, email }] : [];
   });
 };
 
@@ -672,7 +711,7 @@ const Collect = () => {
           {/* Send history */}
           {sends.length > 0 && (
             <div className="mt-8">
-              <h2 className="font-semibold mb-3">Recent requests</h2>
+              <h2 className="font-semibold mb-3">Recently prepared requests</h2>
               <Card className="overflow-hidden">
                 <div className="divide-y text-sm">
                   {sends.map((s) => (
