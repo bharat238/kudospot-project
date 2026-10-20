@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -13,11 +14,15 @@ import { AppShell } from "@/components/AppShell";
 
 const renderWorkspace = () =>
   render(
-    <MemoryRouter initialEntries={["/dashboard"]}>
-      <AppShell>
-        <div>Workspace content</div>
-      </AppShell>
-    </MemoryRouter>,
+    React.createElement(
+      MemoryRouter,
+      { initialEntries: ["/dashboard"] },
+      React.createElement(
+        AppShell,
+        null,
+        React.createElement("div", null, "Workspace content"),
+      ),
+    ),
   );
 
 describe("workspace navigation", () => {
@@ -25,8 +30,8 @@ describe("workspace navigation", () => {
     const { container } = renderWorkspace();
     const helpLinks = container.querySelectorAll('a[href="/help"]');
 
-    // The full mobile drawer is only mounted when opened, so the desktop
-    // icon rail is the only visible navigation system at this viewport.
+    // The mobile drawer is only mounted when opened, so the desktop icon
+    // rail is the only active navigation system in this render.
     expect(helpLinks).toHaveLength(1);
   });
 
@@ -40,7 +45,7 @@ describe("workspace navigation", () => {
     expect(header?.querySelector('a[href="/collect"]')).toBeNull();
   });
 
-  it("renders the workspace content inside the shared app frame", () => {
+  it("renders workspace content inside the shared app frame", () => {
     const { getByText } = renderWorkspace();
     expect(getByText("Workspace content")).toBeTruthy();
   });
