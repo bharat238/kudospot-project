@@ -369,6 +369,8 @@ export type Database = {
           customer_role: string | null
           id: string
           original_text: string
+          owner_notification_sent_at: string | null
+          owner_notification_sent_at: string | null
           rating: number | null
           rejected_at: string | null
           rejection_reason: string | null
