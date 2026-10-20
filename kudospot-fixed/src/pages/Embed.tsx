@@ -25,6 +25,14 @@ type PublicTestimonial = {
   status: string;
 };
 
+const contrastTextFor = (hex: string) => {
+  const normalized = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex.slice(1) : "C8F34C";
+  const channels = [0, 2, 4].map((offset) => parseInt(normalized.slice(offset, offset + 2), 16) / 255);
+  const linear = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  const luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  return luminance > 0.179 ? "#202126" : "#ffffff";
+};
+
 const Embed = () => {
   const { id } = useParams();
   const [widget, setWidget] = useState<WidgetRecord | null>(null);
@@ -124,6 +132,7 @@ const Embed = () => {
   }, [id, loading, failed, widget, items, idx]);
 
   const accent = widget?.settings?.primary_color || "#C8F34C";
+  const accentText = contrastTextFor(accent);
   const radius = widget?.settings?.radius ?? 12;
   const displayText = (item: PublicTestimonial) => item.approved_text || item.ai_rewritten_text || item.original_text;
   const ratedItems = useMemo(() => items.filter((item) => typeof item.rating === "number" && item.rating >= 1 && item.rating <= 5), [items]);
@@ -144,7 +153,7 @@ const Embed = () => {
       )}
       <p className="mb-4 whitespace-pre-line break-words text-sm leading-6 text-gray-700">“{displayText(item)}”</p>
       <div className="flex items-center gap-2.5 border-t border-gray-100 pt-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white" style={{ background: accent }}>{item.customer_name?.trim()?.[0]?.toUpperCase() || "C"}</div>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold" style={{ background: accent, color: accentText }}>{item.customer_name?.trim()?.[0]?.toUpperCase() || "C"}</div>
         <div className="min-w-0"><div className="truncate text-sm font-semibold text-gray-900">{item.customer_name || "Customer"}</div>{(item.customer_role || item.customer_company) && <div className="truncate text-xs text-gray-500">{[item.customer_role, item.customer_company].filter(Boolean).join(" · ")}</div>}</div>
       </div>
     </article>
