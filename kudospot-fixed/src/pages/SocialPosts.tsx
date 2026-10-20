@@ -25,10 +25,17 @@ type SocialPostWithTestimonial = SocialPost & {
 
 const ICONS: Record<string, any> = { linkedin: Linkedin, instagram: Instagram, twitter: Twitter };
 
+const tryCopyText = async (value: string) => {
+  try { await navigator.clipboard.writeText(value); return true; }
+  catch { return false; }
+};
+
 const SocialPosts = () => {
   const { user } = useAuth();
   const { plan, canDoAIRewrite, showUpgradeToast } = usePlanLimits();
   const [posts, setPosts] = useState<SocialPostWithTestimonial[]>([]);
+  const [captionDrafts, setCaptionDrafts] = useState<Record<string, string>>({});
+  const [savingCaptionIds, setSavingCaptionIds] = useState<Set<string>>(new Set());
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,9 +98,10 @@ const SocialPosts = () => {
       }) as SocialPostWithTestimonial[];
 
       setPosts(postsWithNames);
+      setCaptionDrafts(Object.fromEntries(postsWithNames.map((post) => [post.id, post.caption_text || ""])));
 
       const [{ data: t }, { data: pr }] = await Promise.all([
-        supabase.from("testimonials").select("id, customer_name").eq("user_id", user.id).eq("status", "approved"),
+        supabase.from("testimonials").select("id, customer_name").eq("user_id", user.id).in("status", ["approved", "published"]),
         supabase.from("profiles").select("business_name, business_logo_url").eq("id", user.id).maybeSingle(),
       ]);
       setTestimonials(t || []); setProfile(pr || null);
@@ -139,13 +147,30 @@ const SocialPosts = () => {
   };
 
   const remove = async (id: string) => {
-    await supabase.from("social_posts").delete().eq("id", id);
-    toast.success("Deleted"); load();
+    if (!window.confirm("Delete this social post?")) return;
+    const { error } = await supabase.from("social_posts").delete().eq("id", id);
+    if (error) return toast.error(error.message || "The social post could not be deleted.");
+    toast.success("Social post deleted");
+    void load();
   };
 
-  const updateCaption = async (id: string, caption_text: string) => {
-    await supabase.from("social_posts").update({ caption_text }).eq("id", id);
-    setPosts((ps) => ps.map((p) => p.id === id ? { ...p, caption_text } : p));
+  const saveCaption = async (id: string) => {
+    const caption_text = captionDrafts[id];
+    const current = posts.find((post) => post.id === id)?.caption_text || "";
+    if (caption_text === undefined || caption_text === current || savingCaptionIds.has(id)) return;
+    setSavingCaptionIds((currentIds) => new Set(currentIds).add(id));
+    const { error } = await supabase.from("social_posts").update({ caption_text }).eq("id", id);
+    setSavingCaptionIds((currentIds) => {
+      const next = new Set(currentIds);
+      next.delete(id);
+      return next;
+    });
+    if (error) {
+      toast.error("Caption couldn't be saved. Your edit is still in the field; try again.");
+      return;
+    }
+    setPosts((currentPosts) => currentPosts.map((post) => post.id === id ? { ...post, caption_text } : post));
+    toast.success("Caption saved");
   };
 
   const downloadGraphic = async (post: any) => {
@@ -236,14 +261,14 @@ const SocialPosts = () => {
                     <span className="text-xs text-muted-foreground">· {p.customer_name}</span>
                   </div>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(p.caption_text); toast.success("Caption copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" onClick={async () => { const copied = await tryCopyText(captionDrafts[p.id] ?? p.caption_text); copied ? toast.success("Caption copied") : toast.error("Clipboard access was blocked by your browser."); }}><Copy className="h-3.5 w-3.5" /></Button>
                     <Button size="sm" variant="outline" onClick={() => downloadGraphic(p)} disabled={downloadingId === p.id}>
                       {downloadingId === p.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />} PNG
                     </Button>
                     <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(p.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
-                <Textarea rows={6} value={p.caption_text} onChange={(e) => updateCaption(p.id, e.target.value)} className="text-sm" />
+                <Textarea rows={6} aria-label={`Caption for ${p.customer_name || "testimonial"}`} value={captionDrafts[p.id] ?? p.caption_text} onChange={(e) => setCaptionDrafts((current) => ({ ...current, [p.id]: e.target.value }))} onBlur={() => void saveCaption(p.id)} className="text-sm" /><div className="mt-2 flex justify-end text-[11px] text-muted-foreground">{savingCaptionIds.has(p.id) ? "Saving caption…" : (captionDrafts[p.id] ?? p.caption_text) !== p.caption_text ? "Unsaved changes · save when you leave this field" : "Caption saved"}</div>
               </Card>
             );
           })}
