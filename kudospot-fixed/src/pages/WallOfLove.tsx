@@ -39,7 +39,7 @@ const WallOfLove = () => {
           supabase.from("testimonials")
             .select("id, customer_name, customer_role, customer_company, customer_avatar_url, approved_text, ai_rewritten_text, original_text, rating, created_at")
             .eq("user_id", resolvedUserId)
-            .or("approval_status.eq.approved,status.eq.published")
+            .eq("approval_status", "approved")
             .order("created_at", { ascending: false })
         ]);
 
