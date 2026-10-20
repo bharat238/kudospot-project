@@ -147,9 +147,13 @@ export default function Upgrade() {
               </ul>
 
               {plan.id === "free" ? (
-                <Button variant="outline" disabled={isCurrent}>
-                  {isCurrent ? "Current plan" : "Downgrade"}
-                </Button>
+                isCurrent ? (
+                  <Button variant="outline" disabled>Current plan</Button>
+                ) : (
+                  <Button variant="outline" asChild>
+                    <a href="mailto:hello@kudospot.io?subject=KudoSpot%20plan%20downgrade">Request downgrade</a>
+                  </Button>
+                )
               ) : (
                 <Button
                   variant={plan.highlight ? "default" : "outline"}
