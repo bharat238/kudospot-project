@@ -3,80 +3,27 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, ArrowRight } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PLAN_LIMITS } from "@/hooks/usePlanLimits";
+import { PLAN_CATALOG } from "@/config/planCatalog";
 import { useAuth } from "@/contexts/AuthContext";
 
-const plans = [
-  {
-    id: "free",
-    name: "Free",
-    price: "$0",
-    period: "/month",
-    description: "Perfect for getting started",
-    cta: "Get started",
-    features: [
-      "10 testimonials",
-      "5 AI rewrites",
-      "1 widget",
-      "Email approval flow",
-      "Basic analytics",
-    ],
-  },
-  {
-    id: "starter",
-    name: "Starter",
-    price: "$29",
-    period: "/month",
-    description: "For small teams and freelancers",
-    cta: "Start free trial",
-    features: [
-      "Unlimited testimonials",
-      "Unlimited AI rewrites",
-      "5 widgets",
-      "3 case studies",
-      "20 video testimonials",
-      "Social post generator",
-      "Advanced analytics",
-      "Priority support",
-    ],
-    recommended: true,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "Custom",
-    period: "",
-    description: "For enterprise teams",
-    cta: "Contact sales",
-    features: [
-      "Everything in Starter",
-      "Unlimited widgets",
-      "Unlimited case studies",
-      "Unlimited video testimonials",
-      "Custom branding",
-      "Team collaboration",
-      "API access",
-      "Dedicated support",
-    ],
-  },
-];
+const plans = PLAN_CATALOG;
 
 const faqs = [
   {
     q: "Can I change plans later?",
-    a: "Yes, you can upgrade or downgrade your plan at any time from your Settings page. Changes take effect immediately.",
+    a: "You can choose a different plan from the Upgrade page. For help changing or ending a paid plan, contact hello@kudospot.io.",
   },
   {
     q: "Do you offer refunds?",
-    a: "We offer a 14-day money-back guarantee for Starter and Pro plans if you're not satisfied. No questions asked.",
+    a: "For billing or refund questions, contact hello@kudospot.io so the team can review your request.",
   },
   {
     q: "What payment methods do you accept?",
-    a: "We accept all major credit and debit cards, UPI, and net banking through Razorpay. We support customers in India and internationally.",
+    a: "Payments are processed through Razorpay. The payment methods available to you are shown at checkout.",
   },
   {
     q: "What happens if I exceed my plan limits?",
-    a: "If you're on a free plan, you'll see an upgrade prompt. Paid plans have unlimited most features, so you won't hit limits. Contact us for custom needs.",
+    a: "Free plans have limits on testimonials, AI rewrites and widgets. Starter and Pro increase those limits; the feature list above shows each plan's current capacity.",
   },
 ];
 
@@ -107,7 +54,7 @@ const Pricing = () => {
       <section className="container mx-auto py-20">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Start free. Scale as you grow. All plans include a 14-day trial.</p>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Start free. Upgrade when you need more capacity. No card is required for the free plan.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -115,10 +62,10 @@ const Pricing = () => {
             <Card
               key={plan.id}
               className={`p-8 flex flex-col relative ${
-                plan.recommended ? "border-primary shadow-lg md:scale-105" : ""
+                plan.highlight ? "border-primary shadow-lg md:scale-[1.02]" : "border-border/80"
               }`}
             >
-              {plan.recommended && (
+              {plan.highlight && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-xs font-semibold rounded-full">
                   Recommended
                 </div>
@@ -136,16 +83,10 @@ const Pricing = () => {
               </div>
 
               <Link
-                to={
-                  plan.id === "pro"
-                    ? "mailto:hello@kudospot.io?subject=KudoSpot%20Pro%20Plan"
-                    : user
-                    ? "/upgrade"
-                    : "/signup"
-                }
+                to={user ? "/upgrade" : "/signup"}
                 className="mb-6"
               >
-                <Button className="w-full" variant={plan.recommended ? "default" : "outline"}>
+                <Button className="w-full" variant={plan.highlight ? "default" : "outline"}>
                   {plan.cta} <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
               </Link>
