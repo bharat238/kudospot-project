@@ -133,7 +133,7 @@ const CaseStudies = () => {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button onClick={(event) => { if (!canAddCaseStudy(items.length)) { event.preventDefault(); showUpgradeToast("case studies"); } }}><Plus className="h-4 w-4 mr-1" /> Generate</Button></DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[85dvh] overflow-y-auto rounded-2xl sm:w-full">
             <DialogHeader>
               <DialogTitle>Generate case study</DialogTitle>
               <DialogDescription>Generate a new case study from your approved testimonials.</DialogDescription>
@@ -186,7 +186,7 @@ const CaseStudies = () => {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
           {items.map((cs) => (
-            <Card key={cs.id} className="group h-full cursor-pointer rounded-[20px] border-[#e6e8ed] bg-white p-5 shadow-[0_2px_10px_rgba(35,38,48,0.025)] transition-all hover:-translate-y-0.5 hover:border-[#c8f34c] hover:shadow-[0_8px_24px_rgba(35,38,48,0.07)]" onClick={() => setActive(cs)}>
+            <Card key={cs.id} role="button" tabIndex={0} aria-label={`Edit case study ${cs.title}`} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActive(cs); } }} className="group h-full cursor-pointer rounded-[20px] border-[#e6e8ed] bg-white p-5 shadow-[0_2px_10px_rgba(35,38,48,0.025)] transition-all hover:-translate-y-0.5 hover:border-[#c8f34c] hover:shadow-[0_8px_24px_rgba(35,38,48,0.07)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a5cd32]" onClick={() => setActive(cs)}>
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eaffae] text-[#303a1b]"><KudoSpotIcon className="h-4 w-4" /></span>
@@ -207,7 +207,7 @@ const CaseStudies = () => {
       )}
 
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl max-h-[90dvh] overflow-y-auto rounded-2xl sm:w-full">
           {active && (
             <>
               <DialogHeader>
@@ -237,19 +237,19 @@ const CaseStudies = () => {
                     ))}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 pt-2 border-t">
+                <div className="flex flex-col gap-3 border-t pt-3 sm:flex-row sm:flex-wrap sm:items-center">
                   <Switch checked={active.is_published} onCheckedChange={() => togglePublish(active)} />
                   <span className="text-sm">{active.is_published ? "Public" : "Private"}</span>
                   {active.is_published && (
-                    <div className="flex items-center gap-1 ml-auto">
+                    <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                       <Button size="sm" variant="outline" onClick={async () => { const copied = await tryCopyText(publicUrl(active.published_slug)); if (copied) { toast.success("Case study link copied"); } else { toast.error("Clipboard access was blocked. Copy the URL from your browser."); } }}><Copy className="h-3.5 w-3.5 mr-1" /> Copy link</Button>
                       <Button size="sm" variant="outline" onClick={() => window.open(publicUrl(active.published_slug), "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5 mr-1" /> Open</Button>
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   <Button onClick={saveActive}>Save changes</Button>
-                  <Button variant="ghost" className="text-destructive ml-auto" onClick={() => remove(active.id)}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>
+                  <Button variant="ghost" className="text-destructive sm:ml-auto" onClick={() => remove(active.id)}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>
                 </div>
               </div>
             </>
