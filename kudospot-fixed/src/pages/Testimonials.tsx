@@ -243,7 +243,7 @@ const Testimonials = () => {
       if (!opts?.resend) {
         const { data: activeToken, error: activeTokenError } = await supabase
           .from("approval_tokens")
-          .select("token")
+          .select("token,approval_text")
           .eq("testimonial_id", t.id)
           .eq("user_id", user.id)
           .is("used_at", null)
@@ -251,13 +251,22 @@ const Testimonials = () => {
           .limit(1)
           .maybeSingle();
         if (activeTokenError) throw activeTokenError;
-        tokenValue = activeToken?.token || null;
+        if (activeToken?.token && activeToken.approval_text === (t.ai_rewritten_text || t.original_text)) {
+          tokenValue = activeToken.token;
+        } else if (activeToken?.token) {
+          const { error: expireError } = await supabase
+            .from("approval_tokens")
+            .update({ used_at: new Date().toISOString() })
+            .eq("token", activeToken.token)
+            .is("used_at", null);
+          if (expireError) throw expireError;
+        }
       }
 
       if (!tokenValue) {
         const { data: createdToken, error: createTokenError } = await supabase
           .from("approval_tokens")
-          .insert({ testimonial_id: t.id, user_id: user.id, campaign: t.campaign || null })
+          .insert({ testimonial_id: t.id, user_id: user.id, campaign: t.campaign || null, approval_text: t.ai_rewritten_text || t.original_text })
           .select("token")
           .single();
         if (createTokenError) throw createTokenError;
