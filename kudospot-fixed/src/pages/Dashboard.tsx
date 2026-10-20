@@ -307,8 +307,6 @@ const Dashboard = () => {
   );
 };
 
-};
-
 const StatusBadge = ({ status }: { status: string }) => {
   const map: Record<string, { label: string; className: string }> = {
     pending: { label: "Pending", className: "border-[#f0e3a5] bg-[#fff8d8] text-[#695b21]" },
