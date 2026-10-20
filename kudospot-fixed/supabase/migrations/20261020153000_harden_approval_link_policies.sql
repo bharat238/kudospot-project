@@ -11,6 +11,12 @@ SET used_at = now()
 WHERE approval_text IS NULL
   AND used_at IS NULL;
 
+-- Old testimonial.approval_token links never stored the exact text reviewed by
+-- the customer. Clear them so the public handler cannot accept unverifiable links.
+UPDATE public.testimonials
+SET approval_token = NULL
+WHERE approval_token IS NOT NULL;
+
 DROP POLICY IF EXISTS "Public read tokens" ON public.approval_tokens;
 DROP POLICY IF EXISTS "Public read token by value" ON public.approval_tokens;
 DROP POLICY IF EXISTS "Public mark token used" ON public.approval_tokens;
