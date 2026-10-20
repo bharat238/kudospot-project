@@ -58,6 +58,7 @@ export type Database = {
       }
       approval_tokens: {
         Row: {
+          approval_text: string | null
           campaign: string | null
           created_at: string | null
           testimonial_id: string
@@ -66,6 +67,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approval_text?: string | null
           campaign?: string | null
           created_at?: string | null
           testimonial_id: string
@@ -74,6 +76,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approval_text?: string | null
           campaign?: string | null
           created_at?: string | null
           testimonial_id?: string
