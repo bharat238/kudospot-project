@@ -444,7 +444,7 @@ const Testimonials = () => {
 
   return (
     <AppShell>
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-1">Testimonials</h1>
           <p className="text-muted-foreground">Collect, rewrite, approve.</p>
@@ -462,7 +462,7 @@ const Testimonials = () => {
                 <Plus className="h-4 w-4 mr-1" /> Add testimonial
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90dvh] overflow-y-auto rounded-2xl sm:w-full">
               <DialogHeader>
                 <DialogTitle>{editing ? "Edit testimonial" : "New testimonial"}</DialogTitle>
                 <DialogDescription>{editing ? "Update the testimonial details." : "Add a new testimonial to your collection."}</DialogDescription>
@@ -554,9 +554,9 @@ const Testimonials = () => {
       </div>
 
       {selected.size > 0 && (
-        <Card className="p-3 mb-4 flex items-center justify-between bg-primary-light/30 border-primary/20">
+        <Card className="mb-4 flex flex-col gap-3 rounded-2xl border-[#dce8c5] bg-[#f7faef] p-3 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-sm font-medium">{selected.size} selected</span>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={bulkApprove} disabled={bulkApproving}>
               {bulkApproving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Mail className="h-3.5 w-3.5 mr-1" />} Send approval requests
             </Button>
@@ -596,7 +596,7 @@ const Testimonials = () => {
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {filtered.map((t) => (
-            <Card key={t.id} className="group relative cursor-pointer rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] transition-all hover:-translate-y-0.5 hover:border-[#c8f34c] hover:shadow-[0_8px_24px_rgba(35,38,48,0.07)] sm:p-5" onClick={() => setActive(t)}>
+            <Card key={t.id} role="button" tabIndex={0} aria-label={`Open testimonial from ${t.customer_name || "customer"}`} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActive(t); } }} className="group relative cursor-pointer rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] transition-all hover:-translate-y-0.5 hover:border-[#c8f34c] hover:shadow-[0_8px_24px_rgba(35,38,48,0.07)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a5cd32] sm:p-5" onClick={() => setActive(t)}>
               <div className="absolute right-3 top-3 sm:right-4 sm:top-4" onClick={(e) => e.stopPropagation()}>
                 <Checkbox checked={selected.has(t.id)} onCheckedChange={() => toggleSelect(t.id)} />
               </div>
@@ -617,7 +617,7 @@ const Testimonials = () => {
 
       {/* Detail modal */}
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl max-h-[90dvh] overflow-y-auto rounded-2xl sm:w-full">
           {active && (
             <>
               <DialogHeader>
