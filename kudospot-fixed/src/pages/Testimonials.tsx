@@ -236,6 +236,15 @@ const Testimonials = () => {
         return next;
       });
     }
+  const requestApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }) => {
+    const url = await createApprovalLink(t, opts);
+    if (url && user) {
+      setApprovalRefreshKey((current) => current + 1);
+      await load();
+      const { data } = await supabase.from("testimonials").select("*").eq("id", t.id).eq("user_id", user.id).maybeSingle();
+      if (data) setActive(data);
+    }
+    return url;
   };
 
   const remove = async (id: string) => {
@@ -457,7 +466,7 @@ const Testimonials = () => {
               <TabsTrigger value="pending">Pending</TabsTrigger>
               <TabsTrigger value="ai_rewritten">Rewritten</TabsTrigger>
               <TabsTrigger value="approved">Approved</TabsTrigger>
-              <TabsTrigger value="rejected">Rejected</TabsTrigger>
+              <TabsTrigger value="declined">Declined</TabsTrigger>
             </TabsList>
           </div>
         </Tabs>
@@ -476,8 +485,8 @@ const Testimonials = () => {
         <Card className="p-3 mb-4 flex items-center justify-between bg-primary-light/30 border-primary/20">
           <span className="text-sm font-medium">{selected.size} selected</span>
           <div className="flex gap-2">
-            <Button size="sm" onClick={bulkApprove} disabled={bulkApproving} className="bg-success hover:bg-success/90">
-              {bulkApproving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <CheckSquare className="h-3.5 w-3.5 mr-1" />} Approve all
+            <Button size="sm" onClick={bulkApprove} disabled={bulkApproving}>
+              {bulkApproving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Mail className="h-3.5 w-3.5 mr-1" />} Send approval requests
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
           </div>
@@ -548,8 +557,9 @@ const Testimonials = () => {
                 {/* Approval workflow panel */}
                 <ApprovalWorkflow
                   testimonial={active}
-                  onResend={() => createApprovalLink(active, { resend: true })}
-                  onCopy={() => createApprovalLink(active, { silent: false })}
+                  refreshKey={approvalRefreshKey}
+                  onResend={() => requestApprovalLink(active, { resend: true })}
+                  onCopy={() => requestApprovalLink(active, { silent: false })}
                   isSending={sendingIds.has(active.id)}
                 />
 
