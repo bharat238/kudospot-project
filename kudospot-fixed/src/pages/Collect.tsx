@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
-  Plus, Copy, ExternalLink, Trash2, Upload, X, GripVertical,
+  Plus, Copy, ExternalLink, Trash2, Upload, X, GripVertical, Inbox,
   Mail, Send, Clock, CheckCircle2, AlertCircle, Users, ToggleLeft, QrCode
 } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
@@ -595,7 +595,7 @@ const Collect = () => {
               <DialogTrigger asChild>
                 <Button onClick={startNewSeq}><Plus className="h-4 w-4 mr-1" /> New sequence</Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90dvh] overflow-y-auto rounded-2xl sm:w-full">
                 <DialogHeader>
                   <DialogTitle>{editingSeq ? "Edit sequence" : "New email sequence"}</DialogTitle>
                   <DialogDescription>{editingSeq ? "Update your email sequence settings." : "Create a new email sequence to request testimonials."}</DialogDescription>
