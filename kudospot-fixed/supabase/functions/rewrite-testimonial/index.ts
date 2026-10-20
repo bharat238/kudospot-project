@@ -122,7 +122,33 @@ Rewrite this testimonial following all rules.`;
     const rewritten = aiData.choices?.[0]?.message?.content?.trim();
     if (!rewritten) return new Response(JSON.stringify({ error: "Empty AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    await supabase.from("testimonials").update({ ai_rewritten_text: rewritten, status: "ai_rewritten" }).eq("id", testimonial_id);
+    // A changed rewrite invalidates customer consent and every still-open link.
+    const now = new Date().toISOString();
+    const { error: tokenError } = await supabase
+      .from("approval_tokens")
+      .update({ used_at: now })
+      .eq("testimonial_id", testimonial_id)
+      .eq("user_id", user.id)
+      .is("used_at", null);
+    if (tokenError) {
+      console.error("Could not expire approval links before rewriting:", tokenError.message);
+      return new Response(JSON.stringify({ error: "The approval links could not be reset. Please try again before rewriting." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const { error: updateError } = await supabase.from("testimonials").update({
+      ai_rewritten_text: rewritten,
+      status: "ai_rewritten",
+      approved_text: null,
+      approved_at: null,
+      approval_status: "not_sent",
+      approval_sent_at: null,
+      rejection_reason: null,
+      rejected_at: null,
+    }).eq("id", testimonial_id).eq("user_id", user.id);
+    if (updateError) {
+      console.error("Could not save new testimonial rewrite:", updateError.message);
+      return new Response(JSON.stringify({ error: "The new rewrite could not be saved. Please try again." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     return new Response(JSON.stringify({ rewritten }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
