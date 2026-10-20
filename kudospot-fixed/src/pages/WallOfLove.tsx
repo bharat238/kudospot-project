@@ -88,8 +88,8 @@ const WallOfLove = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f4f3]">
-        <Loader2 className="h-10 w-10 animate-spin text-[#C94320] opacity-50 mb-4" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#eceef2]">
+        <Loader2 className="h-10 w-10 animate-spin text-[#3e4a21] opacity-50 mb-4" />
         <p className="text-muted-foreground animate-pulse">Loading Wall of Love...</p>
       </div>
     );
@@ -97,7 +97,7 @@ const WallOfLove = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f4f3] p-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#eceef2] p-6 text-center">
         <div className="text-6xl mb-4">🤔</div>
         <h1 className="text-2xl font-bold mb-2">This Wall of Love doesn't exist.</h1>
         <p className="text-muted-foreground mb-6">Check the URL and try again.</p>
@@ -107,22 +107,22 @@ const WallOfLove = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f4f3] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#eceef2] flex flex-col font-sans">
 
       <header className="py-16 px-4 text-center max-w-4xl mx-auto w-full">
         {profile.business_logo_url && (
           <img src={profile.business_logo_url} alt={businessName} className="h-16 mx-auto mb-6 object-contain" />
         )}
         <h1 className="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight text-[#171717]">
-          <span className="text-[#C94320]">Wall of Love</span> for {businessName}
+          <span className="text-[#3e4a21]">Wall of Love</span> for {businessName}
         </h1>
         <p className="text-xl text-muted-foreground mb-8">Loved by our customers</p>
         
         <div className="flex items-center justify-center gap-4 flex-wrap">
-          <div className="bg-[#fff1eb] text-[#C94320] px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 border border-[#C94320]/10">
+          <div className="bg-[#eff6d7] text-[#3e4a21] px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 border border-[#c8f34c]/40">
             <CheckCircle2 className="h-4 w-4" /> {testimonialCount} happy customers
           </div>
-          <Button variant="outline" size="sm" onClick={share} className="gap-2 border-[#C94320]/20 hover:bg-[#C94320]/5 text-[#C94320]">
+          <Button variant="outline" size="sm" onClick={share} className="gap-2 border-[#c8f34c]/55 hover:bg-[#eaffae] text-[#3e4a21]">
             <Share2 className="h-4 w-4" /> Share this page
           </Button>
         </div>
@@ -146,14 +146,14 @@ const WallOfLove = () => {
                 </div>
                 
                 <div className="relative mb-8">
-                  <Quote className="absolute -left-3 -top-3 h-10 w-10 text-[#C94320]/5 group-hover:text-[#C94320]/10 transition-colors" />
+                  <Quote className="absolute -left-3 -top-3 h-10 w-10 text-[#3e4a21]/5 group-hover:text-[#3e4a21]/10 transition-colors" />
                   <p className="text-[#2f2f2f] leading-relaxed whitespace-pre-line relative z-10 text-[15px]">
                     {t.approved_text || t.ai_rewritten_text || t.original_text}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-4 pt-6 border-t border-gray-50">
-                  <div className="h-12 w-12 rounded-full bg-[#fff1eb] text-[#C94320] flex items-center justify-center font-bold overflow-hidden shrink-0 border border-[#C94320]/10">
+                  <div className="h-12 w-12 rounded-full bg-[#eff6d7] text-[#3e4a21] flex items-center justify-center font-bold overflow-hidden shrink-0 border border-[#c8f34c]/40">
                     {t.customer_avatar_url ? (
                       <img src={t.customer_avatar_url} alt={t.customer_name} className="h-full w-full object-cover" />
                     ) : (
@@ -175,9 +175,9 @@ const WallOfLove = () => {
         )}
       </main>
 
-      <footer className="py-12 border-t border-[#C94320]/10 bg-white mt-auto">
+      <footer className="py-12 border-t border-[#c8f34c]/40 bg-white mt-auto">
         <div className="container mx-auto px-4 flex flex-col items-center gap-4">
-          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-[#C94320] transition-colors">
+          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-[#3e4a21] transition-colors">
             <KudoSpotIcon className="h-6 w-6 opacity-70" />
             <span className="text-base font-semibold tracking-tight">Powered by KudoSpot</span>
           </Link>

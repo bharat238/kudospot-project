@@ -362,7 +362,7 @@ const Analytics = () => {
               <StatCard label="Approvals" value={stats.approvalsApproved} sub={`${stats.approvalRate}% of approval requests`} icon={CheckCircle2} tint="green" />
             </div>
 
-            {!hasEvents && <Card className="rounded-2xl border-dashed bg-card p-6 sm:p-8"><div className="flex flex-col items-start gap-4 sm:flex-row"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-800"><BarChart3 className="h-6 w-6" /></span><div className="flex-1"><h2 className="font-semibold">Your analytics will appear here</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Once visitors view a published widget or case study, or a customer submits a collection form, your activity will appear in these reports. You can set up your first experience now.</p><div className="mt-4 flex flex-wrap gap-2"><Button asChild size="sm"><a href="/collect">Create collection form <ArrowUpRight className="ml-1 h-3.5 w-3.5" /></a></Button><Button asChild size="sm" variant="outline"><a href="/widgets">Set up a widget</a></Button></div></div></div></Card>}
+            {!hasEvents && <Card className="rounded-2xl border-dashed bg-card p-6 sm:p-8"><div className="flex flex-col items-start gap-4 sm:flex-row"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#f0f7d8] text-[#3c481e]"><BarChart3 className="h-6 w-6" /></span><div className="flex-1"><h2 className="font-semibold">Your analytics will appear here</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Once visitors view a published widget or case study, or a customer submits a collection form, your activity will appear in these reports. You can set up your first experience now.</p><div className="mt-4 flex flex-wrap gap-2"><Button asChild size="sm"><a href="/collect">Create collection form <ArrowUpRight className="ml-1 h-3.5 w-3.5" /></a></Button><Button asChild size="sm" variant="outline"><a href="/widgets">Set up a widget</a></Button></div></div></div></Card>}
 
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
               <Card className="min-w-0 rounded-2xl p-4 shadow-none sm:p-5">
@@ -375,7 +375,7 @@ const Analytics = () => {
                       <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={32} />
                       <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid hsl(var(--border))" }} />
                       <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                      <Line type="monotone" dataKey="submissions" stroke="#C94320" strokeWidth={2.5} dot={false} name="Submissions" />
+                      <Line type="monotone" dataKey="submissions" stroke="#9bc72b" strokeWidth={2.5} dot={false} name="Submissions" />
                       <Line type="monotone" dataKey="approvals" stroke="#15803d" strokeWidth={2.5} dot={false} name="Approvals" />
                     </LineChart>
                   </ResponsiveContainer>
@@ -384,7 +384,7 @@ const Analytics = () => {
 
               <Card className="min-w-0 rounded-2xl p-4 shadow-none sm:p-5">
                 <div className="mb-4"><h2 className="font-semibold">Widget performance</h2><p className="mt-1 text-xs text-muted-foreground">Views compared with meaningful widget interactions</p></div>
-                {widgetChartData.length ? <div className="h-[270px] min-w-0"><ResponsiveContainer width="100%" height="100%"><BarChart data={widgetChartData} margin={{ top: 8, right: 8, left: -18, bottom: 4 }}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="widget" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval={0} angle={-15} textAnchor="end" height={52} /><YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={32} /><Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid hsl(var(--border))" }} /><Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} /><Bar dataKey="views" fill="#C94320" name="Views" radius={[4,4,0,0]} maxBarSize={34} /><Bar dataKey="clicks" fill="#57534e" name="Clicks" radius={[4,4,0,0]} maxBarSize={34} /></BarChart></ResponsiveContainer></div> : <ChartEmpty title="No widget activity yet" description="Publish a widget and embed it on your website to start measuring engagement." link="/widgets" linkLabel="Manage widgets" />}
+                {widgetChartData.length ? <div className="h-[270px] min-w-0"><ResponsiveContainer width="100%" height="100%"><BarChart data={widgetChartData} margin={{ top: 8, right: 8, left: -18, bottom: 4 }}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="widget" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval={0} angle={-15} textAnchor="end" height={52} /><YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={32} /><Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid hsl(var(--border))" }} /><Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} /><Bar dataKey="views" fill="#9bc72b" name="Views" radius={[4,4,0,0]} maxBarSize={34} /><Bar dataKey="clicks" fill="#57534e" name="Clicks" radius={[4,4,0,0]} maxBarSize={34} /></BarChart></ResponsiveContainer></div> : <ChartEmpty title="No widget activity yet" description="Publish a widget and embed it on your website to start measuring engagement." link="/widgets" linkLabel="Manage widgets" />}
               </Card>
             </div>
 
@@ -396,7 +396,7 @@ const Analytics = () => {
             <Card className="rounded-2xl p-4 shadow-none sm:p-5">
               <div className="mb-5"><h2 className="font-semibold">Approval funnel</h2><p className="mt-1 text-xs text-muted-foreground">Customer approval events in the selected range and filters</p></div>
               <div className="grid gap-4 md:grid-cols-3">
-                <FunnelItem label="Requests sent" value={stats.approvalsSent} max={maxFunnel} tint="#C94320" />
+                <FunnelItem label="Requests sent" value={stats.approvalsSent} max={maxFunnel} tint="#9bc72b" />
                 <FunnelItem label="Approved" value={stats.approvalsApproved} max={maxFunnel} tint="#15803d" />
                 <FunnelItem label="Rejected" value={stats.approvalsRejected} max={maxFunnel} tint="#b91c1c" />
               </div>
@@ -424,7 +424,7 @@ const Analytics = () => {
 
 function StatCard({ label, value, sub, icon: Icon, tint }: { label: string; value: number; sub: string; icon: ComponentType<{ className?: string }>; tint: "orange" | "stone" | "amber" | "green" }) {
   const iconClass = {
-    orange: "bg-orange-50 text-orange-800",
+    orange: "bg-[#f0f7d8] text-[#3c481e]",
     stone: "bg-stone-100 text-stone-800",
     amber: "bg-amber-50 text-amber-800",
     green: "bg-emerald-50 text-emerald-800",

@@ -281,12 +281,12 @@ const SocialPosts = () => {
             style={{
               width: 1080, height: 1080, padding: 80, boxSizing: "border-box",
               background: "linear-gradient(135deg, #f4f4f3 0%, #ffffff 60%)",
-              borderLeft: "12px solid #C94320", display: "flex", flexDirection: "column", justifyContent: "space-between",
+              borderLeft: "12px solid #C8F34C", display: "flex", flexDirection: "column", justifyContent: "space-between",
               fontFamily: "Inter, system-ui, sans-serif", color: "#1a1a2e",
             }}
           >
             <div>
-              <Quote size={72} color="#C94320" strokeWidth={2} />
+              <Quote size={72} color="#37431d" strokeWidth={2} />
               <p style={{ fontSize: 38, fontWeight: 500, lineHeight: 1.4, marginTop: 32, color: "#222" }}>
                 "{quoteText(p)}"
               </p>
@@ -300,7 +300,7 @@ const SocialPosts = () => {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <KudoSpotIcon className="h-12 w-12" />
-                <div style={{ fontSize: 24, color: "#C94320", fontWeight: 600 }}>
+                <div style={{ fontSize: 24, color: "#37431d", fontWeight: 600 }}>
                   {profile?.business_name || "KudoSpot" }
                 </div>
               </div>

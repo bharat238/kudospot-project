@@ -123,7 +123,7 @@ const Embed = () => {
     };
   }, [id, loading, failed, widget, items, idx]);
 
-  const accent = widget?.settings?.primary_color || "#C94320";
+  const accent = widget?.settings?.primary_color || "#C8F34C";
   const radius = widget?.settings?.radius ?? 12;
   const displayText = (item: PublicTestimonial) => item.approved_text || item.ai_rewritten_text || item.original_text;
   const ratedItems = useMemo(() => items.filter((item) => typeof item.rating === "number" && item.rating >= 1 && item.rating <= 5), [items]);

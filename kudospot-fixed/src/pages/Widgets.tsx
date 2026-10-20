@@ -23,7 +23,7 @@ const TYPES = [
   { value: "badge", label: "Rating badge", description: "Show your average customer rating" },
 ] as const;
 
-const DEFAULT_ACCENT = "#C94320";
+const DEFAULT_ACCENT = "#C8F34C";
 
 const makeBlank = () => ({
   widget_name: "",
@@ -343,8 +343,8 @@ const Widgets = () => {
       </div>
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card className="rounded-2xl p-4 shadow-none"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-800"><LayoutGrid className="h-5 w-5" /></span><span><span className="block text-2xl font-semibold tabular-nums">{widgets.length}</span><span className="text-xs text-muted-foreground">Total widgets</span></span></div></Card>
-        <Card className="rounded-2xl p-4 shadow-none"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800"><Eye className="h-5 w-5" /></span><span><span className="block text-2xl font-semibold tabular-nums">{widgets.filter((widget) => widget.is_published).length}</span><span className="text-xs text-muted-foreground">Published</span></span></div></Card>
+        <Card className="rounded-2xl p-4 shadow-none"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f0f7d8] text-[#3c481e]"><LayoutGrid className="h-5 w-5" /></span><span><span className="block text-2xl font-semibold tabular-nums">{widgets.length}</span><span className="text-xs text-muted-foreground">Total widgets</span></span></div></Card>
+        <Card className="rounded-2xl p-4 shadow-none"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f0f7d8] text-[#3c481e]"><Eye className="h-5 w-5" /></span><span><span className="block text-2xl font-semibold tabular-nums">{widgets.filter((widget) => widget.is_published).length}</span><span className="text-xs text-muted-foreground">Published</span></span></div></Card>
         <Card className="rounded-2xl p-4 shadow-none"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 text-stone-800"><MousePointerClick className="h-5 w-5" /></span><span><span className="block text-2xl font-semibold tabular-nums">{widgets.reduce((sum, widget) => sum + Number(widget.views || 0), 0).toLocaleString()}</span><span className="text-xs text-muted-foreground">Total embed views</span></span></div></Card>
       </div>
 
@@ -354,7 +354,7 @@ const Widgets = () => {
         <Card className="rounded-2xl p-8 text-center"><AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" /><p className="font-medium">Widgets couldn’t be loaded</p><p className="mt-1 text-sm text-muted-foreground">{loadError}</p><Button variant="outline" className="mt-4" onClick={() => void load()}><RefreshCw className="mr-2 h-4 w-4" /> Try again</Button></Card>
       ) : widgets.length === 0 ? (
         <Card className="rounded-2xl border-dashed bg-card p-10 text-center sm:p-14">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-800"><LayoutGrid className="h-7 w-7" /></div>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f0f7d8] text-[#3c481e]"><LayoutGrid className="h-7 w-7" /></div>
           <h2 className="text-lg font-semibold">Your first widget starts here</h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">Choose approved testimonials, select a layout, and get an embed snippet you can paste into your website.</p>
           <Button className="mt-5 rounded-xl" onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" /> Create your first widget</Button>
@@ -369,7 +369,7 @@ const Widgets = () => {
               <div className="flex items-start justify-between gap-3 p-5">
                 <div className="flex min-w-0 items-start gap-3">
                   <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${accent}15`, color: accent }}><LayoutGrid className="h-5 w-5" /></div>
-                  <div className="min-w-0"><h2 className="truncate font-semibold">{widget.widget_name}</h2><p className="mt-1 text-xs capitalize text-muted-foreground">{TYPES.find((type) => type.value === widget.widget_type)?.label || widget.widget_type} · {widget.testimonial_ids?.length || 0} testimonials</p><div className="mt-2 flex flex-wrap items-center gap-2"><Badge variant={widget.is_published ? "default" : "secondary"} className={widget.is_published ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-50" : ""}>{widget.is_published ? "Published" : "Unpublished"}</Badge>{widget.campaign && <Badge variant="outline">{widget.campaign}</Badge>}</div></div>
+                  <div className="min-w-0"><h2 className="truncate font-semibold">{widget.widget_name}</h2><p className="mt-1 text-xs capitalize text-muted-foreground">{TYPES.find((type) => type.value === widget.widget_type)?.label || widget.widget_type} · {widget.testimonial_ids?.length || 0} testimonials</p><div className="mt-2 flex flex-wrap items-center gap-2"><Badge variant={widget.is_published ? "default" : "secondary"} className={widget.is_published ? "bg-[#f0f7d8] text-[#3c481e] hover:bg-emerald-50" : ""}>{widget.is_published ? "Published" : "Unpublished"}</Badge>{widget.campaign && <Badge variant="outline">{widget.campaign}</Badge>}</div></div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <Button variant="ghost" size="icon" aria-label={`Edit ${widget.widget_name}`} title="Edit widget" className="text-muted-foreground" onClick={() => startEdit(widget)}><Pencil className="h-4 w-4" /></Button>

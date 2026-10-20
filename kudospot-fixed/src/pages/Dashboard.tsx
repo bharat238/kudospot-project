@@ -11,7 +11,6 @@ import {
   ArrowRight, MousePointerClick, Loader2, AlertCircle, Search, Filter
 } from "lucide-react";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
-import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
