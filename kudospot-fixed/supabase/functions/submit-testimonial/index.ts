@@ -93,6 +93,33 @@ Deno.serve(async (req) => {
     }
     if (!form) return json({ error: "This collection form is inactive or no longer available." }, 403);
 
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("plan,plan_expires_at")
+      .eq("id", form.user_id)
+      .maybeSingle();
+    if (profileError) {
+      console.error("submit-testimonial plan lookup failed:", profileError.message);
+      return json({ error: "The workspace plan could not be checked." }, 500);
+    }
+    const paidPlanActive =
+      (profile?.plan === "starter" || profile?.plan === "pro") &&
+      typeof profile.plan_expires_at === "string" &&
+      Date.parse(profile.plan_expires_at) > Date.now();
+    if (!paidPlanActive) {
+      const { count, error: countError } = await supabaseAdmin
+        .from("testimonials")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", form.user_id);
+      if (countError) {
+        console.error("submit-testimonial quota lookup failed:", countError.message);
+        return json({ error: "The workspace quota could not be checked." }, 500);
+      }
+      if ((count || 0) >= 10) {
+        return json({ error: "This workspace has reached its Free plan limit of 10 testimonials." }, 403);
+      }
+    }
+
     const { data: inserted, error: insertError } = await supabaseAdmin
       .from("testimonials")
       .insert({
