@@ -204,7 +204,7 @@ const Widgets = () => {
     return [
       `<iframe id="${frameId}" src="${origin}/embed/${id}" style="display:block;width:100%;height:180px;border:0;overflow:hidden" loading="lazy" title="KudoSpot testimonial widget"></iframe>`,
       `<script>(function(){var f=document.getElementById("${frameId}");if(!f)return;window.addEventListener("message",function(e){if(e.origin!=="${origin}"||e.source!==f.contentWindow)return;var d=e.data;if(!d||d.type!=="kudospot-widget-resize"||d.widgetId!=="${id}")return;var h=Number(d.height);if(Number.isFinite(h))f.style.height=Math.max(120,Math.min(4000,h))+"px";});})();<\/script>`,
-    ].join("\\n");
+    ].join("\n");
   };
 
   const copyEmbed = async (widget: WidgetRow) => {
