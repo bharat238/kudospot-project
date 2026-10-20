@@ -173,7 +173,7 @@ export default function Upgrade() {
         {currentPlan !== "free" && planExpiresAt && <p className="mt-3 inline-flex rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">Current access ends {new Date(planExpiresAt).toLocaleDateString()} · no automatic renewal</p>}
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5 max-w-5xl mx-auto">
         {PLANS.map((plan) => {
           const isCurrent = currentPlan === plan.id;
           const isLoading = loadingPlan === plan.id;
