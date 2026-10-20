@@ -64,6 +64,7 @@ const PublicForm = () => {
       const { data: responseData, error } = await supabase.functions.invoke("submit-testimonial", {
         body: {
           user_id: form.user_id,
+          form_id: form.id,
           customer_name: data.customer_name,
           customer_role: data.customer_role || null,
           customer_company: data.customer_company || null,
@@ -86,10 +87,8 @@ const PublicForm = () => {
       try {
         await supabase.functions.invoke("notify-owner", {
           body: {
-            user_id: form.user_id,
-            customer_name: data.customer_name,
-            testimonial_snippet: data.original_text,
-            form_name: form.form_name || "KudoSpot form",
+            form_id: form.id,
+            testimonial_id: responseData?.id,
           },
         });
       } catch {
