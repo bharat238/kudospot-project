@@ -111,7 +111,7 @@ Generate the case study as JSON only.`;
     const aiData = await aiResp.json();
     const rawText = aiData.choices?.[0]?.message?.content?.trim() ?? "";
 
-    type GeneratedCaseStudy = { title?: string; challenge?: string; solution?: string; results?: string; key_stats?: Array<{ label?: string; value?: string; result?: string }>; pull_quote?: string; about_client?: string };
+    type GeneratedCaseStudy = { title?: string; challenge?: string; solution?: string; results?: string; key_stats?: string[]; pull_quote?: string; about_client?: string };
     let parsed: GeneratedCaseStudy;
     try {
       const clean = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
