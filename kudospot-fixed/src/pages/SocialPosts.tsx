@@ -9,11 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Copy, Trash2, Loader2, Linkedin, Instagram, Twitter, Download, Quote } from "lucide-react";
+import { Plus, Copy, Trash2, Loader2, Linkedin, Instagram, Twitter, Download, Quote, type LucideIcon } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Tables } from "@/integrations/supabase/types";
 type SocialPost = Database["public"]["Tables"]["social_posts"]["Row"];
 type SocialPostWithTestimonial = SocialPost & {
   customer_name: string;
@@ -23,7 +23,7 @@ type SocialPostWithTestimonial = SocialPost & {
   original_text: string | null;
 };
 
-const ICONS: Record<string, any> = { linkedin: Linkedin, instagram: Instagram, twitter: Twitter };
+const ICONS: Record<string, LucideIcon> = { linkedin: Linkedin, instagram: Instagram, twitter: Twitter };
 
 const tryCopyText = async (value: string) => {
   try { await navigator.clipboard.writeText(value); return true; }
@@ -36,8 +36,8 @@ const SocialPosts = () => {
   const [posts, setPosts] = useState<SocialPostWithTestimonial[]>([]);
   const [captionDrafts, setCaptionDrafts] = useState<Record<string, string>>({});
   const [savingCaptionIds, setSavingCaptionIds] = useState<Set<string>>(new Set());
-  const [testimonials, setTestimonials] = useState<any[]>([]);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [testimonials, setTestimonials] = useState<Pick<Tables<"testimonials">, "id" | "customer_name">[]>([]);
+  const [profile, setProfile] = useState<Pick<Tables<"profiles">, "business_name" | "business_logo_url"> | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -141,8 +141,8 @@ const SocialPosts = () => {
       toast.success("Post generated!");
       setOpen(false); setForm({ testimonial_id: "", platform: "linkedin" });
       load();
-    } catch (e: any) {
-      toast.error(e.message || "Generation failed");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally { setGenerating(false); }
   };
 
@@ -173,7 +173,7 @@ const SocialPosts = () => {
     toast.success("Caption saved");
   };
 
-  const downloadGraphic = async (post: any) => {
+  const downloadGraphic = async (post: SocialPostWithTestimonial) => {
     const node = graphicRefs.current.get(post.id);
     if (!node) return;
     setDownloadingId(post.id);
@@ -185,8 +185,8 @@ const SocialPosts = () => {
       link.download = `testimonial-${post.platform}-${safeName}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-    } catch (e: any) {
-      console.error("PNG download failed:", e);
+    } catch (e: unknown) {
+      console.error("PNG download failed:", e instanceof Error ? e.message : String(e));
       toast.error("PNG download failed. Please try in Chrome or copy the text manually.", {
         duration: 5000,
       });
@@ -195,7 +195,7 @@ const SocialPosts = () => {
     }
   };
 
-  const quoteText = (t: any) => t?.approved_text || t?.ai_rewritten_text || t?.original_text || "";
+  const quoteText = (t: Pick<SocialPostWithTestimonial, "approved_text" | "ai_rewritten_text" | "original_text"> | null | undefined) => t?.approved_text || t?.ai_rewritten_text || t?.original_text || "";
 
   return (
     <AppShell>
