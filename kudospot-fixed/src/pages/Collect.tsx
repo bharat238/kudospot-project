@@ -439,7 +439,7 @@ const Collect = () => {
       </div>
 
       <Tabs defaultValue="forms">
-        <TabsList className="mb-6">
+        <div className="mb-6 max-w-full overflow-x-auto"><TabsList className="min-w-max">
           <TabsTrigger value="forms">Collection Forms</TabsTrigger>
           <TabsTrigger value="sequences">Email Sequences</TabsTrigger>
           <TabsTrigger value="send">Request links</TabsTrigger>
@@ -447,7 +447,7 @@ const Collect = () => {
 
         {/* ═══════════════════ FORMS TAB ═══════════════════ */}
         <TabsContent value="forms">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">Share these links with customers to collect testimonials.</p>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm(blank); } }}>
               <DialogTrigger asChild>
@@ -533,7 +533,7 @@ const Collect = () => {
             <div className="grid gap-4">
               {forms.map((form) => (
                 <Card key={form.id} className="p-5">
-                  <div className="flex items-center justify-between mb-3 gap-3">
+                  <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                       {form.logo_url && <img src={form.logo_url} alt="" className="h-8 w-8 object-contain rounded border bg-white p-0.5" />}
                       <div className="min-w-0">
@@ -545,7 +545,7 @@ const Collect = () => {
                       </div>
                       <span className="h-3 w-3 rounded-full border shrink-0" style={{ background: form.brand_color }} />
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
                       <Button
                         size="sm"
                         variant="outline"
@@ -564,13 +564,13 @@ const Collect = () => {
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeForm(form.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-secondary/50 p-2 rounded-lg mb-2">
+                  <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-[#e8eaed] bg-[#f7f8fa] p-2">
                     <div className="text-xs font-semibold uppercase text-muted-foreground px-1 min-w-[60px]">Form</div>
-                    <code className="text-xs flex-1 truncate">{publicUrl(form.public_slug)}</code>
+                    <code className="min-w-0 flex-1 break-all text-xs sm:truncate">{publicUrl(form.public_slug)}</code>
                     <Button size="sm" variant="ghost" onClick={() => void copyLink(publicUrl(form.public_slug), "Collection link")}><Copy className="h-3.5 w-3.5" /></Button>
                     <Button size="sm" variant="ghost" onClick={() => window.open(publicUrl(form.public_slug), "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5" /></Button>
                   </div>
-                  <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-lg">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-[#dfe7cc] bg-[#f7faef] p-2">
                     <div className="text-xs font-semibold uppercase text-primary px-1 min-w-[60px]">Wall</div>
                     <code className="text-xs flex-1 truncate">{wallUrl(form.public_slug)}</code>
                     <Button size="sm" variant="ghost" className="text-primary" onClick={() => void copyLink(wallUrl(form.public_slug), "Wall of Love link")}><Copy className="h-3.5 w-3.5" /></Button>
