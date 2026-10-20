@@ -79,7 +79,6 @@ Deno.serve(async (req) => {
 
     const hasResponded = testimonial.approval_status === "approved" ||
       testimonial.approval_status === "declined" ||
-      testimonial.status === "approved" ||
       testimonial.status === "published" ||
       testimonial.status === "declined";
 
