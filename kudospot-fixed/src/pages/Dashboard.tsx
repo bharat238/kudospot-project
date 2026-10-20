@@ -23,6 +23,7 @@ type Testimonial = {
   ai_rewritten_text: string | null;
   approved_text: string | null;
   status: string;
+  approval_status: string | null;
   rating: number | null;
   created_at: string;
   approved_at: string | null;
@@ -61,7 +62,7 @@ const Dashboard = () => {
       try {
         const [profileResult, testimonialResult, formResult, widgetResult, caseStudyResult, socialResult] = await Promise.all([
           supabase.from("profiles").select("full_name,business_name,onboarding_completed").eq("id", user.id).maybeSingle(),
-          supabase.from("testimonials").select("id,customer_name,customer_role,customer_company,original_text,ai_rewritten_text,approved_text,status,rating,created_at,approved_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
+          supabase.from("testimonials").select("id,customer_name,customer_role,customer_company,original_text,ai_rewritten_text,approved_text,status,approval_status,rating,created_at,approved_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
           supabase.from("collection_forms").select("id,form_name,public_slug,is_active,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
           supabase.from("widgets").select("id,widget_name,is_published,views,clicks").eq("user_id", user.id),
           supabase.from("case_studies").select("id,title,is_published,views").eq("user_id", user.id),
@@ -94,7 +95,7 @@ const Dashboard = () => {
     total: testimonials.length,
     pending: testimonials.filter((item) => item.status === "pending" || item.status === "ai_rewritten").length,
     rewritten: testimonials.filter((item) => Boolean(item.ai_rewritten_text)).length,
-    approved: testimonials.filter((item) => item.status === "approved" || item.status === "published").length,
+    approved: testimonials.filter((item) => item.approval_status === "approved" || item.status === "published").length,
     widgetViews: widgets.reduce((sum, widget) => sum + Number(widget.views || 0), 0),
     widgetClicks: widgets.reduce((sum, widget) => sum + Number(widget.clicks || 0), 0),
     activeForms: forms.filter((form) => form.is_active).length,
