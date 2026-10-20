@@ -36,7 +36,7 @@ const WallOfLove = () => {
 
         // Step 2: fetch profile and testimonials in parallel using resolved user_id
         const [profileRes, testimonialsRes] = await Promise.all([
-          supabase.from("profiles").select("business_name, business_logo_url").eq("id", resolvedUserId).maybeSingle(),
+          supabase.from("public_business_profiles").select("business_name, business_logo_url").eq("user_id", resolvedUserId).maybeSingle(),
           supabase.from("testimonials")
             .select("id, customer_name, customer_role, customer_company, customer_avatar_url, approved_text, ai_rewritten_text, original_text, rating, created_at")
             .eq("user_id", resolvedUserId)
