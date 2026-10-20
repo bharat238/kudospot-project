@@ -19,6 +19,8 @@ import KudoSpotIcon from "@/components/KudoSpotIcon";
 import type { Database, Tables } from "@/integrations/supabase/types";
 type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
 
+type ApprovalLinkResult = { url: string; emailSent: boolean; requiresManualShare: boolean };
+
 const tryCopyText = async (value: string) => {
   try {
     await navigator.clipboard.writeText(value);
@@ -190,7 +192,7 @@ const Testimonials = () => {
     }
   };
 
-  const createApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }) => {
+  const createApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }): Promise<ApprovalLinkResult | null> => {
     if (!user || sendingIds.has(t.id)) return null;
     setSendingIds((current) => new Set(current).add(t.id));
     let emailDeliveryFailed = false;
@@ -220,7 +222,7 @@ const Testimonials = () => {
             }
           }
           void load();
-          return emailData?.approval_url || null;
+          return { url: typeof emailData?.approval_url === "string" ? emailData.approval_url : "", emailSent: emailData?.email_sent !== false, requiresManualShare: emailData?.email_sent === false };
         }
 
         // A failed email request can still fall back to a customer-shareable link.
@@ -262,7 +264,7 @@ const Testimonials = () => {
         }
       }
       void load();
-      return url;
+      return { url, emailSent: false, requiresManualShare: true };
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to create approval link");
       return null;
@@ -276,14 +278,14 @@ const Testimonials = () => {
   };
 
   const requestApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }) => {
-    const url = await createApprovalLink(t, opts);
-    if (url && user) {
+    const result = await createApprovalLink(t, opts);
+    if (result?.url && user) {
       setApprovalRefreshKey((current) => current + 1);
       await load();
       const { data } = await supabase.from("testimonials").select("*").eq("id", t.id).eq("user_id", user.id).maybeSingle();
       if (data) setActive(data);
     }
-    return url;
+    return result?.url || null;
   };
 
   const remove = async (id: string) => {
