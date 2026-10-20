@@ -493,7 +493,9 @@ const Testimonials = () => {
         </Card>
       )}
 
-      {pageLoading ? (
+      {loadError ? (
+        <Card className="rounded-2xl p-10 text-center"><AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" /><h2 className="font-semibold">Testimonials could not be loaded</h2><p className="mt-2 text-sm text-muted-foreground">{loadError}</p><Button variant="outline" className="mt-5" onClick={() => void load()}>Try again</Button></Card>
+      ) : pageLoading ? (
         <div className="grid md:grid-cols-2 gap-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="p-5 animate-pulse">
@@ -605,16 +607,7 @@ const Testimonials = () => {
                       {rewritingIds.has(active.id) ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KudoSpotIcon className="h-4 w-4 mr-1" />} Regenerate
                     </Button>
                   )}
-                  {active.status !== "approved" && active.status !== "declined" && (
-                    <Button onClick={() => approve(active)} variant="default" className="bg-success hover:bg-success/90">
-                      <Check className="h-4 w-4 mr-1" /> Approve & Send Email
-                    </Button>
-                  )}
-                  {active.ai_rewritten_text && active.customer_email && active.approval_status !== "approved" && (
-                    <Button variant="outline" size="sm" onClick={() => sendApproval(active.id)} disabled={sendingIds.has(active.id)}>
-                      {sendingIds.has(active.id) ? <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Sending…</> : <><Mail className="h-3.5 w-3.5 mr-1" /> {active.approval_status === "sent" ? "Resend approval email" : "Send for approval"}</>}
-                    </Button>
-                  )}
+                  <p className="w-full text-xs leading-5 text-muted-foreground">A customer must approve their final testimonial before it can be published. Send an email request or copy a manual link using the approval panel above.</p>
                   <Button variant="ghost" className="text-destructive ml-auto" onClick={() => remove(active.id)}>
                     <Trash2 className="h-4 w-4 mr-1" /> Delete
                   </Button>
