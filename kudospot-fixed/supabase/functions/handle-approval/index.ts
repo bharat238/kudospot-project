@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 1000) : null;
 
     if (!token || token.length > 200) return json({ error: "A valid approval token is required." }, 400);
-    if (action !== "approve" && action !== "decline" && action !== "reject") {
+    if (action !== "preview" && action !== "approve" && action !== "decline" && action !== "reject") {
       return json({ error: "Unsupported approval action." }, 400);
     }
 
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     // New links use approval_tokens, which supports revocation and one-time use.
     const { data: approvalToken, error: tokenError } = await supabaseAdmin
       .from("approval_tokens")
-      .select("token,testimonial_id,user_id,used_at,campaign")
+      .select("token,testimonial_id,user_id,used_at,campaign,approval_text")
       .eq("token", token)
       .maybeSingle();
 
@@ -57,12 +57,29 @@ Deno.serve(async (req) => {
         return json({ error: "This approval link is invalid or no longer available." }, 404);
       }
 
-      const isApprove = action === "approve";
       const recordedAction = testimonial.approval_status === "approved" || testimonial.status === "published"
         ? "approve"
-        : testimonial.approval_status === "declined" || testimonial.status === "declined"
+        : testimonial.approval_status === "declined" || testimonial.status === "declined" || testimonial.status === "rejected"
           ? "decline"
           : null;
+
+      if (action === "preview") {
+        if (recordedAction) {
+          return json({ success: true, already: true, action: recordedAction, customer_name: testimonial.customer_name });
+        }
+        if (approvalToken.used_at) {
+          return json({ error: "This approval link has expired or was replaced. Ask the business for a fresh link." }, 410);
+        }
+        return json({
+          success: true,
+          already: false,
+          action: "preview",
+          customer_name: testimonial.customer_name,
+          testimonial_text: approvalToken.approval_text || testimonial.ai_rewritten_text || testimonial.original_text,
+        });
+      }
+
+      const isApprove = action === "approve";
 
       if (approvalToken.used_at) {
         if (recordedAction) {
@@ -123,7 +140,7 @@ Deno.serve(async (req) => {
             status: "approved",
             approval_status: "approved",
             approved_at: now,
-            approved_text: testimonial.ai_rewritten_text || testimonial.original_text,
+            approved_text: approvalToken.approval_text || testimonial.ai_rewritten_text || testimonial.original_text,
           }
         : {
             status: "declined",
@@ -175,12 +192,26 @@ Deno.serve(async (req) => {
       return json({ error: "This approval link is invalid or expired. Please contact the business." }, 404);
     }
 
-    const isApprove = action === "approve";
     const recordedAction = legacy.approval_status === "approved" || legacy.status === "published"
       ? "approve"
-      : legacy.approval_status === "declined" || legacy.status === "declined"
+      : legacy.approval_status === "declined" || legacy.status === "declined" || legacy.status === "rejected"
         ? "decline"
         : null;
+
+    if (action === "preview") {
+      if (recordedAction) {
+        return json({ success: true, already: true, action: recordedAction, customer_name: legacy.customer_name });
+      }
+      return json({
+        success: true,
+        already: false,
+        action: "preview",
+        customer_name: legacy.customer_name,
+        testimonial_text: legacy.ai_rewritten_text || legacy.original_text,
+      });
+    }
+
+    const isApprove = action === "approve";
 
     if (recordedAction) {
       return json({ success: true, already: true, action: recordedAction, customer_name: legacy.customer_name });
