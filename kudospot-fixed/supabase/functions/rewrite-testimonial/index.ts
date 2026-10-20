@@ -80,7 +80,26 @@ serve(async (req) => {
     const { data: t, error: tErr } = await supabase.from("testimonials").select("*").eq("id", testimonial_id).eq("user_id", user.id).single();
     if (tErr || !t) return new Response(JSON.stringify({ error: "Testimonial not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: profile } = await supabase.from("profiles").select("business_name, brand_voice").eq("id", user.id).maybeSingle();
+    const { data: profile } = await supabase.from("profiles").select("business_name, brand_voice, plan, plan_expires_at").eq("id", user.id).maybeSingle();
+
+    const paidPlanActive =
+      (profile?.plan === "starter" || profile?.plan === "pro") &&
+      typeof profile.plan_expires_at === "string" &&
+      Date.parse(profile.plan_expires_at) > Date.now();
+    if (!paidPlanActive) {
+      const { count, error: rewriteCountError } = await supabase
+        .from("testimonials")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .not("ai_rewritten_text", "is", null);
+      if (rewriteCountError) {
+        console.error("Could not check AI rewrite usage:", rewriteCountError.message);
+        return new Response(JSON.stringify({ error: "Your AI rewrite usage could not be checked." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if ((count || 0) >= 5) {
+        return new Response(JSON.stringify({ error: "Free plan limit reached: up to 5 AI rewrites. Upgrade to continue." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
 
     const userPrompt = `CUSTOMER NAME: ${t.customer_name}
 CUSTOMER ROLE: ${t.customer_role || "(unspecified)"}
