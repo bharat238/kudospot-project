@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 export type TrackEventType =
   | "widget_view"
@@ -20,7 +21,7 @@ export const trackEvent = async (params: {
   entity_type: EntityType;
   source?: string;
   campaign?: string | null;
-  metadata?: Record<string, any>;
+  metadata?: Json;
 }) => {
   try {
     await supabase.from("analytics_events").insert({
