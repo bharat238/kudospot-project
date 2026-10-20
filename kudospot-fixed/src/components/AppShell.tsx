@@ -70,11 +70,6 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           </NavLink>
         ))}
       </nav>
-      <div className="border-t border-[#eceef0] px-3 pt-3">
-        <Link to="/help" onClick={onNavigate} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#686d77] transition-colors hover:bg-[#f3f4f6] hover:text-[#24262b]">
-          <LifeBuoy className="h-[18px] w-[18px] shrink-0" /><span>Help & FAQ</span>
-        </Link>
-      </div>
       <div className="space-y-2 border-t border-[#eceef0] p-3">
         <NavLink to="/upgrade" onClick={onNavigate} className={({ isActive }) => "flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-semibold transition-colors " + (isActive ? "border-[#d8f48b] bg-[#f5ffd9] text-[#29321a]" : "border-[#e8eaed] bg-white text-[#282a30] hover:bg-[#f8f9fa]")}>
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#eaffae] text-[#29321a]"><Zap className="h-4 w-4" /></span>
@@ -119,7 +114,6 @@ const IconRail = () => {
         ))}
       </nav>
       <div className="mt-4 flex flex-col items-center gap-2">
-        <Link to="/help" title="Help & FAQ" aria-label="Help and FAQ" className="flex h-10 w-10 items-center justify-center rounded-xl text-[#777c85] transition-colors hover:bg-[#f0f1f3] hover:text-[#292b31]"><LifeBuoy className="h-[18px] w-[18px]" /></Link>
         <Link to="/upgrade" title="Upgrade plan" aria-label="Upgrade plan" className="flex h-10 w-10 items-center justify-center rounded-xl text-[#3c481e] transition-colors hover:bg-[#eaffae]"><Zap className="h-[18px] w-[18px]" /></Link>
         <Button variant="ghost" size="icon" title="Sign out" aria-label="Sign out" onClick={doSignOut} className="h-10 w-10 rounded-xl text-[#777c85] hover:bg-[#f0f1f3] hover:text-[#292b31]"><LogOut className="h-[18px] w-[18px]" /></Button>
       </div>
@@ -152,6 +146,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                <Link to="/help" title="Help & FAQ" aria-label="Help and FAQ" className="flex h-9 w-9 items-center justify-center rounded-full border border-[#e7e9ed] bg-white text-[#777c85] transition-colors hover:bg-[#f3f4f6] hover:text-[#292b31]"><LifeBuoy className="h-4 w-4" /></Link>
                 <div className="flex max-w-[190px] items-center gap-2 rounded-full border border-[#e7e9ed] bg-white py-1.5 pl-1.5 pr-3">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#eaffae] text-[11px] font-semibold text-[#303a1b]">{(user?.email?.[0] || "K").toUpperCase()}</span>
                   <span className="hidden min-w-0 truncate text-xs font-medium text-[#343740] sm:block">{user?.email || "Workspace account"}</span>
