@@ -8,11 +8,17 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Eye, MousePointerClick, FileText, CheckCircle2, Download, TrendingUp, Loader2, Database, FileDown } from "lucide-react";
+import {
+  Eye, MousePointerClick, FileText, CheckCircle2, Download, TrendingUp, Loader2,
+  Database, FileDown, RefreshCw, BarChart3, Send, AlertCircle, ArrowUpRight
+} from "lucide-react";
 import { toast } from "sonner";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend
+} from "recharts";
 
-type Ev = {
+type AnalyticsEvent = {
   id: string;
   event_type: string;
   entity_id: string | null;
@@ -22,687 +28,420 @@ type Ev = {
   created_at: string;
   referrer: string | null;
 };
+type RangeKey = "7" | "30" | "90";
+type DailyPoint = { date: string; submissions: number; approvals: number; widgetViews: number; caseViews: number };
+type BackfillPhase = "idle" | "estimating" | "running" | "done" | "error";
 
-const RANGES = [
-  { key: "7", label: "Last 7 days" },
-  { key: "30", label: "Last 30 days" },
-  { key: "90", label: "Last 90 days" },
+const RANGES: { key: RangeKey; label: string }[] = [
+  { key: "7", label: "7 days" },
+  { key: "30", label: "30 days" },
+  { key: "90", label: "90 days" },
 ];
-
 const ALL = "__all__";
+const NONE = "__none__";
+
+function localDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+function shortDate(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en", { month: "short", day: "numeric" });
+}
 
 const Analytics = () => {
   const { user } = useAuth();
-  const [range, setRange] = useState("30");
-  const [campaignFilter, setCampaignFilter] = useState<string>(ALL);
-  const [sourceFilter, setSourceFilter] = useState<string>(ALL);
-  const [events, setEvents] = useState<Ev[]>([]);
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
-  const [backfillState, setBackfillState] = useState<{
-    open: boolean; phase: "idle" | "estimating" | "running" | "done" | "error";
-    total: number; processed: number; startedAt: number; etaSec: number; message?: string;
-  }>({ open: false, phase: "idle", total: 0, processed: 0, startedAt: 0, etaSec: 0 });
-  const reportRef = useRef<HTMLDivElement>(null);
-  const [sentCount, setSentCount] = useState<number | null>(null);
-  const [approvedCount, setApprovedCount] = useState<number | null>(null);
-  const [approvalRate, setApprovalRate] = useState<number | null>(null);
+  const [range, setRange] = useState<RangeKey>("30");
+  const [campaignFilter, setCampaignFilter] = useState(ALL);
+  const [sourceFilter, setSourceFilter] = useState(ALL);
+  const [events, setEvents] = useState<AnalyticsEvent[]>([]);
+  const [profile, setProfile] = useState<{ business_name?: string | null; full_name?: string | null } | null>(null);
   const [widgetNames, setWidgetNames] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [backfillState, setBackfillState] = useState<{
+    open: boolean; phase: BackfillPhase; total: number; processed: number; startedAt: number; etaSec: number; message?: string;
+  }>({ open: false, phase: "idle", total: 0, processed: 0, startedAt: 0, etaSec: 0 });
 
   const loadEvents = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    const since = new Date();
-    since.setDate(since.getDate() - parseInt(range));
-    const [{ data: ev }, { data: pr }] = await Promise.all([
-      supabase
-        .from("analytics_events")
-        .select("id,event_type,entity_id,entity_type,source,campaign,created_at,referrer")
-        .eq("user_id", user.id)
-        .gte("created_at", since.toISOString())
-        .order("created_at", { ascending: false })
-        .limit(5000),
-      supabase.from("profiles").select("business_name,full_name").eq("id", user.id).maybeSingle(),
-    ]);
-    setEvents((ev || []) as Ev[]);
-    setProfile(pr);
-
-    // Fetch counts from testimonials table for more accurate approval metrics
-    try {
-      // For "sent", count all testimonials that have been sent for approval (any status except pending, ai_rewritten before sent)
-      // For now, count all testimonials except brand new pending ones
-      const { count: sentCountResponse, error: sentError } = await supabase
-        .from("testimonials")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .not("status", "in", "('pending')");
-      console.log("Sent count:", sentCountResponse, "Error:", sentError);
-
-      const { count: approvedCountResponse, error: approvedError } = await supabase
-        .from("testimonials")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .or("status.eq.approved,status.eq.published");
-      console.log("Approved count:", approvedCountResponse, "Error:", approvedError);
-
-      const { count: eventApprovalCount } = await supabase
-        .from("analytics_events")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("event_type", "approval_approved");
-      console.log("Approval event count:", eventApprovalCount);
-
-      const sent = sentCountResponse || 0;
-      const approved = Math.max(approvedCountResponse || 0, eventApprovalCount || 0);
-      setSentCount(sent);
-      setApprovedCount(approved);
-      setApprovalRate(sent > 0 ? Math.round((approved / sent) * 100) : 0);
-    } catch (e) {
-      // ignore — fall back to event-based counts
-      setSentCount(null);
-      setApprovedCount(null);
-      setApprovalRate(null);
+    if (!user) {
+      setEvents([]);
+      setLoading(false);
+      return;
     }
-
-    setLoading(false);
+    setLoading(true);
+    setLoadError(null);
+    const days = Number(range);
+    const since = new Date();
+    since.setHours(0, 0, 0, 0);
+    since.setDate(since.getDate() - (days - 1));
+    try {
+      const [eventResult, profileResult, widgetResult] = await Promise.all([
+        supabase.from("analytics_events")
+          .select("id,event_type,entity_id,entity_type,source,campaign,created_at,referrer")
+          .eq("user_id", user.id)
+          .gte("created_at", since.toISOString())
+          .order("created_at", { ascending: false })
+          .limit(5000),
+        supabase.from("profiles").select("business_name,full_name").eq("id", user.id).maybeSingle(),
+        supabase.from("widgets").select("id,widget_name").eq("user_id", user.id),
+      ]);
+      if (eventResult.error) throw eventResult.error;
+      setEvents((eventResult.data || []) as AnalyticsEvent[]);
+      setProfile(profileResult.data);
+      if (widgetResult.error) {
+        console.warn("Widget labels couldn't be loaded:", widgetResult.error.message);
+        setWidgetNames({});
+      } else {
+        const names: Record<string, string> = {};
+        (widgetResult.data || []).forEach((widget) => { names[widget.id] = widget.widget_name || "Widget"; });
+        setWidgetNames(names);
+      }
+    } catch (error) {
+      console.error("Failed to load analytics:", error);
+      setLoadError("We couldn't load your analytics right now. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   }, [user, range]);
 
-  useEffect(() => { loadEvents(); }, [loadEvents]);
+  useEffect(() => { void loadEvents(); }, [loadEvents]);
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchWidgetNames = async () => {
-      const { data } = await supabase.from("widgets").select("id, name").eq("user_id", user.id);
-      if (data) {
-        const map: Record<string, string> = {};
-        data.forEach((w: any) => {
-          map[w.id] = w.name;
-        });
-        setWidgetNames(map);
-      }
-    };
-    fetchWidgetNames();
-  }, [user]);
-
-  // Apply client-side filters
-  const filtered = useMemo(() => {
-    return events.filter((e) => {
-      if (campaignFilter !== ALL && (e.campaign || "") !== (campaignFilter === "__none__" ? "" : campaignFilter)) return false;
-      if (sourceFilter !== ALL) {
-        const src = (e.source || "direct").replace(/^www\./, "");
-        if (src !== sourceFilter) return false;
-      }
-      return true;
-    });
-  }, [events, campaignFilter, sourceFilter]);
+  const filtered = useMemo(() => events.filter((event) => {
+    const campaign = event.campaign || "";
+    if (campaignFilter !== ALL && campaign !== (campaignFilter === NONE ? "" : campaignFilter)) return false;
+    if (sourceFilter !== ALL) {
+      const source = (event.source || "direct").replace(/^www\./, "");
+      if (source !== sourceFilter) return false;
+    }
+    return true;
+  }), [events, campaignFilter, sourceFilter]);
 
   const campaigns = useMemo(() => {
-    const set = new Set<string>();
+    const values = new Set<string>();
     let hasUntagged = false;
-    for (const e of events) {
-      if (e.campaign) set.add(e.campaign);
+    for (const event of events) {
+      if (event.campaign) values.add(event.campaign);
       else hasUntagged = true;
     }
-    return { list: [...set].sort(), hasUntagged };
+    return { values: [...values].sort((a, b) => a.localeCompare(b)), hasUntagged };
   }, [events]);
 
-  const sources = useMemo(() => {
-    const set = new Set<string>();
-    for (const e of events) set.add((e.source || "direct").replace(/^www\./, ""));
-    return [...set].sort();
-  }, [events]);
+  const sources = useMemo(() => [...new Set(events.map((event) => (event.source || "direct").replace(/^www\./, "")))].sort(), [events]);
 
   const stats = useMemo(() => {
-    const count = (t: string) => filtered.filter((e) => e.event_type === t).length;
+    const count = (type: string) => filtered.filter((event) => event.event_type === type).length;
     const widgetViews = count("widget_view");
     const widgetClicks = count("widget_click");
-    const caseViews = count("case_study_view");
-    const approvalsSent = sentCount ?? count("approval_sent");
-    const approvalsApproved = approvedCount ?? count("approval_approved");
+    const formSubmissions = count("form_submit");
+    const approvalsSent = count("approval_sent");
+    const approvalsApproved = count("approval_approved");
     const approvalsRejected = count("approval_rejected");
-    const computedApprovalRate = approvalRate ?? (approvalsSent > 0 ? Math.round((approvalsApproved / approvalsSent) * 100) : 0);
+    const caseViews = count("case_study_view");
     return {
-      widgetViews,
-      widgetClicks,
-      ctr: widgetViews ? Math.round((widgetClicks / widgetViews) * 1000) / 10 : 0,
-      caseViews,
-      approvalsSent,
-      approvalsApproved,
-      approvalsRejected,
-      conversionRate: computedApprovalRate,
+      widgetViews, widgetClicks, formSubmissions, approvalsSent, approvalsApproved, approvalsRejected, caseViews,
+      ctr: widgetViews > 0 ? Math.round((widgetClicks / widgetViews) * 1000) / 10 : 0,
+      approvalRate: approvalsSent > 0 ? Math.min(100, Math.round((approvalsApproved / approvalsSent) * 100)) : 0,
     };
-  }, [filtered, sentCount, approvedCount, approvalRate]);
+  }, [filtered]);
+
+  const dailyData = useMemo(() => {
+    const days = Number(range);
+    const buckets: DailyPoint[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let offset = days - 1; offset >= 0; offset--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - offset);
+      buckets.push({ date: localDateKey(date), submissions: 0, approvals: 0, widgetViews: 0, caseViews: 0 });
+    }
+    const index = new Map(buckets.map((bucket, position) => [bucket.date, position]));
+    for (const event of filtered) {
+      const position = index.get(localDateKey(new Date(event.created_at)));
+      if (position === undefined) continue;
+      if (event.event_type === "form_submit") buckets[position].submissions++;
+      if (event.event_type === "approval_approved") buckets[position].approvals++;
+      if (event.event_type === "widget_view") buckets[position].widgetViews++;
+      if (event.event_type === "case_study_view") buckets[position].caseViews++;
+    }
+    return buckets.map((bucket) => ({ ...bucket, label: shortDate(bucket.date) }));
+  }, [filtered, range]);
+
+  const widgetChartData = useMemo(() => {
+    const grouped: Record<string, { id: string; widget: string; views: number; clicks: number }> = {};
+    for (const event of filtered) {
+      if (event.event_type !== "widget_view" && event.event_type !== "widget_click") continue;
+      const id = event.entity_id || "unknown";
+      if (!grouped[id]) grouped[id] = { id, widget: widgetNames[id] || (id === "unknown" ? "Unknown widget" : `Widget ${id.slice(0, 6)}…`), views: 0, clicks: 0 };
+      if (event.event_type === "widget_view") grouped[id].views++;
+      else grouped[id].clicks++;
+    }
+    return Object.values(grouped).sort((a, b) => b.views - a.views).slice(0, 10);
+  }, [filtered, widgetNames]);
 
   const bySource = useMemo(() => {
-    const map = new Map<string, { source: string; views: number; clicks: number; submits: number; approvals: number }>();
-    for (const e of filtered) {
-      const key = (e.source || "direct").replace(/^www\./, "");
-      const row = map.get(key) || { source: key, views: 0, clicks: 0, submits: 0, approvals: 0 };
-      if (e.event_type.endsWith("_view")) row.views++;
-      else if (e.event_type === "widget_click") row.clicks++;
-      else if (e.event_type === "form_submit") row.submits++;
-      else if (e.event_type === "approval_approved") row.approvals++;
-      map.set(key, row);
+    const grouped: Record<string, { source: string; views: number; clicks: number; submissions: number; approvals: number }> = {};
+    for (const event of filtered) {
+      const source = (event.source || "direct").replace(/^www\./, "");
+      if (!grouped[source]) grouped[source] = { source, views: 0, clicks: 0, submissions: 0, approvals: 0 };
+      if (event.event_type.endsWith("_view")) grouped[source].views++;
+      if (event.event_type === "widget_click") grouped[source].clicks++;
+      if (event.event_type === "form_submit") grouped[source].submissions++;
+      if (event.event_type === "approval_approved") grouped[source].approvals++;
     }
-    return [...map.values()].sort((a, b) => b.views + b.submits - (a.views + a.submits)).slice(0, 12);
+    return Object.values(grouped).sort((a, b) => b.views + b.submissions - a.views - a.submissions).slice(0, 12);
   }, [filtered]);
 
   const byCampaign = useMemo(() => {
-    const map = new Map<string, { campaign: string; views: number; submits: number; approvals: number }>();
-    for (const e of filtered) {
-      const key = e.campaign || "(untagged)";
-      const row = map.get(key) || { campaign: key, views: 0, submits: 0, approvals: 0 };
-      if (e.event_type.endsWith("_view")) row.views++;
-      else if (e.event_type === "form_submit") row.submits++;
-      else if (e.event_type === "approval_approved") row.approvals++;
-      map.set(key, row);
+    const grouped: Record<string, { campaign: string; views: number; submissions: number; approvals: number }> = {};
+    for (const event of filtered) {
+      const campaign = event.campaign || "(untagged)";
+      if (!grouped[campaign]) grouped[campaign] = { campaign, views: 0, submissions: 0, approvals: 0 };
+      if (event.event_type.endsWith("_view")) grouped[campaign].views++;
+      if (event.event_type === "form_submit") grouped[campaign].submissions++;
+      if (event.event_type === "approval_approved") grouped[campaign].approvals++;
     }
-    return [...map.values()].sort((a, b) => b.approvals - a.approvals);
+    return Object.values(grouped).sort((a, b) => b.approvals - a.approvals || b.submissions - a.submissions);
   }, [filtered]);
 
-  const sparkline = useMemo(() => {
-    const days = parseInt(range);
-    const buckets: { date: string; widgetViews: number; caseViews: number; approvals: number }[] = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      buckets.push({ date: d.toISOString().slice(0, 10), widgetViews: 0, caseViews: 0, approvals: 0 });
-    }
-    const idx = new Map(buckets.map((b, i) => [b.date, i]));
-    for (const e of filtered) {
-      const d = e.created_at.slice(0, 10);
-      const i = idx.get(d);
-      if (i === undefined) continue;
-      if (e.event_type === "widget_view") buckets[i].widgetViews++;
-      else if (e.event_type === "case_study_view") buckets[i].caseViews++;
-      else if (e.event_type === "approval_approved") buckets[i].approvals++;
-    }
-    return buckets;
-  }, [filtered, range]);
+  const filterLabel = [
+    campaignFilter !== ALL ? `Campaign: ${campaignFilter === NONE ? "untagged" : campaignFilter}` : null,
+    sourceFilter !== ALL ? `Source: ${sourceFilter}` : null,
+  ].filter(Boolean).join(" · ");
 
   const exportCSV = useCallback(() => {
-    const rows: string[][] = [];
-    rows.push(["Section", "Date / Source / Campaign", "Metric", "Value"]);
-    // Daily breakdown
-    for (const b of sparkline) {
-      rows.push(["daily", b.date, "widget_views", String(b.widgetViews)]);
-      rows.push(["daily", b.date, "case_study_views", String(b.caseViews)]);
-      rows.push(["daily", b.date, "approvals", String(b.approvals)]);
+    const rows: string[][] = [["Section", "Date / Source / Campaign", "Metric", "Value"]];
+    for (const day of dailyData) {
+      rows.push(["daily", day.date, "form_submissions", String(day.submissions)]);
+      rows.push(["daily", day.date, "approvals", String(day.approvals)]);
+      rows.push(["daily", day.date, "widget_views", String(day.widgetViews)]);
+      rows.push(["daily", day.date, "case_study_views", String(day.caseViews)]);
     }
-    for (const r of bySource) {
-      rows.push(["by_source", r.source, "views", String(r.views)]);
-      rows.push(["by_source", r.source, "clicks", String(r.clicks)]);
-      rows.push(["by_source", r.source, "submits", String(r.submits)]);
-      rows.push(["by_source", r.source, "approvals", String(r.approvals)]);
+    for (const row of bySource) {
+      rows.push(["source", row.source, "views", String(row.views)]);
+      rows.push(["source", row.source, "clicks", String(row.clicks)]);
+      rows.push(["source", row.source, "submissions", String(row.submissions)]);
+      rows.push(["source", row.source, "approvals", String(row.approvals)]);
     }
-    for (const r of byCampaign) {
-      rows.push(["by_campaign", r.campaign, "views", String(r.views)]);
-      rows.push(["by_campaign", r.campaign, "submits", String(r.submits)]);
-      rows.push(["by_campaign", r.campaign, "approvals", String(r.approvals)]);
+    for (const row of byCampaign) {
+      rows.push(["campaign", row.campaign, "views", String(row.views)]);
+      rows.push(["campaign", row.campaign, "submissions", String(row.submissions)]);
+      rows.push(["campaign", row.campaign, "approvals", String(row.approvals)]);
     }
-    rows.push(["funnel", "all", "approvals_sent", String(stats.approvalsSent)]);
-    rows.push(["funnel", "all", "approvals_approved", String(stats.approvalsApproved)]);
-    rows.push(["funnel", "all", "approvals_rejected", String(stats.approvalsRejected)]);
-    const csv = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const filterTag = [campaignFilter !== ALL ? campaignFilter : null, sourceFilter !== ALL ? sourceFilter : null].filter(Boolean).join("-") || "all";
-    a.href = url;
-    a.download = `kudospot-analytics-${range}d-${filterTag}-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("CSV exported");
-  }, [sparkline, bySource, byCampaign, stats, campaignFilter, sourceFilter, range]);
+    rows.push(["summary", "selected range and filters", "widget_views", String(stats.widgetViews)]);
+    rows.push(["summary", "selected range and filters", "widget_clicks", String(stats.widgetClicks)]);
+    rows.push(["summary", "selected range and filters", "approval_requests", String(stats.approvalsSent)]);
+    rows.push(["summary", "selected range and filters", "approvals", String(stats.approvalsApproved)]);
+    const csv = rows.map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blobUrl = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    const tag = [campaignFilter !== ALL ? campaignFilter : null, sourceFilter !== ALL ? sourceFilter : null].filter(Boolean).join("-") || "all";
+    link.href = blobUrl;
+    link.download = `kudospot-analytics-${range}d-${tag}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    toast.success("CSV report downloaded");
+  }, [dailyData, bySource, byCampaign, stats, campaignFilter, sourceFilter, range]);
 
   const downloadPDF = useCallback(async () => {
+    if (!reportRef.current) return toast.error("The report is still loading. Please try again.");
     setExporting(true);
     try {
-      const { default: jsPDF } = await import("jspdf");
-      const html2canvas = (await import("html2canvas")).default;
-      const node = reportRef.current!;
-      const canvas = await html2canvas(node, { background: "#ffffff", scale: 2 } as any);
-      const img = canvas.toDataURL("image/png");
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
+      const canvas = await html2canvas(reportRef.current, { backgroundColor: "#f4f4f3", scale: 1.5, useCORS: true });
+      const image = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
-      const w = canvas.width * ratio;
-      const h = canvas.height * ratio;
-      pdf.addImage(img, "PNG", (pageW - w) / 2, 20, w, h);
-      const filterTag = [campaignFilter !== ALL ? campaignFilter : null, sourceFilter !== ALL ? sourceFilter : null].filter(Boolean).join("-") || "all";
-      pdf.save(`kudospot-${range}d-${filterTag}-${new Date().toISOString().slice(0, 10)}.pdf`);
-      toast.success("Report downloaded");
-    } catch (e: any) {
-      console.error("PDF export failed:", e);
-      toast.error("Export failed. If you're on Safari/mobile, try Chrome or Desktop.", {
-        duration: 5000,
-      });
+      const margin = 28;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imageWidth = pageWidth - margin * 2;
+      const imageHeight = (canvas.height * imageWidth) / canvas.width;
+      let offset = 0;
+      while (offset < imageHeight) {
+        if (offset > 0) pdf.addPage();
+        pdf.addImage(image, "PNG", margin, margin - offset, imageWidth, imageHeight);
+        offset += pageHeight - margin * 2;
+      }
+      const tag = [campaignFilter !== ALL ? campaignFilter : null, sourceFilter !== ALL ? sourceFilter : null].filter(Boolean).join("-") || "all";
+      pdf.save(`kudospot-analytics-${range}d-${tag}-${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success("PDF report downloaded");
+    } catch (error) {
+      console.error("PDF export failed:", error);
+      toast.error("The PDF couldn't be generated. Please try again or download the CSV.");
     } finally {
       setExporting(false);
     }
   }, [range, campaignFilter, sourceFilter]);
 
   const runBackfill = async () => {
-    if (!user) return;
-    // Phase 1: estimate via dry run
+    if (!user || backfillState.phase === "estimating" || backfillState.phase === "running") return;
     setBackfillState({ open: true, phase: "estimating", total: 0, processed: 0, startedAt: Date.now(), etaSec: 0 });
+    let interval: number | undefined;
     try {
-      // Estimate first via dry run (manual fetch — invoke doesn't pass query strings)
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
+      if (!token) throw new Error("Your session expired. Please sign in again.");
       const baseUrl = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/backfill-analytics`;
-      const dryRes = await fetch(`${baseUrl}?dry_run=1`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-      const dryData = await dryRes.json();
-      if (!dryRes.ok) throw new Error(dryData?.error || "Estimate failed");
-      const total = dryData.total || 0;
-      // Estimate ~600 events/sec server-side insert throughput
+      const dryResponse = await fetch(`${baseUrl}?dry_run=1`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+      const dryData = await dryResponse.json();
+      if (!dryResponse.ok) throw new Error(dryData?.error || "Could not estimate missing events.");
+      const total = Number(dryData.total || 0);
       const etaSec = Math.max(2, Math.ceil(total / 600));
-
       if (total === 0) {
-        setBackfillState((s) => ({ ...s, phase: "done", total: 0, processed: 0, message: "Nothing to backfill — your analytics are already current." }));
+        setBackfillState((current) => ({ ...current, phase: "done", message: "Nothing to backfill. Your historical analytics are already current." }));
         return;
       }
-
-      if (!confirm(`Backfill ~${total.toLocaleString()} historical events? Estimated ${etaSec}s.`)) {
+      if (!window.confirm(`Rebuild approximately ${total.toLocaleString()} historical analytics events? This writes analytics data and may take about ${etaSec} seconds.`)) {
         setBackfillState({ open: false, phase: "idle", total: 0, processed: 0, startedAt: 0, etaSec: 0 });
         return;
       }
-
-      // Phase 2: run real backfill, animate progress optimistically against ETA
       setBackfillState({ open: true, phase: "running", total, processed: 0, startedAt: Date.now(), etaSec });
-      const tickEvery = 250;
-      const interval = setInterval(() => {
-        setBackfillState((s) => {
-          if (s.phase !== "running") return s;
-          const elapsed = (Date.now() - s.startedAt) / 1000;
-          const pct = Math.min(0.95, elapsed / s.etaSec);
-          return { ...s, processed: Math.floor(s.total * pct) };
+      interval = window.setInterval(() => {
+        setBackfillState((current) => current.phase !== "running" ? current : {
+          ...current, processed: Math.min(Math.floor(current.total * 0.95), Math.floor(current.total * ((Date.now() - current.startedAt) / 1000) / current.etaSec))
         });
-      }, tickEvery);
-
-      const realRes = await fetch(baseUrl, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-      const realData = await realRes.json();
-      clearInterval(interval);
-      if (!realRes.ok) throw new Error(realData?.error || "Backfill failed");
-
-      setBackfillState((s) => ({ ...s, phase: "done", processed: realData.inserted || s.total, total: realData.inserted || s.total, message: realData.skipped ? "Backfill already ran previously." : `Inserted ${(realData.inserted || 0).toLocaleString()} historical events.` }));
-      loadEvents();
-    } catch (e: any) {
-      setBackfillState((s) => ({ ...s, phase: "error", message: e.message || "Backfill failed" }));
-      toast.error(e.message || "Backfill failed");
+      }, 250);
+      const response = await fetch(baseUrl, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.error || "Historical analytics could not be rebuilt.");
+      setBackfillState((current) => ({ ...current, phase: "done", processed: result.inserted || current.total, total: result.inserted || current.total, message: result.skipped ? "No additional events were needed. Historical data was already present." : `Added ${Number(result.inserted || 0).toLocaleString()} historical events.` }));
+      await loadEvents();
+    } catch (error: any) {
+      const message = error?.message || "Historical analytics could not be rebuilt.";
+      setBackfillState((current) => ({ ...current, phase: "error", message }));
+      toast.error(message);
+    } finally {
+      if (interval !== undefined) window.clearInterval(interval);
     }
   };
 
-  const chartDataByDay = useMemo(() => {
-    const grouped: Record<string, number> = {};
-    const rawTimestampMap: Record<string, number> = {};
-    filtered
-      .filter((e) => e.event_type === "form_submit" || e.event_type === "approval_approved")
-      .forEach((e) => {
-        const d = new Date(e.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-        grouped[d] = (grouped[d] || 0) + 1;
-        if (!rawTimestampMap[d]) {
-          rawTimestampMap[d] = new Date(e.created_at).getTime();
-        }
-      });
-    return Object.entries(grouped)
-      .map(([date, count]) => ({ date, count, _sortKey: rawTimestampMap[date] }))
-      .sort((a, b) => a._sortKey - b._sortKey)
-      .map(({ date, count }) => ({ date, count }));
-  }, [filtered]);
+  const closeBackfill = (isOpen: boolean) => {
+    if (!isOpen && backfillState.phase !== "running" && backfillState.phase !== "estimating") {
+      setBackfillState({ open: false, phase: "idle", total: 0, processed: 0, startedAt: 0, etaSec: 0 });
+    }
+  };
 
-  const widgetChartData = useMemo(() => {
-    const grouped: Record<string, { widget: string; views: number; clicks: number }> = {};
-    filtered
-      .filter((e) => e.event_type === "widget_view" || e.event_type === "widget_click")
-      .forEach((e) => {
-        const key = e.entity_id || "unknown";
-        if (!grouped[key]) grouped[key] = { widget: widgetNames[key] || (key.slice(0, 8) + "…"), views: 0, clicks: 0 };
-        if (e.event_type === "widget_view") grouped[key].views++;
-        else grouped[key].clicks++;
-      });
-    return Object.values(grouped);
-  }, [filtered, widgetNames]);
-
-  const sparkMax = Math.max(1, ...sparkline.map((b) => b.widgetViews + b.caseViews + b.approvals));
-  const filterLabel = [
-    campaignFilter !== ALL ? `Campaign: ${campaignFilter === "__none__" ? "untagged" : campaignFilter}` : null,
-    sourceFilter !== ALL ? `Source: ${sourceFilter}` : null,
-  ].filter(Boolean).join(" · ");
+  const maxFunnel = Math.max(1, stats.approvalsSent, stats.approvalsApproved, stats.approvalsRejected);
+  const pageName = profile?.business_name || profile?.full_name || "KudoSpot";
+  const hasEvents = filtered.length > 0;
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold mb-1">Analytics</h1>
-          <p className="text-muted-foreground">How your social proof is performing.</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Tabs value={range} onValueChange={setRange}>
-            <TabsList>
-              {RANGES.map((r) => <TabsTrigger key={r.key} value={r.key}>{r.label}</TabsTrigger>)}
-            </TabsList>
-          </Tabs>
-          <Button variant="outline" onClick={runBackfill} disabled={backfillState.phase === "estimating" || backfillState.phase === "running" || loading}>
-            {backfillState.phase === "estimating" || backfillState.phase === "running" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Database className="h-4 w-4 mr-1" />}
-            Backfill
-          </Button>
-          <Button variant="outline" onClick={exportCSV} disabled={loading}>
-            <FileDown className="h-4 w-4 mr-1" /> Export CSV
-          </Button>
-          <Button onClick={downloadPDF} disabled={exporting || loading}>
-            {exporting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
-            Download PDF
-          </Button>
+      <div className="mb-6 flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
+        <div><div className="mb-2 text-xs font-semibold uppercase tracking-[0.13em] text-muted-foreground">Performance</div><h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Analytics</h1><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Understand how customers engage with your testimonials, collection forms and published proof.</p></div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Tabs value={range} onValueChange={(value) => setRange(value as RangeKey)}><TabsList>{RANGES.map((item) => <TabsTrigger key={item.key} value={item.key}>{item.label}</TabsTrigger>)}</TabsList></Tabs>
+          <Button variant="outline" onClick={exportCSV} disabled={loading || !!loadError}><FileDown className="mr-2 h-4 w-4" />Export CSV</Button>
+          <Button onClick={() => void downloadPDF()} disabled={exporting || loading || !!loadError} className="rounded-xl">{exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}PDF report</Button>
         </div>
       </div>
 
-      <div className="mb-6 flex gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Campaign</span>
-          <Select value={campaignFilter} onValueChange={setCampaignFilter}>
-            <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>All campaigns</SelectItem>
-              {campaigns.hasUntagged && <SelectItem value="__none__">(untagged)</SelectItem>}
-              {campaigns.list.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Source</span>
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
-            <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>All sources</SelectItem>
-              {sources.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        {(campaignFilter !== ALL || sourceFilter !== ALL) && (
-          <Button size="sm" variant="ghost" onClick={() => { setCampaignFilter(ALL); setSourceFilter(ALL); }}>Clear filters</Button>
-        )}
+      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-border/80 bg-card p-3">
+        <span className="px-1 text-xs font-semibold text-muted-foreground">Filter data</span>
+        <div className="flex min-w-[190px] flex-1 items-center gap-2 sm:flex-none"><span className="text-xs text-muted-foreground">Campaign</span><Select value={campaignFilter} onValueChange={setCampaignFilter}><SelectTrigger className="h-9 min-w-0 flex-1 sm:w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value={ALL}>All campaigns</SelectItem>{campaigns.hasUntagged && <SelectItem value={NONE}>Untagged</SelectItem>}{campaigns.values.map((campaign) => <SelectItem key={campaign} value={campaign}>{campaign}</SelectItem>)}</SelectContent></Select></div>
+        <div className="flex min-w-[190px] flex-1 items-center gap-2 sm:flex-none"><span className="text-xs text-muted-foreground">Source</span><Select value={sourceFilter} onValueChange={setSourceFilter}><SelectTrigger className="h-9 min-w-0 flex-1 sm:w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value={ALL}>All sources</SelectItem>{sources.map((source) => <SelectItem key={source} value={source}>{source}</SelectItem>)}</SelectContent></Select></div>
+        {(campaignFilter !== ALL || sourceFilter !== ALL) && <Button size="sm" variant="ghost" className="ml-auto" onClick={() => { setCampaignFilter(ALL); setSourceFilter(ALL); }}>Clear filters</Button>}
       </div>
 
-      {loading ? (
-        <div className="py-24 text-center text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
+      {loadError ? (
+        <Card className="rounded-2xl p-10 text-center"><AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" /><h2 className="font-semibold">Analytics couldn't be loaded</h2><p className="mt-2 text-sm text-muted-foreground">{loadError}</p><Button variant="outline" className="mt-5" onClick={() => void loadEvents()}><RefreshCw className="mr-2 h-4 w-4" />Retry</Button></Card>
+      ) : loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[0,1,2,3].map((key) => <Card key={key} className="animate-pulse rounded-2xl p-5"><div className="mb-4 h-4 w-2/3 rounded bg-muted" /><div className="mb-3 h-9 w-1/3 rounded bg-muted" /><div className="h-3 w-1/2 rounded bg-muted" /></Card>)}</div>
       ) : (
-        <div ref={reportRef} className="bg-background space-y-6 p-2">
-
-        {chartDataByDay.length > 0 && (
-          <Card className="p-6 mb-6">
-            <h2 className="font-semibold mb-1">Testimonials collected over time</h2>
-            <p className="text-xs text-muted-foreground mb-4">Form submissions and approved testimonials</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={chartDataByDay} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }} />
-                <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} name="Testimonials" />
-              </LineChart>
-            </ResponsiveContainer>
-          </Card>
-        )}
-
-        {widgetChartData.length > 0 && (
-          <Card className="p-6 mb-6">
-            <h2 className="font-semibold mb-1">Widget performance</h2>
-            <p className="text-xs text-muted-foreground mb-4">Views vs clicks per widget</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={widgetChartData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="widget" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }} />
-                <Legend iconSize={10} />
-                <Bar dataKey="views" fill="hsl(var(--primary))" name="Views" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="clicks" fill="hsl(var(--success))" name="Clicks" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        )}
-          <div className="pb-4 border-b">
-            <div className="text-2xl font-bold">{profile?.business_name || profile?.full_name || "KudoSpot"} — Performance Report</div>
-            <div className="text-sm text-muted-foreground mt-1">
-              Generated {new Date().toLocaleDateString("en", { month: "long", day: "numeric", year: "numeric" })} · Last {range} days
-              {sourceFilter !== ALL && ` · Source: ${sourceFilter}`}
+        <>
+          <div ref={reportRef} className="space-y-5 bg-transparent">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <StatCard label="Widget views" value={stats.widgetViews} sub="In the selected period" icon={Eye} tint="orange" />
+              <StatCard label="Widget clicks" value={stats.widgetClicks} sub={`${stats.ctr}% click-through rate`} icon={MousePointerClick} tint="stone" />
+              <StatCard label="Collection submissions" value={stats.formSubmissions} sub="Feedback received" icon={Send} tint="amber" />
+              <StatCard label="Approvals" value={stats.approvalsApproved} sub={`${stats.approvalRate}% of approval requests`} icon={CheckCircle2} tint="green" />
             </div>
-            <div className="mt-3 flex flex-wrap gap-1.5 items-center">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">Campaigns:</span>
-              {campaignFilter !== ALL ? (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
-                  {campaignFilter === "__none__" ? "untagged" : campaignFilter}
-                </span>
-              ) : byCampaign.filter((c) => c.approvals > 0).length === 0 ? (
-                <span className="text-xs text-muted-foreground">none tagged</span>
-              ) : (
-                byCampaign.filter((c) => c.approvals > 0).slice(0, 8).map((c) => (
-                  <span key={c.campaign} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
-                    {c.campaign} <span className="text-muted-foreground">· {c.approvals}</span>
-                  </span>
-                ))
-              )}
-              {byCampaign.filter((c) => c.approvals > 0).length > 8 && campaignFilter === ALL && (
-                <span className="text-xs text-muted-foreground">+{byCampaign.filter((c) => c.approvals > 0).length - 8} more</span>
-              )}
-            </div>
-            {filterLabel && (
-              <div className="text-xs text-muted-foreground mt-2">Showing {filtered.length.toLocaleString()} events matching active filters.</div>
-            )}
-          </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Stat label="Widget views" value={stats.widgetViews} icon={Eye} accent="text-primary bg-primary-light" />
-            <Stat label="Widget clicks" value={stats.widgetClicks} icon={MousePointerClick} sub={`${stats.ctr}% CTR`} accent="text-primary bg-primary-light" />
-            <Stat label="Case study views" value={stats.caseViews} icon={FileText} accent="text-success bg-success/10" />
-            <Stat label="Approvals" value={stats.approvalsApproved} icon={CheckCircle2} sub={`${stats.conversionRate}% rate`} accent="text-success bg-success/10" />
-          </div>
+            {!hasEvents && <Card className="rounded-2xl border-dashed bg-card p-6 sm:p-8"><div className="flex flex-col items-start gap-4 sm:flex-row"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-800"><BarChart3 className="h-6 w-6" /></span><div className="flex-1"><h2 className="font-semibold">Your analytics will appear here</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Once visitors view a published widget or case study, or a customer submits a collection form, your activity will appear in these reports. You can set up your first experience now.</p><div className="mt-4 flex flex-wrap gap-2"><Button asChild size="sm"><a href="/collect">Create collection form <ArrowUpRight className="ml-1 h-3.5 w-3.5" /></a></Button><Button asChild size="sm" variant="outline"><a href="/widgets">Set up a widget</a></Button></div></div></div></Card>}
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Engagement over time</h2>
-              <div className="text-xs text-muted-foreground flex gap-3">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-primary" /> Widget views</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-success" /> Case views</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-warning" /> Approvals</span>
-              </div>
-            </div>
-            <div className="flex items-end gap-1 h-40">
-              {sparkline.map((b, i) => (
-                <div key={i} className="flex-1 flex flex-col-reverse gap-px" title={`${b.date}: ${b.widgetViews + b.caseViews + b.approvals} events`}>
-                  <div style={{ height: `${(b.widgetViews / sparkMax) * 100}%` }} className="bg-primary rounded-t-sm min-h-[1px]" />
-                  <div style={{ height: `${(b.caseViews / sparkMax) * 100}%` }} className="bg-success min-h-[1px]" />
-                  <div style={{ height: `${(b.approvals / sparkMax) * 100}%` }} className="bg-warning min-h-[1px]" />
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+              <Card className="min-w-0 rounded-2xl p-4 shadow-none sm:p-5">
+                <div className="mb-4"><h2 className="font-semibold">Collection activity</h2><p className="mt-1 text-xs text-muted-foreground">Form submissions and approvals by day</p></div>
+                <div className="h-[270px] min-w-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={dailyData} margin={{ top: 8, right: 10, left: -18, bottom: 2 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={18} />
+                      <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={32} />
+                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid hsl(var(--border))" }} />
+                      <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                      <Line type="monotone" dataKey="submissions" stroke="#C94320" strokeWidth={2.5} dot={false} name="Submissions" />
+                      <Line type="monotone" dataKey="approvals" stroke="#15803d" strokeWidth={2.5} dot={false} name="Approvals" />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-[10px] text-muted-foreground mt-2">
-              <span>{sparkline[0]?.date}</span>
-              <span>{sparkline[sparkline.length - 1]?.date}</span>
-            </div>
-          </Card>
+              </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Conversion by source</h2>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <Card className="min-w-0 rounded-2xl p-4 shadow-none sm:p-5">
+                <div className="mb-4"><h2 className="font-semibold">Widget performance</h2><p className="mt-1 text-xs text-muted-foreground">Views compared with meaningful widget interactions</p></div>
+                {widgetChartData.length ? <div className="h-[270px] min-w-0"><ResponsiveContainer width="100%" height="100%"><BarChart data={widgetChartData} margin={{ top: 8, right: 8, left: -18, bottom: 4 }}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} /><XAxis dataKey="widget" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval={0} angle={-15} textAnchor="end" height={52} /><YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={32} /><Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid hsl(var(--border))" }} /><Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} /><Bar dataKey="views" fill="#C94320" name="Views" radius={[4,4,0,0]} maxBarSize={34} /><Bar dataKey="clicks" fill="#57534e" name="Clicks" radius={[4,4,0,0]} maxBarSize={34} /></BarChart></ResponsiveContainer></div> : <ChartEmpty title="No widget activity yet" description="Publish a widget and embed it on your website to start measuring engagement." link="/widgets" linkLabel="Manage widgets" />}
+              </Card>
             </div>
-            {bySource.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">No traffic yet — share a widget or form to start tracking.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-xs text-muted-foreground uppercase border-b">
-                    <tr>
-                      <th className="text-left py-2 font-medium">Source</th>
-                      <th className="text-right py-2 font-medium">Views</th>
-                      <th className="text-right py-2 font-medium">Clicks</th>
-                      <th className="text-right py-2 font-medium">Submits</th>
-                      <th className="text-right py-2 font-medium">Approvals</th>
-                      <th className="text-right py-2 font-medium">Conv. rate</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bySource.map((r) => {
-                      const total = r.views; // Use views as denominator for conversion rate
-                      const conv = total ? Math.min(100, Math.round((r.approvals / total) * 1000) / 10) : 0;
-                      return (
-                        <tr key={r.source} className="border-b last:border-0">
-                          <td className="py-2.5 font-medium">{r.source}</td>
-                          <td className="text-right">{r.views}</td>
-                          <td className="text-right">{r.clicks}</td>
-                          <td className="text-right">{r.submits}</td>
-                          <td className="text-right text-success font-medium">{r.approvals}</td>
-                          <td className="text-right">{conv}%</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+              <DataTableCard title="Traffic by source" description="Where visitors are coming from" columns={["Source", "Views", "Clicks", "Submissions"]} rows={bySource.map((row) => [row.source, row.views.toLocaleString(), row.clicks.toLocaleString(), row.submissions.toLocaleString()])} emptyTitle="No source data yet" emptyDescription="Traffic sources appear when your forms, widgets or case studies receive activity." />
+              <DataTableCard title="Performance by campaign" description="Compare tagged campaigns" columns={["Campaign", "Views", "Submissions", "Approvals"]} rows={byCampaign.map((row) => [row.campaign, row.views.toLocaleString(), row.submissions.toLocaleString(), row.approvals.toLocaleString()])} emptyTitle="No campaign data yet" emptyDescription="Add campaign tags to your collection forms and widgets to compare activity here." />
+            </div>
+
+            <Card className="rounded-2xl p-4 shadow-none sm:p-5">
+              <div className="mb-5"><h2 className="font-semibold">Approval funnel</h2><p className="mt-1 text-xs text-muted-foreground">Customer approval events in the selected range and filters</p></div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <FunnelItem label="Requests sent" value={stats.approvalsSent} max={maxFunnel} tint="#C94320" />
+                <FunnelItem label="Approved" value={stats.approvalsApproved} max={maxFunnel} tint="#15803d" />
+                <FunnelItem label="Rejected" value={stats.approvalsRejected} max={maxFunnel} tint="#b91c1c" />
               </div>
-            )}
-          </Card>
+              <div className="mt-4 rounded-xl bg-muted/50 px-3 py-2 text-xs text-muted-foreground">Report: {pageName} · Last {range} days{filterLabel ? ` · ${filterLabel}` : ""} · {filtered.length.toLocaleString()} events</div>
+            </Card>
+          </div>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Performance by campaign</h2>
-              <span className="text-xs text-muted-foreground">{byCampaign.length} {byCampaign.length === 1 ? "tag" : "tags"}</span>
-            </div>
-            {byCampaign.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">Add a campaign tag to your forms or widgets to compare.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-xs text-muted-foreground uppercase border-b">
-                    <tr>
-                      <th className="text-left py-2 font-medium">Campaign</th>
-                      <th className="text-right py-2 font-medium">Views</th>
-                      <th className="text-right py-2 font-medium">Submits</th>
-                      <th className="text-right py-2 font-medium">Approvals</th>
-                      <th className="text-right py-2 font-medium">Conv. rate</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {byCampaign.map((r) => {
-                      const conv = r.submits ? Math.min(100, Math.round((r.approvals / r.submits) * 1000) / 10) : 0;
-                      return (
-                        <tr key={r.campaign} className="border-b last:border-0">
-                          <td className="py-2.5 font-medium">{r.campaign}</td>
-                          <td className="text-right">{r.views}</td>
-                          <td className="text-right">{r.submits}</td>
-                          <td className="text-right text-success font-medium">{r.approvals}</td>
-                          <td className="text-right">{conv}%</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-
-          <Card className="p-6">
-            <h2 className="font-semibold mb-4">Approval funnel</h2>
-            <div className="space-y-3">
-              <FunnelRow label="Approval requests sent" count={stats.approvalsSent} max={stats.approvalsSent || 1} color="bg-primary" />
-              <FunnelRow label="Customers approved" count={stats.approvalsApproved} max={stats.approvalsSent || 1} color="bg-success" />
-              <FunnelRow label="Customers rejected" count={stats.approvalsRejected} max={stats.approvalsSent || 1} color="bg-destructive" />
-            </div>
-          </Card>
-        </div>
+          <details className="mt-6 rounded-2xl border border-border/80 bg-card px-4 py-3">
+            <summary className="cursor-pointer list-none text-sm font-medium text-muted-foreground marker:hidden">Advanced data tools <span className="ml-1 text-xs font-normal">· For historical analytics recovery</span></summary>
+            <div className="flex flex-col justify-between gap-3 border-t border-border/70 pt-4 mt-3 sm:flex-row sm:items-center"><div><p className="text-sm font-medium">Reconcile historical activity</p><p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">Use this only if past widget, form or approval activity is missing. It rebuilds historical analytics events and does not modify testimonials.</p></div><Button variant="outline" size="sm" onClick={() => void runBackfill()} disabled={backfillState.phase === "estimating" || backfillState.phase === "running"}>{backfillState.phase === "estimating" || backfillState.phase === "running" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}Reconcile data</Button></div>
+          </details>
+        </>
       )}
 
-      <Dialog
-        open={backfillState.open}
-        onOpenChange={(o) => {
-          if (!o && (backfillState.phase === "done" || backfillState.phase === "error" || backfillState.phase === "idle")) {
-            setBackfillState({ open: false, phase: "idle", total: 0, processed: 0, startedAt: 0, etaSec: 0 });
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" /> Backfilling analytics
-            </DialogTitle>
-            <DialogDescription>
-              {backfillState.phase === "estimating" && "Counting historical widgets, case studies, and approvals…"}
-              {backfillState.phase === "running" && "Synthesizing events from existing counters and approval timestamps."}
-              {backfillState.phase === "done" && (backfillState.message || "Done.")}
-              {backfillState.phase === "error" && (backfillState.message || "Something went wrong.")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            {(backfillState.phase === "estimating" || backfillState.phase === "running") && (
-              <>
-                <Progress
-                  value={
-                    backfillState.phase === "estimating"
-                      ? 5
-                      : backfillState.total
-                        ? Math.min(99, (backfillState.processed / backfillState.total) * 100)
-                        : 50
-                  }
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>
-                    {backfillState.phase === "estimating"
-                      ? "Estimating…"
-                      : `${backfillState.processed.toLocaleString()} / ${backfillState.total.toLocaleString()} events`}
-                  </span>
-                  <span>
-                    {backfillState.phase === "estimating"
-                      ? "—"
-                      : (() => {
-                          const elapsed = (Date.now() - backfillState.startedAt) / 1000;
-                          const remaining = Math.max(0, Math.ceil(backfillState.etaSec - elapsed));
-                          return remaining > 0 ? `~${remaining}s remaining` : "Finalizing…";
-                        })()}
-                  </span>
-                </div>
-              </>
-            )}
-            {backfillState.phase === "done" && (
-              <div className="rounded-md bg-success/10 text-success px-3 py-2 text-sm flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" /> {backfillState.message}
-              </div>
-            )}
-            {backfillState.phase === "error" && (
-              <div className="rounded-md bg-destructive/10 text-destructive px-3 py-2 text-sm">{backfillState.message}</div>
-            )}
-            {(backfillState.phase === "done" || backfillState.phase === "error") && (
-              <div className="flex justify-end">
-                <Button onClick={() => setBackfillState({ open: false, phase: "idle", total: 0, processed: 0, startedAt: 0, etaSec: 0 })}>
-                  Close
-                </Button>
-              </div>
-            )}
-          </div>
+      <Dialog open={backfillState.open} onOpenChange={closeBackfill}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{backfillState.phase === "estimating" ? "Checking historical activity" : backfillState.phase === "running" ? "Rebuilding analytics" : backfillState.phase === "error" ? "Analytics recovery failed" : "Analytics recovery complete"}</DialogTitle><DialogDescription>{backfillState.message || "We are estimating how much historical activity can be restored. Keep this window open until the operation finishes."}</DialogDescription></DialogHeader>
+          {(backfillState.phase === "estimating" || backfillState.phase === "running") && <div className="space-y-2"><Progress value={backfillState.phase === "estimating" ? 12 : Math.min(95, (backfillState.processed / Math.max(1, backfillState.total)) * 100)} /><p className="text-xs text-muted-foreground">{backfillState.phase === "estimating" ? "Estimating missing activity…" : `${backfillState.processed.toLocaleString()} of ${backfillState.total.toLocaleString()} events (estimated)`}</p></div>}
+          {backfillState.phase !== "estimating" && backfillState.phase !== "running" && <div className="flex justify-end"><Button onClick={() => closeBackfill(false)}>Close</Button></div>}
         </DialogContent>
       </Dialog>
     </AppShell>
   );
 };
 
-const Stat = ({ label, value, icon: Icon, sub, accent }: any) => (
-  <Card className="p-5">
-    <div className={`h-10 w-10 rounded-lg flex items-center justify-center mb-3 ${accent}`}><Icon className="h-5 w-5" /></div>
-    <div className="text-3xl font-bold">{value}</div>
-    <div className="text-sm text-muted-foreground">{label}</div>
-    {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
-  </Card>
-);
+function StatCard({ label, value, sub, icon: Icon, tint }: { label: string; value: number; sub: string; icon: React.ComponentType<{ className?: string }>; tint: "orange" | "stone" | "amber" | "green" }) {
+  const iconClass = {
+    orange: "bg-orange-50 text-orange-800",
+    stone: "bg-stone-100 text-stone-800",
+    amber: "bg-amber-50 text-amber-800",
+    green: "bg-emerald-50 text-emerald-800",
+  }[tint];
+  return <Card className="rounded-2xl border-border/80 p-4 shadow-[0_2px_8px_rgba(15,23,42,0.035)] sm:p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-medium text-muted-foreground sm:text-sm">{label}</p><div className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">{value.toLocaleString()}</div><p className="mt-1.5 text-xs text-muted-foreground">{sub}</p></div><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconClass}`}><Icon className="h-[18px] w-[18px]" /></span></div></Card>;
+}
 
-const FunnelRow = ({ label, count, max, color }: { label: string; count: number; max: number; color: string }) => (
-  <div>
-    <div className="flex justify-between text-sm mb-1"><span>{label}</span><span className="font-semibold">{count}</span></div>
-    <div className="h-2 bg-secondary rounded-full overflow-hidden">
-      <div className={`h-full ${color} transition-all`} style={{ width: `${Math.min(100, (count / max) * 100)}%` }} />
-    </div>
-  </div>
-);
+function ChartEmpty({ title, description, link, linkLabel }: { title: string; description: string; link: string; linkLabel: string }) {
+  return <div className="flex min-h-[190px] flex-col items-center justify-center px-4 py-6 text-center"><span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground"><BarChart3 className="h-5 w-5" /></span><p className="text-sm font-medium">{title}</p><p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">{description}</p><Button asChild variant="link" size="sm" className="mt-2"><a href={link}>{linkLabel}</a></Button></div>;
+}
+
+function DataTableCard({ title, description, columns, rows, emptyTitle, emptyDescription }: { title: string; description: string; columns: string[]; rows: string[][]; emptyTitle: string; emptyDescription: string }) {
+  return <Card className="min-w-0 overflow-hidden rounded-2xl shadow-none"><div className="border-b border-border/70 px-5 py-4"><h2 className="font-semibold">{title}</h2><p className="mt-1 text-xs text-muted-foreground">{description}</p></div>{rows.length === 0 ? <div className="px-5 py-8 text-center"><p className="text-sm font-medium">{emptyTitle}</p><p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-muted-foreground">{emptyDescription}</p></div> : <div className="overflow-x-auto"><table className="w-full min-w-[440px] border-collapse text-left text-sm"><thead className="bg-muted/45 text-[10px] uppercase tracking-[0.1em] text-muted-foreground"><tr>{columns.map((column, index) => <th key={column} className={`px-4 py-3 font-medium first:pl-5 last:pr-5 ${index > 0 ? "text-right" : ""}`}>{column}</th>)}</tr></thead><tbody>{rows.map((row, rowIndex) => <tr key={`${row[0]}-${rowIndex}`} className="border-t border-border/60 hover:bg-muted/30">{row.map((value, cellIndex) => <td key={`${rowIndex}-${cellIndex}`} className={`max-w-[220px] truncate px-4 py-3 text-xs first:pl-5 last:pr-5 ${cellIndex === 0 ? "font-medium text-foreground" : "text-right tabular-nums text-muted-foreground"}`}>{value}</td>)}</tr>)}</tbody></table></div>}</Card>;
+}
+
+function FunnelItem({ label, value, max, tint }: { label: string; value: number; max: number; tint: string }) {
+  const percent = Math.min(100, Math.round((value / Math.max(1, max)) * 100));
+  return <div className="rounded-xl border border-border/70 p-4"><div className="flex items-center justify-between gap-2"><span className="text-xs font-medium text-muted-foreground">{label}</span><span className="text-lg font-semibold tabular-nums">{value.toLocaleString()}</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, background: tint }} /></div><div className="mt-2 text-right text-[10px] text-muted-foreground">{percent}% of largest stage</div></div>;
+}
 
 export default Analytics;
