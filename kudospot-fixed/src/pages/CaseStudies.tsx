@@ -180,7 +180,7 @@ const CaseStudies = () => {
           <Button className="mt-5 rounded-full bg-[#202126] text-white hover:bg-[#383b43]" onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Generate first case study</Button>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
           {items.map((cs) => (
             <Card key={cs.id} className="group h-full cursor-pointer rounded-[20px] border-[#e6e8ed] bg-white p-5 shadow-[0_2px_10px_rgba(35,38,48,0.025)] transition-all hover:-translate-y-0.5 hover:border-[#c8f34c] hover:shadow-[0_8px_24px_rgba(35,38,48,0.07)]" onClick={() => setActive(cs)}>
               <div className="mb-3 flex items-start justify-between gap-3">
