@@ -239,14 +239,32 @@ const Testimonials = () => {
         if (expireError) throw expireError;
       }
 
-      const { data, error } = await supabase
-        .from("approval_tokens")
-        .insert({ testimonial_id: t.id, user_id: user.id, campaign: t.campaign || null })
-        .select("token")
-        .single();
-      if (error) throw error;
+      let tokenValue: string | null = null;
+      if (!opts?.resend) {
+        const { data: activeToken, error: activeTokenError } = await supabase
+          .from("approval_tokens")
+          .select("token")
+          .eq("testimonial_id", t.id)
+          .eq("user_id", user.id)
+          .is("used_at", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (activeTokenError) throw activeTokenError;
+        tokenValue = activeToken?.token || null;
+      }
 
-      const url = `${window.location.origin}/approve/${data.token}`;
+      if (!tokenValue) {
+        const { data: createdToken, error: createTokenError } = await supabase
+          .from("approval_tokens")
+          .insert({ testimonial_id: t.id, user_id: user.id, campaign: t.campaign || null })
+          .select("token")
+          .single();
+        if (createTokenError) throw createTokenError;
+        tokenValue = createdToken.token;
+      }
+
+      const url = `${window.location.origin}/approve/${tokenValue}`;
       const copied = await tryCopyText(url);
       trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
       if (!opts?.silent) {
