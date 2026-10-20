@@ -688,7 +688,7 @@ const ApprovalWorkflow = ({ testimonial, onResend, onCopy, isSending }: { testim
             </Button>
           )}
           {tokens[0] && (
-            <Button size="sm" variant="ghost" onClick={async () => { const copied = await tryCopyText(`${window.location.origin}/approve/${tokens[0].token}`); copied ? toast.success("Latest link copied") : toast.error("Clipboard access was blocked. Try again from a secure browser context."); }} disabled={isSending}>
+            <Button size="sm" variant="ghost" onClick={async () => { const copied = await tryCopyText(`${window.location.origin}/approve/${tokens[0].token}`); if (copied) { toast.success("Latest link copied"); } else { toast.error("Clipboard access was blocked. Try again from a secure browser context."); } }} disabled={isSending}>
               <Copy className="h-3.5 w-3.5 mr-1" /> Copy latest
             </Button>
           )}
