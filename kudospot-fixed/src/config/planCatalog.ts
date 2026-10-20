@@ -38,8 +38,8 @@ export const PLAN_CATALOG: PlanDefinition[] = [
     id: "starter",
     name: "Starter",
     price: "₹499",
-    period: "one-time",
-    description: "For freelancers and growing teams.",
+    period: "/30 days",
+    description: "For freelancers and growing teams. Renews manually every 30 days.",
     cta: "Choose Starter",
     highlight: true,
     features: [
@@ -55,8 +55,8 @@ export const PLAN_CATALOG: PlanDefinition[] = [
     id: "pro",
     name: "Pro",
     price: "₹1,299",
-    period: "one-time",
-    description: "More room for a growing social-proof library.",
+    period: "/30 days",
+    description: "More room for a growing social-proof library, with manual 30-day renewals.",
     cta: "Choose Pro",
     highlight: false,
     features: [
