@@ -34,7 +34,15 @@ const makeBlank = () => ({
 });
 
 type WidgetRow = Tables<"widgets">;
+type WidgetForm = ReturnType<typeof makeBlank>;
 type TestimonialPickerItem = Pick<Tables<"testimonials">, "id" | "customer_name" | "customer_role" | "customer_company" | "approved_text" | "ai_rewritten_text" | "original_text" | "rating">;
+
+const widgetAccent = (widget: WidgetRow) => {
+  const settings = widget.settings;
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) return DEFAULT_ACCENT;
+  const color = (settings as Record<string, unknown>).primary_color;
+  return typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_ACCENT;
+};
 
 const Widgets = () => {
   const { user } = useAuth();
@@ -42,7 +50,7 @@ const Widgets = () => {
   const [widgets, setWidgets] = useState<WidgetRow[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialPickerItem[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<any>(makeBlank());
+  const [form, setForm] = useState<WidgetForm>(makeBlank());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [testimonialError, setTestimonialError] = useState<string | null>(null);
@@ -107,8 +115,9 @@ const Widgets = () => {
       setOpen(false);
       setForm(makeBlank());
       await load();
-    } catch (error: any) {
-      toast.error(error?.message || "We couldn't create the widget. Try again.");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Widget creation failed. Please try again.";
+      toast.error(message);
     } finally {
       setCreating(false);
     }
@@ -243,11 +252,13 @@ const Widgets = () => {
         </Card>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
-          {widgets.map((widget) => (
+          {widgets.map((widget) => {
+            const accent = widgetAccent(widget);
+            return (
             <Card key={widget.id} className="min-w-0 overflow-hidden rounded-2xl border-border/80 shadow-[0_2px_8px_rgba(15,23,42,0.035)]">
               <div className="flex items-start justify-between gap-3 p-5">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${(widget.settings as any)?.primary_color || DEFAULT_ACCENT}15`, color: (widget.settings as any)?.primary_color || DEFAULT_ACCENT }}><LayoutGrid className="h-5 w-5" /></div>
+                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${accent}15`, color: (widget.settings as any)?.primary_color || DEFAULT_ACCENT }}><LayoutGrid className="h-5 w-5" /></div>
                   <div className="min-w-0"><h2 className="truncate font-semibold">{widget.widget_name}</h2><p className="mt-1 text-xs capitalize text-muted-foreground">{TYPES.find((type) => type.value === widget.widget_type)?.label || widget.widget_type} · {widget.testimonial_ids?.length || 0} testimonials</p><div className="mt-2 flex flex-wrap items-center gap-2"><Badge variant={widget.is_published ? "default" : "secondary"} className={widget.is_published ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-50" : ""}>{widget.is_published ? "Published" : "Unpublished"}</Badge>{widget.campaign && <Badge variant="outline">{widget.campaign}</Badge>}</div></div>
                 </div>
                 <Button variant="ghost" size="icon" aria-label={`Delete ${widget.widget_name}`} title="Delete widget" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => void remove(widget)}><Trash2 className="h-4 w-4" /></Button>
@@ -273,7 +284,8 @@ const Widgets = () => {
                 <Button variant={widget.is_published ? "ghost" : "default"} size="sm" className="rounded-lg" disabled={updatingIds.has(widget.id)} onClick={() => void togglePublished(widget)}>{updatingIds.has(widget.id) ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}{widget.is_published ? "Unpublish" : "Publish widget"}</Button>
               </div>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </AppShell>
