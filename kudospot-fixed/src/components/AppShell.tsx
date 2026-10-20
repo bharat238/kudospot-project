@@ -122,7 +122,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         </header>
 
         <main className="min-w-0 px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pt-8">
-          <div key={location.pathname} className="kudospot-page-enter mx-auto w-full max-w-[1520px]">{children}</div>
+          <div className="mx-auto w-full max-w-[1520px]">{children}</div>
         </main>
       </div>
     </div>
