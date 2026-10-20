@@ -60,7 +60,7 @@ export const OnboardingWizard = ({ onDone }: Props) => {
       user_id: user.id,
       form_name: form.form_name,
       headline: form.headline,
-      brand_color: "#7C3AED",
+      brand_color: "#C94320",
       collect_rating: true,
     });
     setSaving(false);
