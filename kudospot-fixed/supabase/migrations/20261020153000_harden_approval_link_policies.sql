@@ -17,6 +17,66 @@ DROP POLICY IF EXISTS "Public read token by value" ON public.approval_tokens;
 DROP POLICY IF EXISTS "Public mark token used" ON public.approval_tokens;
 DROP POLICY IF EXISTS "Public approve via token" ON public.testimonials;
 DROP POLICY IF EXISTS "Public read testimonials via token or publish" ON public.testimonials;
+-- The deployed database also contains permissive policies that were absent from
+-- the checked-in historical migrations. Remove them explicitly before adding
+-- narrower policies because permissive PostgreSQL policies are OR-combined.
+DROP POLICY IF EXISTS "Public can read profile info" ON public.profiles;
+DROP POLICY IF EXISTS "Public can approve via token" ON public.testimonials;
+DROP POLICY IF EXISTS "Public can read approved testimonials" ON public.testimonials;
+DROP POLICY IF EXISTS "Public insert email sends" ON public.email_sends;
+DROP POLICY IF EXISTS "Public insert valid events" ON public.analytics_events;
+
+CREATE POLICY "Public insert public view events"
+  ON public.analytics_events
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (
+    (
+      event_type IN ('widget_view', 'widget_click')
+      AND entity_type = 'widget'
+      AND EXISTS (
+        SELECT 1 FROM public.widgets AS w
+        WHERE w.id = analytics_events.entity_id
+          AND w.user_id = analytics_events.user_id
+          AND w.is_published = true
+      )
+    )
+    OR (
+      event_type = 'case_study_view'
+      AND entity_type = 'case_study'
+      AND EXISTS (
+        SELECT 1 FROM public.case_studies AS c
+        WHERE c.id = analytics_events.entity_id
+          AND c.user_id = analytics_events.user_id
+          AND c.is_published = true
+      )
+    )
+    OR (
+      event_type = 'form_view'
+      AND entity_type = 'form'
+      AND EXISTS (
+        SELECT 1 FROM public.collection_forms AS f
+        WHERE f.id = analytics_events.entity_id
+          AND f.user_id = analytics_events.user_id
+          AND f.is_active = true
+      )
+    )
+  );
+
+CREATE POLICY "Owners insert approval sent events"
+  ON public.analytics_events
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = user_id
+    AND event_type = 'approval_sent'
+    AND entity_type = 'approval'
+    AND EXISTS (
+      SELECT 1 FROM public.approval_tokens AS token
+      WHERE token.testimonial_id = analytics_events.entity_id
+        AND token.user_id = auth.uid()
+    )
+  );
 
 -- Public testimonials are visible only after customer approval and only when
 -- the owner has an active collection form (used for their Wall of Love), or
