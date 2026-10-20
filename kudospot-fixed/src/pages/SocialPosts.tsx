@@ -261,7 +261,7 @@ const SocialPosts = () => {
                     <span className="text-xs text-muted-foreground">· {p.customer_name}</span>
                   </div>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={async () => { const copied = await tryCopyText(captionDrafts[p.id] ?? p.caption_text); copied ? toast.success("Caption copied") : toast.error("Clipboard access was blocked by your browser."); }}><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" onClick={async () => { const copied = await tryCopyText(captionDrafts[p.id] ?? p.caption_text); if (copied) { toast.success("Caption copied"); } else { toast.error("Clipboard access was blocked by your browser."); } }}><Copy className="h-3.5 w-3.5" /></Button>
                     <Button size="sm" variant="outline" onClick={() => downloadGraphic(p)} disabled={downloadingId === p.id}>
                       {downloadingId === p.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />} PNG
                     </Button>
