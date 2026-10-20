@@ -90,7 +90,7 @@ export default function Upgrade() {
         description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan – Monthly`,
         order_id: data.order_id,
         prefill: { email: user.email },
-        theme: { color: "#7C3AED" },
+        theme: { color: "#C94320" },
         handler: async (response: any) => {
           const { error: verifyError, data: verifyData } = await supabase.functions.invoke("verify-razorpay-payment", {
             body: {
