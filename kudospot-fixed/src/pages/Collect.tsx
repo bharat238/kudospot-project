@@ -443,7 +443,7 @@ const Collect = () => {
           <TabsTrigger value="forms">Collection Forms</TabsTrigger>
           <TabsTrigger value="sequences">Email Sequences</TabsTrigger>
           <TabsTrigger value="send">Request links</TabsTrigger>
-        </TabsList>
+        </TabsList></div>
 
         {/* ═══════════════════ FORMS TAB ═══════════════════ */}
         <TabsContent value="forms">
