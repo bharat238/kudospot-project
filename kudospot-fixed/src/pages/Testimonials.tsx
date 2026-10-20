@@ -171,7 +171,7 @@ const Testimonials = () => {
     setRewritingIds(prev => new Set(prev).add(t.id));
     try {
       const { data, error } = await supabase.functions.invoke("rewrite-testimonial", {
-        body: { testimonial_id: t.id, resend: Boolean(opts?.resend) },
+        body: { testimonial_id: t.id },
       });
       if (error) throw error;
       toast.success("AI rewrite complete!");
