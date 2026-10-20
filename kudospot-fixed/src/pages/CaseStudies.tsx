@@ -122,7 +122,7 @@ const CaseStudies = () => {
 
   return (
     <AppShell>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-1">Case studies</h1>
           <p className="text-muted-foreground">Turn approved testimonials into shareable stories.</p>
@@ -136,7 +136,7 @@ const CaseStudies = () => {
             </DialogHeader>
             <form onSubmit={generate} className="space-y-4">
               <div><Label>Client name</Label><Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} placeholder="Acme Inc." /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div><Label>One-line context (optional)</Label><Input value={form.context} onChange={(e) => setForm({ ...form, context: e.target.value })} placeholder="B2B SaaS, used us for onboarding" /></div>
                 <div><Label>Campaign tag</Label><Input value={form.campaign} onChange={(e) => setForm({ ...form, campaign: e.target.value })} placeholder="e.g. q4-enterprise" /></div>
               </div>
@@ -173,21 +173,30 @@ const CaseStudies = () => {
       </div>
 
       {items.length === 0 ? (
-        <Card className="p-16 text-center text-muted-foreground">
-          <KudoSpotIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
-          No case studies yet.
+        <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center text-muted-foreground sm:px-10 sm:py-16">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><KudoSpotIcon className="h-6 w-6" /></div>
+          <h2 className="text-lg font-semibold text-[#202126]">Turn an approved customer story into a case study.</h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#777c85]">Choose approved testimonials and let AI draft the challenge, solution and results. You can edit the content before publishing a shareable page.</p>
+          <Button className="mt-5 rounded-full bg-[#202126] text-white hover:bg-[#383b43]" onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Generate first case study</Button>
         </Card>
       ) : (
         <div className="grid gap-4">
           {items.map((cs) => (
-            <Card key={cs.id} className="p-5 cursor-pointer hover:shadow-card transition" onClick={() => setActive(cs)}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="font-semibold">{cs.title}</div>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${cs.is_published ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+            <Card key={cs.id} className="group h-full cursor-pointer rounded-[20px] border-[#e6e8ed] bg-white p-5 shadow-[0_2px_10px_rgba(35,38,48,0.025)] transition-all hover:-translate-y-0.5 hover:border-[#c8f34c] hover:shadow-[0_8px_24px_rgba(35,38,48,0.07)]" onClick={() => setActive(cs)}>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eaffae] text-[#303a1b]"><KudoSpotIcon className="h-4 w-4" /></span>
+                  <div className="min-w-0"><p className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-[#777c85]">{cs.client_name || "Customer story"}</p><h2 className="mt-1 line-clamp-2 font-semibold leading-5 text-[#202126] group-hover:text-[#343c21]">{cs.title}</h2></div>
+                </div>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ${cs.is_published ? "border border-[#dcebb8] bg-[#f1f8dd] text-[#405022]" : "border border-[#e6e8ed] bg-[#f5f6f8] text-[#626671]"}`}>
                   {cs.is_published ? "Published" : "Draft"}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground line-clamp-2">{cs.pull_quote}</p>
+              <p className="line-clamp-3 text-sm leading-6 text-[#686d77]">{cs.pull_quote || "Open this story to add the customer quote, challenge, solution and results."}</p>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#eff0f3] pt-3 text-[10px] text-[#777c85]">
+                <span>{cs.campaign ? `Campaign · ${cs.campaign}` : "AI-generated from approved testimonials"}</span>
+                <span className="inline-flex items-center gap-1 font-semibold text-[#424750]">Edit story <ExternalLink className="h-3 w-3" /></span>
+              </div>
             </Card>
           ))}
         </div>
@@ -202,7 +211,7 @@ const CaseStudies = () => {
                 <DialogDescription>View and manage this case study.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div><Label>Title</Label><Input value={active.title || ""} onChange={(e) => update("title", e.target.value)} /></div>
                   <div><Label>Campaign tag</Label><Input value={active.campaign || ""} onChange={(e) => update("campaign", e.target.value)} placeholder="Override or leave blank" /></div>
                 </div>
