@@ -468,7 +468,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_business_profiles: {
+        Row: {
+          business_logo_url: string | null
+          business_name: string | null
+          user_id: string
+        }
+        Relationships: []
+      }
     }
     Functions: {
       increment_widget_clicks: {
