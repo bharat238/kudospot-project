@@ -196,14 +196,14 @@ const SocialPosts = () => {
 
   return (
     <AppShell>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-1">Social posts</h1>
           <p className="text-muted-foreground">Platform-tailored captions, generated from your testimonials.</p>
         </div>
         <Dialog open={open} onOpenChange={(nextOpen) => { if (plan === "free" && nextOpen) { showUpgradeToast("the social post generator"); return; } setOpen(nextOpen); }}>
           <DialogTrigger asChild><Button onClick={(event) => { if (plan === "free") { event.preventDefault(); showUpgradeToast("the social post generator"); } }}><Plus className="h-4 w-4 mr-1" /> {plan === "free" ? "Upgrade to generate" : "Generate"}</Button></DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] w-[calc(100vw-2rem)] max-w-md overflow-y-auto rounded-2xl">
             <DialogHeader>
               <DialogTitle>Generate social post</DialogTitle>
               <DialogDescription>Generate a platform-specific social post from an approved testimonial.</DialogDescription>
@@ -241,9 +241,11 @@ const SocialPosts = () => {
             <p>Loading your social posts...</p>
           </div>
         ) : posts.length === 0 ? (
-          <Card className="p-16 text-center text-muted-foreground">
-            <KudoSpotIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
-            No posts yet. Generate your first one.
+          <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center sm:px-10 sm:py-16">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><Quote className="h-6 w-6" /></div>
+            <h2 className="text-lg font-semibold text-[#202126]">Your first social post starts here.</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">Choose a customer-approved testimonial and prepare a platform-specific caption and downloadable graphic.</p>
+            <Button className="mt-5 rounded-full bg-[#202126] text-white hover:bg-[#383b43]" onClick={() => { if (plan === "free") { showUpgradeToast("the social post generator"); return; } setOpen(true); }}><Plus className="mr-2 h-4 w-4" />{plan === "free" ? "Upgrade to generate" : "Generate first post"}</Button>
           </Card>
         ) : (
           <div className="grid gap-4">
@@ -251,18 +253,18 @@ const SocialPosts = () => {
             const Icon = ICONS[p.platform] || Linkedin;
             return (
               <Card key={p.id} className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
+                <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-2">
                     <Icon className="h-4 w-4 text-primary" />
                     <span className="font-semibold capitalize">{p.platform}</span>
-                    <span className="text-xs text-muted-foreground">· {p.customer_name}</span>
+                    <span className="min-w-0 truncate text-xs text-muted-foreground">· {p.customer_name}</span>
                   </div>
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={async () => { const copied = await tryCopyText(captionDrafts[p.id] ?? p.caption_text); if (copied) { toast.success("Caption copied"); } else { toast.error("Clipboard access was blocked by your browser."); } }}><Copy className="h-3.5 w-3.5" /></Button>
+                  <div className="flex flex-wrap justify-end gap-1 sm:shrink-0">
+                    <Button size="sm" variant="ghost" aria-label={`Copy caption for ${p.customer_name || "testimonial"}`} title="Copy caption" onClick={async () => { const copied = await tryCopyText(captionDrafts[p.id] ?? p.caption_text); if (copied) { toast.success("Caption copied"); } else { toast.error("Clipboard access was blocked by your browser."); } }}><Copy className="h-3.5 w-3.5" /></Button>
                     <Button size="sm" variant="outline" onClick={() => downloadGraphic(p)} disabled={downloadingId === p.id}>
                       {downloadingId === p.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />} PNG
                     </Button>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                    <Button size="sm" variant="ghost" className="text-destructive" aria-label={`Delete social post for ${p.customer_name || "testimonial"}`} title="Delete post" onClick={() => remove(p.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
                 <Textarea rows={6} aria-label={`Caption for ${p.customer_name || "testimonial"}`} value={captionDrafts[p.id] ?? p.caption_text} onChange={(e) => setCaptionDrafts((current) => ({ ...current, [p.id]: e.target.value }))} onBlur={() => void saveCaption(p.id)} className="text-sm" /><div className="mt-2 flex justify-end text-[11px] text-muted-foreground">{savingCaptionIds.has(p.id) ? "Saving caption…" : (captionDrafts[p.id] ?? p.caption_text) !== p.caption_text ? "Unsaved changes · save when you leave this field" : "Caption saved"}</div>
