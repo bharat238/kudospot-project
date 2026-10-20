@@ -64,7 +64,7 @@ const Embed = () => {
             .from("testimonials")
             .select("id,customer_name,customer_role,customer_company,approved_text,ai_rewritten_text,original_text,rating,status")
             .in("id", safeWidget.testimonial_ids)
-            .or("approval_status.eq.approved,status.eq.published");
+            .eq("approval_status", "approved");
           if (error) throw error;
           approvedItems = ((data || []) as PublicTestimonial[]).sort((a, b) => {
             const aIndex = safeWidget.testimonial_ids?.indexOf(a.id) ?? -1;
