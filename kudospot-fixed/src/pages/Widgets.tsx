@@ -44,6 +44,44 @@ const widgetAccent = (widget: WidgetRow) => {
   return typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_ACCENT;
 };
 
+const WidgetDraftPreview = ({ widget, testimonials }: { widget: WidgetRow; testimonials: TestimonialPickerItem[] }) => {
+  const selected = (widget.testimonial_ids || [])
+    .map((id) => testimonials.find((testimonial) => testimonial.id === id))
+    .filter((testimonial): testimonial is TestimonialPickerItem => Boolean(testimonial));
+  const accent = widgetAccent(widget);
+  const settings = widget.settings && typeof widget.settings === "object" && !Array.isArray(widget.settings)
+    ? widget.settings as Record<string, unknown>
+    : {};
+  const radius = typeof settings.radius === "number" && Number.isFinite(settings.radius) ? settings.radius : 12;
+  const rated = selected.filter((testimonial) => typeof testimonial.rating === "number" && testimonial.rating >= 1 && testimonial.rating <= 5);
+  const average = rated.length ? rated.reduce((sum, testimonial) => sum + (testimonial.rating || 0), 0) / rated.length : null;
+
+  if (selected.length === 0) {
+    return <div className="flex min-h-[150px] flex-col items-center justify-center p-5 text-center"><MessageSquareQuote className="mb-2 h-5 w-5 text-muted-foreground" /><p className="text-xs font-medium text-foreground">No selected testimonials are available to preview.</p><p className="mt-1 text-[11px] text-muted-foreground">Edit the widget and select approved testimonials.</p></div>;
+  }
+
+  if (widget.widget_type === "badge") {
+    return <div className="flex min-h-[100px] items-center justify-center p-5"><div className="inline-flex flex-wrap items-center justify-center gap-2 border border-border/70 bg-white px-4 py-3 text-sm text-foreground shadow-sm" style={{ borderRadius: radius }}><Star className="h-5 w-5 fill-current" style={{ color: accent }} /><span className="font-semibold tabular-nums">{average === null ? "Customer feedback" : `${average.toFixed(1)} / 5`}</span><span className="text-xs text-muted-foreground">from {rated.length || selected.length} {rated.length ? "ratings" : "testimonials"}</span></div></div>;
+  }
+
+  const visible = widget.widget_type === "single" || widget.widget_type === "carousel" ? selected.slice(0, 1) : selected.slice(0, 4);
+  return <div className={`grid gap-3 p-3 ${widget.widget_type === "wall" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+    {visible.map((testimonial) => {
+      const quote = testimonial.approved_text || testimonial.ai_rewritten_text || testimonial.original_text;
+      return <article key={testimonial.id} className="min-w-0 border border-border/70 bg-white p-4 shadow-sm" style={{ borderRadius: radius }}>
+        {testimonial.rating && <div className="mb-2 flex gap-0.5" aria-label={`Rated ${testimonial.rating} out of 5`}>{[1, 2, 3, 4, 5].map((number) => <Star key={number} className={`h-3 w-3 ${number <= testimonial.rating! ? "fill-current" : ""}`} style={{ color: accent, opacity: number <= testimonial.rating! ? 1 : 0.2 }} />)}</div>}
+        <p className="line-clamp-4 break-words text-xs leading-5 text-foreground/90">“{quote}”</p>
+        <div className="mt-3 flex min-w-0 items-center gap-2 border-t border-border/60 pt-3">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white" style={{ background: accent }}>{testimonial.customer_name?.trim()?.[0]?.toUpperCase() || "C"}</span>
+          <span className="min-w-0"><span className="block truncate text-[11px] font-semibold">{testimonial.customer_name || "Customer"}</span><span className="block truncate text-[10px] text-muted-foreground">{[testimonial.customer_role, testimonial.customer_company].filter(Boolean).join(" · ") || "Customer"}</span></span>
+        </div>
+      </article>;
+    })}
+    {widget.widget_type === "carousel" && selected.length > 1 && <p className="col-span-full text-center text-[10px] text-muted-foreground">Carousel preview · {selected.length} testimonials rotate on the published embed.</p>}
+    {widget.widget_type === "wall" && selected.length > visible.length && <p className="col-span-full text-center text-[10px] text-muted-foreground">Showing {visible.length} of {selected.length} selected testimonials in this preview.</p>}
+  </div>;
+};
+
 const Widgets = () => {
   const { user } = useAuth();
   const { canAddWidget, showUpgradeToast } = usePlanLimits();
@@ -341,9 +379,9 @@ const Widgets = () => {
 
               <div className="mx-5 overflow-hidden rounded-xl border border-border/70 bg-[#f7f7f6]">
                 {widget.is_published ? (
-                  <iframe title={`Preview of ${widget.widget_name}`} src={`/embed/${widget.id}`} loading="lazy" className="block w-full bg-transparent" style={{ height: widget.widget_type === "badge" ? 100 : widget.widget_type === "single" ? 190 : 250, border: 0 }} />
+                  <iframe title={`Preview of ${widget.widget_name}`} src={`/embed/${widget.id}`} loading="lazy" className="block w-full bg-transparent" style={{ height: widget.widget_type === "badge" ? 120 : 180, border: 0 }} />
                 ) : (
-                  <div className="flex min-h-[180px] flex-col items-center justify-center p-6 text-center"><Eye className="mb-2 h-6 w-6 text-muted-foreground" /><p className="text-sm font-medium">Preview hidden while unpublished</p><p className="mt-1 text-xs text-muted-foreground">Publish this widget to preview exactly what visitors will see.</p></div>
+                  <WidgetDraftPreview widget={widget} testimonials={testimonials} />
                 )}
               </div>
 
