@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, X, GripVertical, Zap, Copy, ChevronRight, HelpCircle, Mail, FileText, Shield } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
-import { PLAN_LIMITS, type PlanName } from "@/hooks/usePlanLimits";
+import { PLAN_LIMITS, usePlanLimits } from "@/hooks/usePlanLimits";
 
 const DEFAULT_TEMPLATES = [
   "Too short — needs more detail",
@@ -27,6 +27,7 @@ const DEFAULT_TEMPLATES = [
 
 const Settings = () => {
   const { user } = useAuth();
+  const { plan: activePlan, expiresAt, loading: planLoading } = usePlanLimits();
   const [profile, setProfile] = useState<any>({ business_name: "", full_name: "", brand_voice: "friendly", rejection_templates: DEFAULT_TEMPLATES, plan: "free" });
   const [saving, setSaving] = useState(false);
   const [usage, setUsage] = useState({ testimonials: 0, ai_rewrites: 0, widgets: 0, case_studies: 0 });
@@ -78,7 +79,7 @@ const Settings = () => {
   const removeTpl = (i: number) => setProfile({ ...profile, rejection_templates: profile.rejection_templates.filter((_: any, j: number) => j !== i) });
   const resetTpl = () => setProfile({ ...profile, rejection_templates: DEFAULT_TEMPLATES });
 
-  const plan = (profile.plan as PlanName) || "free";
+  const plan = activePlan;
   const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
   const fmt = (count: number, max: number) => max === -1 ? "Unlimited" : `${count} / ${max}`;
   const planBadgeCls = plan === "pro" ? "bg-primary-light text-primary" : plan === "starter" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground";
@@ -194,7 +195,7 @@ const Settings = () => {
                 <div>
                   <h2 className="font-semibold text-lg mb-1">Current plan</h2>
                   <span className={`inline-block text-xs uppercase tracking-wide font-semibold px-2 py-1 rounded ${planBadgeCls}`}>
-                    {plan}
+                    {planLoading ? "Checking plan…" : plan}
                   </span>
                 </div>
                 {plan !== "pro" && (
@@ -205,7 +206,8 @@ const Settings = () => {
                 <p className="text-sm text-muted-foreground mt-2">Upgrade to unlock unlimited testimonials, AI rewrites, and more.</p>
               ) : (
                 <div className="mt-3">
-                  <p className="text-sm text-muted-foreground">Your plan is active. Thank you for being a KudoSpot customer.</p>
+                  <p className="text-sm text-muted-foreground">Your paid access is active. It does not renew automatically.</p>
+                  {expiresAt && <p className="mt-2 text-sm font-medium text-foreground">Access ends {new Date(expiresAt).toLocaleDateString()}.</p>}
                   <div className="mt-4 rounded-xl border border-border/70 bg-muted/40 p-4">
                     <p className="text-sm font-medium">Need to change your paid plan?</p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">Paid plans grant 30 days of access per payment and do not auto-renew. Renew from Upgrade when you need another period, or contact support for billing help.</p>
@@ -219,7 +221,7 @@ const Settings = () => {
 
             <Card className="p-6">
               <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                <KudoSpotIcon className="h-4 w-4 text-primary" /> Usage this period
+                <KudoSpotIcon className="h-4 w-4 text-primary" /> Usage
               </h2>
               <div className="divide-y">
                 {[
