@@ -94,6 +94,35 @@ const Embed = () => {
     return () => window.clearInterval(timer);
   }, [widget?.widget_type, items.length]);
 
+  // Tell the host page how tall the rendered embed is. The embed snippet and
+  // the in-product preview both listen for this message to avoid clipped grids.
+  useEffect(() => {
+    if (!id || window.parent === window) return;
+
+    const notifyHeight = () => {
+      const height = Math.max(
+        document.documentElement.scrollHeight,
+        document.body?.scrollHeight || 0,
+      );
+      window.parent.postMessage({
+        type: "kudospot-widget-resize",
+        widgetId: id,
+        height: Math.ceil(height),
+      }, "*");
+    };
+
+    notifyHeight();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(notifyHeight) : null;
+    observer?.observe(document.documentElement);
+    if (document.body) observer?.observe(document.body);
+    window.addEventListener("load", notifyHeight);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("load", notifyHeight);
+    };
+  }, [id, loading, failed, widget, items, idx]);
+
   const accent = widget?.settings?.primary_color || "#C94320";
   const radius = widget?.settings?.radius ?? 12;
   const displayText = (item: PublicTestimonial) => item.approved_text || item.ai_rewritten_text || item.original_text;
