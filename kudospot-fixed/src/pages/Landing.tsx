@@ -64,7 +64,7 @@ const Landing = () => {
 
       <main>
         <section className="relative isolate overflow-hidden border-b border-border/60 bg-gradient-soft">
-          <div className="pointer-events-none absolute inset-0 -z-10 opacity-80" style={{ background: "radial-gradient(ellipse at 75% 38%, rgba(255, 190, 154, .25), transparent 34%), radial-gradient(ellipse at 55% 70%, rgba(255, 221, 169, .20), transparent 34%)" }} />
+          <div className="pointer-events-none absolute inset-0 -z-10 opacity-80" style={{ background: "radial-gradient(ellipse at 75% 38%, rgba(200, 243, 76, .24), transparent 34%), radial-gradient(ellipse at 55% 70%, rgba(234, 255, 174, .22), transparent 34%)" }} />
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid items-center gap-12 py-14 md:grid-cols-[0.92fr_1.08fr] md:py-20 lg:gap-16 lg:py-24">
             <div className="relative z-10">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground shadow-sm">
