@@ -3,14 +3,13 @@
 ALTER TABLE public.approval_tokens
   ADD COLUMN IF NOT EXISTS approval_text text;
 
--- Freeze the text attached to older active links at migration time. New links
--- store an explicit immutable snapshot when they are generated.
-UPDATE public.approval_tokens AS token
-SET approval_text = COALESCE(t.ai_rewritten_text, t.original_text)
-FROM public.testimonials AS t
-WHERE t.id = token.testimonial_id
-  AND token.approval_text IS NULL
-  AND token.used_at IS NULL;
+-- Legacy active links did not save the exact wording sent by email. The current
+-- wording cannot prove what the customer saw, so revoke those links and require
+-- a fresh request with an immutable text snapshot instead of guessing.
+UPDATE public.approval_tokens
+SET used_at = now()
+WHERE approval_text IS NULL
+  AND used_at IS NULL;
 
 DROP POLICY IF EXISTS "Public read tokens" ON public.approval_tokens;
 DROP POLICY IF EXISTS "Public read token by value" ON public.approval_tokens;
