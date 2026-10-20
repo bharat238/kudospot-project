@@ -61,9 +61,9 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
       </nav>
 
       <div className="space-y-3 border-t border-border/70 p-3">
-        <NavLink to="/upgrade" onClick={onNavigate} className={({ isActive }) => `flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-semibold transition-colors ${isActive ? "border-orange-200 bg-orange-50 text-orange-900" : "border-orange-100 bg-orange-50/70 text-orange-900 hover:bg-orange-100"}`}>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-orange-800 shadow-sm"><Zap className="h-4 w-4" /></span>
-          <span className="min-w-0 flex-1"><span className="block">Upgrade plan</span><span className="mt-0.5 block text-[10px] font-medium text-orange-800/70">Unlock more capacity</span></span>
+        <NavLink to="/upgrade" onClick={onNavigate} className={({ isActive }) => `flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-semibold transition-colors ${isActive ? "border-border bg-accent text-accent-foreground" : "border-border/70 bg-card text-foreground hover:bg-muted"}`}>
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-foreground"><Zap className="h-4 w-4" /></span>
+          <span className="min-w-0 flex-1"><span className="block">Upgrade plan</span><span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">Unlock more capacity</span></span>
         </NavLink>
         <div className="flex items-center gap-3 rounded-xl px-2 py-1">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">{(user?.email?.[0] || "K").toUpperCase()}</div>
@@ -85,6 +85,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const { user } = useAuth();
   const page = nav.find((item) => location.pathname === item.to || (item.to !== "/dashboard" && location.pathname.startsWith(item.to)));
+  const pageLabel = location.pathname === "/upgrade" ? "Upgrade plan" : page?.label || "Manage your customer proof";
 
   return (
     <div className="min-h-screen bg-[#f4f4f3] text-foreground dark:bg-background">
@@ -101,7 +102,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Layers3 className="h-4 w-4" /></span>
                 <div>
                   <div className="font-semibold leading-4 text-foreground">Workspace</div>
-                  <div className="mt-1 text-[10px] text-muted-foreground">{page?.label || "Manage your customer proof"}</div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">{pageLabel}</div>
                 </div>
               </div>
             </div>
@@ -121,7 +122,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
         </header>
 
         <main className="min-w-0 px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pt-8">
-          <div className="mx-auto w-full max-w-[1520px]">{children}</div>
+          <div key={location.pathname} className="kudospot-page-enter mx-auto w-full max-w-[1520px]">{children}</div>
         </main>
       </div>
     </div>
