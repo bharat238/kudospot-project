@@ -4,174 +4,216 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
 };
 
 const json = (body: Record<string, unknown>, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  new Response(JSON.stringify(body), { status, headers: corsHeaders });
 
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
-    return false;
-  }
-  if (entry.count >= 5) return true;
-  entry.count += 1;
-  return false;
-}
-
-const escapeHtml = (value: unknown) => String(value ?? "")
-  .replace(/&/g, "&amp;")
-  .replace(/</g, "&lt;")
-  .replace(/>/g, "&gt;")
-  .replace(/"/g, "&quot;")
-  .replace(/'/g, "&#39;");
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (isRateLimited(ip)) return json({ error: "Too many requests. Try again in a minute." }, 429);
-
   try {
-    const body = await req.json().catch(() => ({}));
-    const testimonialId = typeof body?.testimonial_id === "string" ? body.testimonial_id.trim() : "";
-    if (!testimonialId) return json({ error: "Missing testimonial_id" }, 400);
+    const authorization = req.headers.get("Authorization") || "";
+    if (!authorization.startsWith("Bearer ")) return json({ error: "Please sign in again to request customer approval." }, 401);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !anonKey || !serviceKey) {
-      console.error("Approval email function is missing Supabase configuration.");
-      return json({ error: "Approval email service is not configured." }, 500);
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+      console.error("Approval email service is missing Supabase configuration.");
+      return json({ error: "The approval email service is not configured. You can create a manual approval link instead." }, 500);
     }
 
-    const authorization = req.headers.get("Authorization");
-    if (!authorization) return json({ error: "Sign in before sending an approval request." }, 401);
-
+    // Authenticate the requesting workspace owner before any service-role access.
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authorization } },
+      auth: { persistSession: false, autoRefreshToken: false },
     });
     const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) return json({ error: "Sign in before sending an approval request." }, 401);
+    if (authError || !user) return json({ error: "Your session expired. Please sign in again." }, 401);
 
-    const admin = createClient(supabaseUrl, serviceKey);
-    const { data: testimonial, error: testimonialError } = await admin
+    const body = await req.json();
+    const testimonialId = typeof body?.testimonial_id === "string" ? body.testimonial_id : "";
+    const resend = body?.resend === true;
+    if (!testimonialId) return json({ error: "Missing testimonial_id." }, 400);
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data: testimonial, error: testimonialError } = await supabaseAdmin
       .from("testimonials")
-      .select("*")
+      .select("id,user_id,customer_name,customer_email,ai_rewritten_text,original_text,campaign,approval_status,status")
       .eq("id", testimonialId)
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (testimonialError) {
-      console.error("Failed to load testimonial for approval email:", testimonialError.message);
-      return json({ error: "The testimonial could not be loaded." }, 500);
+      console.error("Could not load the requested testimonial:", testimonialError.message);
+      return json({ error: "The testimonial could not be loaded. Please try again." }, 500);
     }
-    if (!testimonial) return json({ error: "Testimonial not found in your workspace." }, 404);
+    if (!testimonial) return json({ error: "That testimonial was not found in your workspace." }, 404);
     if (!testimonial.customer_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testimonial.customer_email.trim())) {
-      return json({ error: "Add a valid customer email before sending an approval request." }, 400);
-    }
-    if (!testimonial.ai_rewritten_text?.trim()) {
-      return json({ error: "Run AI Rewrite before sending the customer approval request." }, 400);
+      return json({ error: "Add a valid customer email address before sending an approval request." }, 400);
     }
 
-    const resendKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendKey) return json({ error: "Email delivery is not configured. Please create a manual approval link instead." }, 503);
+    const testimonialText = testimonial.ai_rewritten_text || testimonial.original_text;
+    if (!testimonialText?.trim()) return json({ error: "Add testimonial text before requesting customer approval." }, 400);
 
-    const siteUrl = (Deno.env.get("SITE_URL") || "https://kudospot.pages.dev").replace(/\/+$/, "");
-    const from = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
-
-    // Create the same token type used by manual approval links, so email and copied
-    // links both go through the same single-use handler.
-    const { data: tokenRow, error: tokenError } = await admin
-      .from("approval_tokens")
-      .insert({
-        testimonial_id: testimonial.id,
-        user_id: user.id,
-        campaign: testimonial.campaign || null,
-      })
-      .select("token")
-      .single();
-
-    if (tokenError || !tokenRow?.token) {
-      console.error("Failed to create approval token:", tokenError?.message || "No token returned");
-      return json({ error: "An approval link could not be created." }, 500);
+    if (resend) {
+      const { error: revokeError } = await supabaseAdmin
+        .from("approval_tokens")
+        .update({ used_at: new Date().toISOString() })
+        .eq("testimonial_id", testimonial.id)
+        .eq("user_id", user.id)
+        .is("used_at", null);
+      if (revokeError) {
+        console.error("Could not invalidate previous approval links:", revokeError.message);
+        return json({ error: "The previous approval link could not be replaced. Please try again." }, 500);
+      }
     }
 
-    const token = String(tokenRow.token);
-    const approvalUrl = `${siteUrl}/approve/${encodeURIComponent(token)}`;
-    const declineUrl = `${siteUrl}/decline/${encodeURIComponent(token)}`;
+    let approvalToken: string | null = null;
+    if (!resend) {
+      const { data: existingToken, error: existingError } = await supabaseAdmin
+        .from("approval_tokens")
+        .select("token")
+        .eq("testimonial_id", testimonial.id)
+        .eq("user_id", user.id)
+        .is("used_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingError) {
+        console.error("Could not check for an active approval link:", existingError.message);
+        return json({ error: "An approval link could not be checked. Please try again." }, 500);
+      }
+      approvalToken = existingToken?.token || null;
+    }
+
+    if (!approvalToken) {
+      const { data: insertedToken, error: insertError } = await supabaseAdmin
+        .from("approval_tokens")
+        .insert({
+          testimonial_id: testimonial.id,
+          user_id: user.id,
+          campaign: testimonial.campaign || null,
+        })
+        .select("token")
+        .single();
+
+      if (insertError || !insertedToken?.token) {
+        console.error("Could not create an approval link:", insertError?.message || "Token missing.");
+        return json({ error: "An approval link could not be created. Please try again." }, 500);
+      }
+      approvalToken = insertedToken.token;
+    }
+
+    const siteBase = (Deno.env.get("SITE_URL") || "https://kudospot.pages.dev").replace(/\/+$/, "");
+    const approvalUrl = `${siteBase}/approve/${encodeURIComponent(approvalToken)}`;
+    const declineUrl = `${siteBase}/decline/${encodeURIComponent(approvalToken)}`;
+
+    // If the mail provider is not configured or rejects delivery, keep the valid
+    // link available so the workspace owner can share it manually.
+    if (!resendKey) {
+      return json({
+        success: true,
+        email_sent: false,
+        approval_url: approvalUrl,
+        message: "An approval link was created, but email delivery is not configured. Copy the link and share it with the customer.",
+      });
+    }
+
     const customerName = escapeHtml(testimonial.customer_name || "there");
-    const rewrittenText = escapeHtml(testimonial.ai_rewritten_text);
-    const subjectName = String(testimonial.customer_name || "there").replace(/[\r\n]+/g, " ").slice(0, 120);
+    const safeText = escapeHtml(testimonialText);
+    const from = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
+    const html = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Please review your testimonial</title></head>
+<body style="margin:0;padding:0;background:#f7f7f7;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#171717">
+  <main style="max-width:560px;margin:32px auto;padding:0 16px">
+    <section style="background:#fff;border:1px solid #ebebeb;border-radius:16px;overflow:hidden">
+      <header style="padding:24px 28px;border-bottom:1px solid #ebebeb">
+        <strong style="font-size:17px;letter-spacing:-.02em">KudoSpot</strong>
+      </header>
+      <div style="padding:28px">
+        <h1 style="font-size:22px;line-height:1.3;letter-spacing:-.03em;margin:0 0 14px">Hi ${customerName},</h1>
+        <p style="font-size:14px;line-height:1.7;color:#4d4d4d;margin:0 0 18px">A business you worked with would like to share your experience. Please review the wording below and confirm whether it represents what you meant.</p>
+        <blockquote style="margin:0 0 22px;padding:16px 18px;background:#fff5ef;border-left:3px solid #c94320;border-radius:0 10px 10px 0;font-size:14px;line-height:1.7;color:#333">“${safeText}”</blockquote>
+        <p style="font-size:13px;line-height:1.6;color:#4d4d4d;margin:0 0 16px">Your testimonial will only be marked approved after you choose to approve it.</p>
+        <p style="margin:0 0 12px"><a href="${approvalUrl}" style="display:inline-block;background:#c94320;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9px;font-size:14px;font-weight:600">Approve testimonial</a></p>
+        <p style="margin:0"><a href="${declineUrl}" style="color:#555;font-size:13px;text-decoration:underline">Decline or request changes</a></p>
+      </div>
+      <footer style="padding:16px 28px;background:#fafafa;border-top:1px solid #ebebeb;color:#777;font-size:11px;line-height:1.6">Sent via KudoSpot. If you did not expect this message, you can ignore it.</footer>
+    </section>
+  </main>
+</body>
+</html>`;
 
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: [testimonial.customer_email.trim()],
-        subject: `Does this testimonial sound like you, ${subjectName}?`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px;color:#171717">
-            <h2 style="color:#C94320;margin:0 0 16px">Hi ${customerName},</h2>
-            <p style="color:#444;line-height:1.6">A business you worked with would like to share your experience. Please review the edited version below and let us know whether it accurately reflects your experience.</p>
-            <div style="background:#fff5ef;border-left:4px solid #C94320;padding:16px;border-radius:8px;margin:24px 0">
-              <p style="font-style:italic;color:#333;line-height:1.7;margin:0">“${rewrittenText}”</p>
-            </div>
-            <p style="margin:24px 0 10px">
-              <a href="${approvalUrl}" style="display:inline-block;background:#C94320;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700">Yes, this sounds like me</a>
-            </p>
-            <p style="margin:0 0 24px;color:#666;font-size:13px">Prefer not to publish this testimonial? <a href="${declineUrl}" style="color:#9A3412">Decline this request</a>.</p>
-            <p style="color:#777;font-size:12px;line-height:1.6;margin-top:32px">Your testimonial will only be available for public display after you approve it. If something is inaccurate, please contact the business so it can be corrected.</p>
-          </div>
-        `,
-      }),
-    });
+    let emailResponse: Response;
+    let emailData: Record<string, unknown> = {};
+    try {
+      emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from,
+          to: [testimonial.customer_email.trim()],
+          subject: "Please review your testimonial",
+          html,
+        }),
+      });
+      emailData = await emailResponse.json().catch(() => ({}));
+    } catch (error) {
+      console.error("Approval email delivery request failed:", error instanceof Error ? error.message : String(error));
+      return json({
+        success: true,
+        email_sent: false,
+        approval_url: approvalUrl,
+        message: "An approval link was created, but the email service could not be reached. Copy the link and share it with the customer.",
+      });
+    }
 
-    const emailData = await emailResponse.json().catch(() => ({}));
     if (!emailResponse.ok) {
-      // A failed delivery must not leave a usable token that looks like a sent request.
-      await admin.from("approval_tokens").update({ used_at: new Date().toISOString() }).eq("token", token);
-      const providerMessage = typeof emailData?.message === "string" ? emailData.message : "";
-      console.error("Approval email delivery failed:", providerMessage || emailResponse.status);
-      return json({ error: "Email delivery failed. You can still create and share a manual approval link." }, 502);
+      console.error("Approval email provider returned an error:", JSON.stringify(emailData).slice(0, 400));
+      return json({
+        success: true,
+        email_sent: false,
+        approval_url: approvalUrl,
+        message: "An approval link was created, but the email could not be delivered. Copy the link and share it with the customer.",
+      });
     }
 
     const sentAt = new Date().toISOString();
-    const { error: statusError } = await admin.from("testimonials")
+    const { error: updateError } = await supabaseAdmin
+      .from("testimonials")
       .update({ approval_sent_at: sentAt, approval_status: "sent" })
       .eq("id", testimonial.id)
       .eq("user_id", user.id);
 
-    // Expire earlier unused links after successful delivery so only the newest
-    // request remains valid. A cleanup failure does not cancel a delivered email.
-    const { error: tokenCleanupError } = await admin.from("approval_tokens")
-      .update({ used_at: sentAt })
-      .eq("testimonial_id", testimonial.id)
-      .eq("user_id", user.id)
-      .neq("token", token)
-      .is("used_at", null);
-    if (tokenCleanupError) console.error("Could not expire older approval links:", tokenCleanupError.message);
-    if (statusError) console.error("Email was delivered but testimonial approval status did not update:", statusError.message);
+    if (updateError) console.warn("Approval status could not be updated:", updateError.message);
 
     return json({
       success: true,
+      email_sent: true,
       approval_url: approvalUrl,
-      message: `Approval email sent to ${testimonial.customer_email.trim()}.`,
-      status_updated: !statusError,
+      message: "Approval email sent to " + testimonial.customer_email.trim() + ".",
     });
   } catch (error) {
-    console.error("send-approval-email failed:", error instanceof Error ? error.message : "Unknown error");
-    return json({ error: "The approval request could not be sent. Please try again." }, 500);
+    console.error("send-approval-email failed:", error instanceof Error ? error.message : String(error));
+    return json({ error: "The approval request could not be prepared. Please try again." }, 500);
   }
 });
