@@ -311,8 +311,8 @@ const Analytics = () => {
       if (!response.ok) throw new Error(result?.error || "Historical analytics could not be rebuilt.");
       setBackfillState((current) => ({ ...current, phase: "done", processed: result.inserted || current.total, total: result.inserted || current.total, message: result.skipped ? "No additional events were needed. Historical data was already present." : `Added ${Number(result.inserted || 0).toLocaleString()} historical events.` }));
       await loadEvents();
-    } catch (error: any) {
-      const message = error?.message || "Historical analytics could not be rebuilt.";
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Historical analytics could not be rebuilt.";
       setBackfillState((current) => ({ ...current, phase: "error", message }));
       toast.error(message);
     } finally {
