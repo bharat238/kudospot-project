@@ -247,6 +247,22 @@ const Collect = () => {
 
   const getFirstForm = () => forms[0];
 
+  const copyToClipboard = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const copyLink = async (value: string, label = "Link") => {
+    const copied = await copyToClipboard(value);
+    if (copied) toast.success(`${label} copied to clipboard`);
+    else toast.error("Your browser blocked clipboard access. You can still copy the link from the form list.");
+    return copied;
+  };
+
   const sendSingleRequest = async () => {
     if (!user || !sendForm.customer_email) return toast.error("Customer email is required");
     if (!sendForm.customer_email.includes("@")) return toast.error("Enter a valid email address");
@@ -261,8 +277,10 @@ const Collect = () => {
     if (error) { toast.error(error.message); setSending(false); return; }
     if (targetForm) {
       const link = publicUrl(targetForm.public_slug);
-      await navigator.clipboard.writeText(link);
-      toast.success(`Logged! Form link for ${sendForm.customer_email} copied to clipboard — paste it in your email.`);
+      const copied = await copyToClipboard(link);
+      toast.success(copied
+        ? `Request logged. Form link for ${sendForm.customer_email} is copied — paste it into your email.`
+        : `Request logged for ${sendForm.customer_email}. Copy the form link from the form list to send it manually.`);
     } else {
       toast.success("Request logged. Create a collection form first to get a shareable link.");
     }
@@ -284,8 +302,10 @@ const Collect = () => {
     if (error) { toast.error(error.message); setSending(false); return; }
     const targetForm = getFirstForm();
     if (targetForm) {
-      await navigator.clipboard.writeText(publicUrl(targetForm.public_slug));
-      toast.success(`${csvRows.length} contacts logged! Form link copied — paste it in your bulk email.`);
+      const copied = await copyToClipboard(publicUrl(targetForm.public_slug));
+      toast.success(copied
+        ? `${csvRows.length} contacts logged. Form link copied — paste it into your bulk email.`
+        : `${csvRows.length} contacts logged. Copy the form link from the form list to use in your bulk email.`);
     } else {
       toast.success(`${csvRows.length} contacts logged.`);
     }
@@ -437,14 +457,14 @@ const Collect = () => {
                   <div className="flex items-center gap-2 bg-secondary/50 p-2 rounded-lg mb-2">
                     <div className="text-xs font-semibold uppercase text-muted-foreground px-1 min-w-[60px]">Form</div>
                     <code className="text-xs flex-1 truncate">{publicUrl(form.public_slug)}</code>
-                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(publicUrl(form.public_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" onClick={() => window.open(publicUrl(form.public_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => void copyLink(publicUrl(form.public_slug), "Collection link")}><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => window.open(publicUrl(form.public_slug), "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5" /></Button>
                   </div>
                   <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-lg">
                     <div className="text-xs font-semibold uppercase text-primary px-1 min-w-[60px]">Wall</div>
                     <code className="text-xs flex-1 truncate">{wallUrl(form.public_slug)}</code>
-                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => { navigator.clipboard.writeText(wallUrl(form.public_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => window.open(wallUrl(form.public_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => void copyLink(wallUrl(form.public_slug), "Wall of Love link")}><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => window.open(wallUrl(form.public_slug), "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5" /></Button>
                   </div>
                 </Card>
               ))}
