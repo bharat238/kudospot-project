@@ -6,17 +6,17 @@ const comparisonData = [
   { feature: "AI assistance", kudospot: "AI rewrite drafts", senja: "AI testimonial analysis" },
   { feature: "Social content", kudospot: "Text post generator", senja: "Video Reels" },
   { feature: "Case study generator", kudospot: true, senja: true },
-  { feature: "Customer approval links", kudospot: true, senja: "Not verified" },
+  { feature: "Customer approval links", kudospot: true, senja: "Not documented publicly" },
   { feature: "Website widgets", kudospot: true, senja: true },
   { feature: "Wall of Love", kudospot: true, senja: true },
   { feature: "Payment provider", kudospot: "Razorpay (INR)", senja: "Stripe (cards)" },
   { feature: "Video testimonial collection", kudospot: "Coming soon", senja: "Available" },
   { feature: "CSV testimonial export", kudospot: true, senja: true },
   { feature: "Widget analytics", kudospot: true, senja: true },
-  { feature: "Third-party imports", kudospot: "Coming soon", senja: "35 sources listed" },
+  { feature: "Third-party imports", kudospot: "Coming soon", senja: "30+ sources listed" },
   { feature: "Free plan", kudospot: "Free: 10 testimonials, 5 AI rewrites, 1 widget", senja: "Free: 15 text/video testimonials" },
   { feature: "Paid plan pricing", kudospot: "₹499 / ₹1,299 per 30-day access period", senja: "Starter $29/mo; Pro $59/mo" },
-];;
+];
 
 const VsSenja = () => {
   return (
