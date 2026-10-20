@@ -1,3 +1,13 @@
+-- Paid plans have a finite access period. Existing paid users without an expiry
+-- receive a one-time 30-day grace period from migration time.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS plan_expires_at timestamptz;
+
+UPDATE public.profiles
+SET plan_expires_at = now() + interval '30 days'
+WHERE plan IN ('starter', 'pro')
+  AND plan_expires_at IS NULL;
+
 -- Store verified Razorpay transactions to prevent a valid checkout response from being replayed
 -- to extend paid access repeatedly. Service-role edge functions own all writes.
 CREATE TABLE IF NOT EXISTS public.billing_payments (
