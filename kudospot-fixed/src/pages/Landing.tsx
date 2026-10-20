@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { PLAN_CATALOG } from "@/config/planCatalog";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,6 +11,7 @@ import KudoSpotIcon from "@/components/KudoSpotIcon";
 
 const Landing = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
   const dashboardNav = [
     { icon: LayoutDashboard, label: "Dashboard", active: true },
     { icon: MessageSquare, label: "Testimonials" },
@@ -216,16 +219,12 @@ const Landing = () => {
             <p className="text-muted-foreground">Start free. Upgrade when you're ready.</p>
           </div>
           <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-3">
-            {[
-              { name: "Free", price: "₹0", period: "forever", features: ["10 testimonials", "5 AI rewrites", "1 widget", "2 video uploads"], cta: "Start free", highlight: false },
-              { name: "Starter", price: "₹499", period: "/month", features: ["Unlimited testimonials", "Unlimited AI rewrites", "5 widgets", "20 videos", "3 case studies"], cta: "Get Starter", highlight: true },
-              { name: "Pro", price: "₹1,299", period: "/month", features: ["Everything in Starter", "Unlimited widgets", "Unlimited videos", "Unlimited case studies", "Priority AI"], cta: "Get Pro", highlight: false },
-            ].map((plan) => (
+            {PLAN_CATALOG.map((plan) => (
               <Card key={plan.name} className={`relative p-7 ${plan.highlight ? "border-foreground shadow-lg ring-1 ring-foreground" : "border-border/80"}`}>
                 {plan.highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-foreground px-3 py-1 text-[10px] font-semibold text-background">Popular plan</div>}
                 <h3 className="mb-1 font-semibold">{plan.name}</h3>
                 <div className="mb-5 flex items-baseline gap-1"><span className="text-4xl font-semibold tracking-tight">{plan.price}</span><span className="text-sm text-muted-foreground">{plan.period}</span></div>
-                <Link to="/signup"><Button variant={plan.highlight ? "default" : "outline"} className="mb-6 w-full rounded-full">{plan.cta}</Button></Link>
+                <Link to={user ? "/upgrade" : "/signup"}><Button variant={plan.highlight ? "default" : "outline"} className="mb-6 w-full rounded-full">{plan.cta}</Button></Link>
                 <ul className="space-y-3">{plan.features.map((feature) => <li key={feature} className="flex items-start gap-2 text-sm"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{feature}</li>)}</ul>
               </Card>
             ))}
