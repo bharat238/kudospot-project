@@ -552,7 +552,7 @@ const Collect = () => {
                         onClick={() =>
                           setQrModal({
                             open: true,
-                            formUrl: `https://kudospot.pages.dev/collect/${form.public_slug}`,
+                            formUrl: publicUrl(form.public_slug),
                             formName: form.form_name,
                           })
                         }
