@@ -54,7 +54,7 @@ export default function Terms() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">4. Payments and billing</h2>
-            <p>Paid plans are billed monthly via Razorpay. Charges are non-refundable except where required by law. You may cancel at any time from Settings → Billing. On cancellation, your account reverts to the Free plan at the end of the current billing period. All paid features remain accessible until the period ends.</p>
+            <p>Paid plans are purchased through Razorpay as a one-time payment that grants 30 days of access. Payments do not renew automatically; you must complete another checkout to renew. When paid access expires, your account returns to the Free plan and Free plan limits apply. Refund requests are reviewed individually; charges are non-refundable except where required by law. For billing help, contact hello@kudospot.io.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">5. Your content</h2>
