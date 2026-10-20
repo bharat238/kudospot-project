@@ -111,15 +111,35 @@ const Testimonials = () => {
     setFormErrors({});
     
     if (editing) {
-      // Update existing testimonial
+      // Any content or attribution edit means prior customer approval no longer applies.
+      const invalidatedAt = new Date().toISOString();
+      const { error: tokenError } = await supabase
+        .from("approval_tokens")
+        .update({ used_at: invalidatedAt })
+        .eq("testimonial_id", editing.id)
+        .eq("user_id", user.id)
+        .is("used_at", null);
+      if (tokenError) return toast.error("Existing approval links could not be invalidated. Please try again.");
+
       const { error } = await supabase
         .from("testimonials")
-        .update({ ...form })
+        .update({
+          ...form,
+          status: "pending",
+          ai_rewritten_text: null,
+          approved_text: null,
+          approved_at: null,
+          approval_status: "not_sent",
+          approval_sent_at: null,
+          rejection_reason: null,
+          rejected_at: null,
+        })
         .eq("id", editing.id)
         .eq("user_id", user.id);
       if (error) return toast.error(error.message);
-      toast.success("Testimonial updated");
+      toast.success("Testimonial updated. Review and customer approval need to be completed again.");
       setEditing(null);
+      setActive(null);
     } else {
       // Create new testimonial
       if (!canAddTestimonial(items.length)) return showUpgradeToast("more testimonials");
@@ -147,9 +167,10 @@ const Testimonials = () => {
       });
       if (error) throw error;
       toast.success("AI rewrite complete!");
-      const updated = { ...t, ai_rewritten_text: data.rewritten, status: "ai_rewritten" };
+      const updated = { ...t, ai_rewritten_text: data.rewritten, status: "ai_rewritten", approved_text: null, approved_at: null, approval_status: "not_sent", approval_sent_at: null, rejection_reason: null, rejected_at: null };
       setActive(updated);
-      load();
+      setApprovalRefreshKey((current) => current + 1);
+      void load();
     } catch (e: any) {
       toast.error(e.message || "Rewrite failed");
     } finally {
@@ -597,7 +618,7 @@ const Testimonials = () => {
                   )}
                 </div>
 
-                {active.status === "rejected" && active.rejection_reason && (
+                {(active.status === "rejected" || active.status === "declined") && active.rejection_reason && (
                   <Card className="p-4 border-destructive/30 bg-destructive/5">
                     <div className="text-xs font-semibold text-destructive uppercase mb-1">Customer feedback</div>
                     <p className="text-sm">{active.rejection_reason}</p>
@@ -615,7 +636,7 @@ const Testimonials = () => {
                       {rewritingIds.has(active.id) ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Rewriting…</> : <><KudoSpotIcon className="h-4 w-4 mr-1" /> AI Rewrite</>}
                     </Button>
                   )}
-                  {active.ai_rewritten_text && active.status !== "approved" && (
+                  {active.ai_rewritten_text && active.approval_status !== "approved" && active.status !== "published" && (
                     <Button onClick={() => rewrite(active)} disabled={rewritingIds.has(active.id)} variant="outline">
                       {rewritingIds.has(active.id) ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KudoSpotIcon className="h-4 w-4 mr-1" />} Regenerate
                     </Button>
