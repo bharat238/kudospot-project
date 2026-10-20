@@ -493,9 +493,9 @@ const Collect = () => {
                           <Input value={form.brand_color} onChange={(e) => setForm({ ...form, brand_color: e.target.value })} placeholder="#C8F34C" />
                         </div>
                       </div>
-                      <div className="flex items-end gap-4 pb-2">
-                        <div className="flex items-center gap-2"><Switch checked={form.collect_rating} onCheckedChange={(v) => setForm({ ...form, collect_rating: v })} /><span className="text-sm">Rating</span></div>
-                        <div className="flex items-center gap-2 opacity-50"><Switch disabled /><span className="text-sm">Video (soon)</span></div>
+                      <div className="flex flex-col justify-end gap-2 pb-2">
+                        <div className="flex items-center gap-2"><Switch checked={form.collect_rating} onCheckedChange={(v) => setForm({ ...form, collect_rating: v })} /><span className="text-sm font-medium">Collect a rating</span></div>
+                        <p className="text-[11px] leading-4 text-muted-foreground">Ask customers to rate their experience from 1 to 5 stars.</p>
                       </div>
                     </div>
                   </div>
