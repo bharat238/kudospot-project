@@ -35,6 +35,15 @@ type Testimonial = {
   approved_at: string | null;
 };
 
+const getDashboardTestimonialStatus = (item: Testimonial): string => {
+  if (item.approval_status === "approved") return "customer_approved";
+  if (item.approval_status === "declined" || item.status === "declined" || item.status === "rejected") return "declined";
+  if (item.approval_status === "sent") return "awaiting_customer";
+  if (item.status === "ai_rewritten" || Boolean(item.ai_rewritten_text)) return "ai_rewritten";
+  if (item.status === "approved") return "needs_customer_approval";
+  return "pending";
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -141,7 +150,7 @@ const Dashboard = () => {
 
   const recentRows = testimonials.filter((item) => {
     const searchable = [item.customer_name, item.customer_role, item.customer_company, item.original_text, item.ai_rewritten_text, item.approved_text].filter(Boolean).join(" ").toLowerCase();
-    const normalizedStatus = item.status === "rejected" ? "declined" : item.status;
+    const normalizedStatus = getDashboardTestimonialStatus(item);
     const matchesSearch = searchable.includes(recentSearch.trim().toLowerCase());
     const matchesStatus = recentStatus === "all" || normalizedStatus === recentStatus;
     return matchesSearch && matchesStatus;
@@ -283,7 +292,7 @@ const Dashboard = () => {
             <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-[#202126] sm:text-lg">Recent testimonials</h2><p className="mt-1 text-[11px] text-[#777c85] sm:text-xs">Latest feedback from your workspace</p></div><Link to="/testimonials" className="inline-flex h-8 items-center gap-1 rounded-full border border-[#e7e9ed] bg-white px-3 text-[10px] font-semibold text-[#444851] transition hover:bg-[#f4f5f7]">View all <ArrowRight className="h-3.5 w-3.5" /></Link></div>
             <div className="flex flex-wrap items-center gap-2">
               <label className="flex h-9 min-w-[145px] flex-1 items-center gap-2 rounded-full border border-[#e7e9ed] bg-[#fbfbfc] px-3 text-[#858a94] sm:min-w-[170px]"><Search className="h-3.5 w-3.5 shrink-0" /><input aria-label="Search recent testimonials" value={recentSearch} onChange={(event) => setRecentSearch(event.target.value)} placeholder="Search stories" className="min-w-0 w-full bg-transparent text-[11px] text-[#343740] outline-none placeholder:text-[#969ba4]" /></label>
-              <label className="flex h-9 items-center gap-1.5 rounded-full border border-[#e7e9ed] bg-white pl-3 pr-2 text-[#777c85]"><Filter className="h-3.5 w-3.5 shrink-0" /><select aria-label="Filter testimonials by status" value={recentStatus} onChange={(event) => setRecentStatus(event.target.value)} className="max-w-[120px] bg-transparent py-1 text-[11px] font-medium text-[#484c55] outline-none"><option value="all">All statuses</option><option value="pending">Pending</option><option value="ai_rewritten">AI rewritten</option><option value="approved">Approved</option><option value="published">Published</option><option value="declined">Declined</option></select></label>
+              <label className="flex h-9 items-center gap-1.5 rounded-full border border-[#e7e9ed] bg-white pl-3 pr-2 text-[#777c85]"><Filter className="h-3.5 w-3.5 shrink-0" /><select aria-label="Filter testimonials by status" value={recentStatus} onChange={(event) => setRecentStatus(event.target.value)} className="max-w-[120px] bg-transparent py-1 text-[11px] font-medium text-[#484c55] outline-none"><option value="all">All statuses</option><option value="pending">Pending</option><option value="ai_rewritten">AI rewritten</option><option value="needs_customer_approval">Needs approval</option><option value="awaiting_customer">Awaiting customer</option><option value="customer_approved">Customer approved</option><option value="declined">Declined</option></select></label>
             </div>
           </div>
           {testimonials.length === 0 ? (
@@ -297,7 +306,7 @@ const Dashboard = () => {
                     <td className="px-4 py-3 sm:px-5"><div className="flex items-center gap-2"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef0f3] text-xs font-semibold text-[#383b43]">{item.customer_name?.trim()?.[0]?.toUpperCase() || "?"}</span><div className="min-w-0"><div className="max-w-[120px] truncate text-[11px] font-semibold text-[#30333a]">{item.customer_name || "Customer"}</div><div className="max-w-[120px] truncate text-[10px] text-[#858a94]">{[item.customer_role, item.customer_company].filter(Boolean).join(" · ") || "Customer"}</div></div></div></td>
                     <td className="max-w-[190px] px-3 py-3"><p className="line-clamp-2 text-[11px] leading-5 text-[#696e78]">{item.approved_text || item.ai_rewritten_text || item.original_text}</p></td>
                     <td className="whitespace-nowrap px-3 py-3 text-[10px] text-[#858a94]">{new Date(item.created_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</td>
-                    <td className="px-4 py-3 sm:px-5"><StatusBadge status={item.status} /></td>
+                    <td className="px-4 py-3 sm:px-5"><StatusBadge status={getDashboardTestimonialStatus(item)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -322,9 +331,11 @@ const Dashboard = () => {
 
 const StatusBadge = ({ status }: { status: string }) => {
   const map: Record<string, { label: string; className: string }> = {
-    pending: { label: "Pending", className: "border-[#f0e3a5] bg-[#fff8d8] text-[#695b21]" },
+    pending: { label: "Pending", className: "border-[#e6e8ed] bg-[#f1f2f5] text-[#626671]" },
     ai_rewritten: { label: "AI rewritten", className: "border-[#e6e8ed] bg-[#f1f2f5] text-[#50545e]" },
-    approved: { label: "Approved", className: "border-[#d6e8aa] bg-[#f0f8d9] text-[#3d4b22]" },
+    needs_customer_approval: { label: "Needs approval", className: "border-[#e0e8bd] bg-[#f4f8e7] text-[#58613b]" },
+    awaiting_customer: { label: "Awaiting customer", className: "border-[#e0e8bd] bg-[#f4f8e7] text-[#58613b]" },
+    customer_approved: { label: "Customer approved", className: "border-[#d6e8aa] bg-[#f0f8d9] text-[#3d4b22]" },
     published: { label: "Published", className: "border-[#d6e8aa] bg-[#f0f8d9] text-[#3d4b22]" },
     rejected: { label: "Rejected", className: "border-[#f0d4d8] bg-[#fff0f2] text-[#9f3343]" },
     declined: { label: "Declined", className: "border-[#f0d4d8] bg-[#fff0f2] text-[#9f3343]" },
