@@ -8,7 +8,7 @@ const ForFreelancers = () => {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-50">
-        <div className="container mx-auto flex h-16 items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-bold text-lg">
             <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-8 w-8" />
             KudoSpot
@@ -26,7 +26,7 @@ const ForFreelancers = () => {
 
       {/* Hero */}
       <section className="bg-gradient-soft">
-        <div className="container mx-auto py-16 md:py-24 grid md:grid-cols-2 gap-12 items-center">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 grid md:grid-cols-2 gap-12 items-center">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
               Turn happy clients into your <span className="text-primary">best marketing engine</span>
@@ -66,7 +66,7 @@ const ForFreelancers = () => {
       </section>
 
       {/* The freelancer problem */}
-      <section className="container mx-auto py-20">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">The freelancer testimonial problem</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">Sound familiar?</p>
@@ -97,7 +97,7 @@ const ForFreelancers = () => {
 
       {/* Solution */}
       <section className="bg-muted/30 py-20">
-        <div className="container mx-auto">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">How KudoSpot solves it</h2>
 
@@ -138,7 +138,7 @@ const ForFreelancers = () => {
       </section>
 
       {/* What you get */}
-      <section className="container mx-auto py-20">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold">What you can do with KudoSpot</h2>
         </div>
@@ -162,7 +162,7 @@ const ForFreelancers = () => {
 
       {/* Pricing for freelancers */}
       <section className="bg-gradient-soft py-20">
-        <div className="container mx-auto max-w-2xl text-center">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl text-center">
           <h2 className="text-3xl font-bold mb-6">Simple pricing for freelancers</h2>
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <Card className="p-8">
@@ -205,7 +205,7 @@ const ForFreelancers = () => {
       </section>
 
       {/* CTA */}
-      <section className="container mx-auto py-20 text-center">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         <h2 className="text-3xl font-bold mb-6">Ready to turn clients into your marketing team?</h2>
         <p className="text-muted-foreground mb-8 max-w-lg mx-auto">Start free. No credit card. Get real testimonials in minutes, not weeks.</p>
         <Link to="/signup">
@@ -217,7 +217,7 @@ const ForFreelancers = () => {
 
       {/* Footer */}
       <footer className="border-t border-border/60 py-10 text-sm text-muted-foreground">
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-medium text-foreground">
             <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-5 w-5" />
             KudoSpot
