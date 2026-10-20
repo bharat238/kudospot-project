@@ -146,7 +146,12 @@ Rewrite this testimonial following all rules.`;
       return new Response(JSON.stringify({ error: "A linked case study could not be taken offline safely. Please try again before rewriting." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { error: updateError } = await supabase.from("testimonials").update({
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const { error: updateError } = await supabaseAdmin.from("testimonials").update({
       ai_rewritten_text: rewritten,
       status: "ai_rewritten",
       approved_text: null,
