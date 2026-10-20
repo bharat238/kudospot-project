@@ -104,9 +104,12 @@ const Landing = () => {
                     </div>
                   </aside>
                   <div className="min-w-0 flex-1 p-4 sm:p-5">
-                    <div className="mb-5 flex items-center justify-between gap-3">
+                    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                       <div><div className="text-lg font-semibold tracking-tight">Dashboard</div><div className="mt-1 text-[10px] text-muted-foreground">Here's what's happening with your testimonials.</div></div>
-                      <div className="rounded-lg border border-border px-2.5 py-2 text-[10px] text-muted-foreground">Last 30 days⌄</div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full border border-border/70 bg-muted/70 px-2.5 py-1.5 text-[9px] font-medium text-muted-foreground">Sample data</span>
+                        <span className="rounded-lg border border-border px-2.5 py-2 text-[10px] text-muted-foreground">Last 30 days⌄</span>
+                      </div>
                     </div>
                     <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {[
