@@ -11,10 +11,12 @@ import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/track";
 import { Helmet } from "react-helmet";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import type { Tables } from "@/integrations/supabase/types";
 
 const PublicForm = () => {
   const { slug } = useParams();
-  const [form, setForm] = useState<any | null>(null);
+  const [form, setForm] = useState<Tables<"collection_forms"> | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -72,7 +74,7 @@ const PublicForm = () => {
         },
       });
       if (error) {
-        const status = (error as any)?.status;
+        const status = error instanceof FunctionsHttpError ? error.context.status : undefined;
         if (status === 429) {
           toast.error("Too many submissions — please wait a minute and try again.");
         } else {
