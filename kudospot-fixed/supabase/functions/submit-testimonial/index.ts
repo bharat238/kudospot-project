@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
 };
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -19,111 +21,103 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: corsHeaders });
 
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-  if (isRateLimited(ip)) {
-    return new Response(
-      JSON.stringify({ error: "Too many requests. Try again in a minute." }),
-      {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
-  }
+const optionalText = (value: unknown, label: string, maxLength: number): string | null => {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") throw new Error(label + " must be text.");
+  const normalized = value.trim();
+  if (normalized.length > maxLength) throw new Error(label + " is too long.");
+  return normalized || null;
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+  const ip = (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
+  if (isRateLimited(ip)) return json({ error: "Too many requests. Try again in a minute." }, 429);
 
   try {
     const body = await req.json();
-    const {
-      user_id,
-      customer_name,
-      customer_role,
-      customer_company,
-      customer_email,
-      original_text,
-      rating,
-      campaign,
-    } = body;
+    const userId = typeof body?.user_id === "string" ? body.user_id.trim() : "";
+    const formId = typeof body?.form_id === "string" ? body.form_id.trim() : "";
+    const customerName = typeof body?.customer_name === "string" ? body.customer_name.trim() : "";
+    const originalText = typeof body?.original_text === "string" ? body.original_text.trim() : "";
 
-    if (typeof user_id !== "string" || !user_id.trim()) {
-      return new Response(
-        JSON.stringify({ error: "Missing or invalid user_id." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!userId || !formId) return json({ error: "Missing form reference." }, 400);
+    if (!customerName || customerName.length > 120) return json({ error: "Name must be between 1 and 120 characters." }, 400);
+    if (originalText.length < 20 || originalText.length > 2000) {
+      return json({ error: "Testimonial must be between 20 and 2000 characters." }, 400);
     }
 
-    const text = typeof original_text === "string" ? original_text.trim() : "";
-    if (text.length < 20 || text.length > 2000) {
-      return new Response(
-        JSON.stringify({ error: "Testimonial must be between 20 and 2000 characters." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let customerRole: string | null;
+    let customerCompany: string | null;
+    let customerEmail: string | null;
+    try {
+      customerRole = optionalText(body?.customer_role, "Role", 120);
+      customerCompany = optionalText(body?.customer_company, "Company", 120);
+      customerEmail = optionalText(body?.customer_email, "Email", 254);
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "Invalid customer details." }, 400);
     }
 
-    const supabase = createClient(
+    if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      return json({ error: "Enter a valid email address or leave the email field blank." }, 400);
+    }
+
+    const rating = body?.rating;
+    if (rating !== undefined && rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
+      return json({ error: "Rating must be a whole number from 1 to 5." }, 400);
+    }
+
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
     );
 
-    const { data: forms, error: formError } = await supabase
+    // Bind the submission to the exact active form, not merely any active form owned by user_id.
+    const { data: form, error: formError } = await supabaseAdmin
       .from("collection_forms")
-      .select("id")
-      .eq("user_id", user_id)
+      .select("id,user_id,is_active,campaign")
+      .eq("id", formId)
+      .eq("user_id", userId)
       .eq("is_active", true)
-      .limit(1);
+      .maybeSingle();
 
     if (formError) {
-      console.error("submit-testimonial form lookup error", formError);
-      return new Response(
-        JSON.stringify({ error: "Unable to validate form access." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("submit-testimonial form lookup failed:", formError.message);
+      return json({ error: "Unable to validate this collection form." }, 500);
     }
+    if (!form) return json({ error: "This collection form is inactive or no longer available." }, 403);
 
-    if (!forms || forms.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "No active form found for this user." }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { data: inserted, error: insertError } = await supabase
+    const { data: inserted, error: insertError } = await supabaseAdmin
       .from("testimonials")
       .insert({
-        user_id,
-        customer_name,
-        customer_role: customer_role ?? null,
-        customer_company: customer_company ?? null,
-        customer_email: customer_email ?? null,
-        original_text,
-        rating: typeof rating === "number" ? rating : null,
+        user_id: form.user_id,
+        customer_name: customerName,
+        customer_role: customerRole,
+        customer_company: customerCompany,
+        customer_email: customerEmail,
+        original_text: originalText,
+        rating: rating === undefined || rating === null ? null : rating,
         source: "form",
         status: "pending",
-        campaign: campaign ?? null,
+        campaign: form.campaign ?? null,
       })
       .select("id")
       .single();
 
     if (insertError) {
-      console.error("submit-testimonial insert error", insertError);
-      return new Response(
-        JSON.stringify({ error: "Failed to submit testimonial." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("submit-testimonial insert failed:", insertError.message);
+      return json({ error: "Failed to submit testimonial." }, 500);
     }
 
-    return new Response(
-      JSON.stringify({ id: inserted?.id }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ id: inserted.id });
   } catch (error) {
-    console.error("submit-testimonial unexpected error", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error("submit-testimonial failed:", error instanceof Error ? error.message : String(error));
+    return json({ error: "The testimonial could not be submitted. Please try again." }, 500);
   }
 });
