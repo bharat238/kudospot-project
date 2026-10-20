@@ -1,82 +1,84 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import KudoSpotIcon from "@/components/KudoSpotIcon";
-import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Loader2, CheckCircle2, AlertCircle, MailCheck, Hand } from "lucide-react";
+import KudoSpotIcon from "@/components/KudoSpotIcon";
+import { toast } from "sonner";
 
-type DeclineState = "loading" | "success" | "already" | "error";
+type DeclineState = "ready" | "loading" | "success" | "already" | "error";
 
 const Decline = () => {
   const { token } = useParams();
-  const [state, setState] = useState<DeclineState>("loading");
+  const [state, setState] = useState<DeclineState>("ready");
 
-  useEffect(() => {
-    let current = true;
-
-    const decline = async () => {
-      if (!token) {
-        setState("error");
-        return;
-      }
-      try {
-        const { data, error } = await supabase.functions.invoke("handle-approval", {
-          body: { token, action: "decline" },
-        });
-        if (error || !data?.success) {
-          if (current) setState("error");
-          return;
-        }
-        if (current) setState(data.already ? "already" : "success");
-      } catch {
-        if (current) setState("error");
-      }
-    };
-
-    void decline();
-    return () => { current = false; };
-  }, [token]);
-
-  const heading = {
-    loading: "Saving your response",
-    success: "Thank you for letting us know",
-    already: "This link has already been used",
-    error: "We couldn't process this response",
-  }[state];
-
-  const description = {
-    loading: "Please wait while we record your decision.",
-    success: "The testimonial will not be approved for public use. The business can follow up with you if changes are needed.",
-    already: "A response has already been recorded for this link. No further action is needed.",
-    error: "This link may be invalid, expired, or already used. Please contact the business directly if you need help.",
-  }[state];
+  const confirmDecline = async () => {
+    if (!token || state === "loading") {
+      if (!token) setState("error");
+      return;
+    }
+    setState("loading");
+    try {
+      const { data, error } = await supabase.functions.invoke("handle-approval", {
+        body: { token, action: "decline" },
+      });
+      if (error || data?.error || !data?.success) throw error || new Error(data?.error || "Response could not be saved");
+      setState(data.already ? "already" : "success");
+    } catch (error) {
+      console.error("Could not save customer decline:", error);
+      toast.error("Your response wasn't saved. Please try again.");
+      setState("error");
+    }
+  };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-      <section className="w-full max-w-lg rounded-2xl border border-border bg-card p-7 text-center shadow-sm sm:p-10">
-        <div className="mb-7 flex items-center justify-center gap-2.5">
-          <img src="/kudospot-icon.svg" alt="" className="h-8 w-8" />
-          <span className="text-base font-semibold tracking-tight text-foreground">KudoSpot</span>
-        </div>
-        <div className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl ${
-          state === "error" ? "bg-destructive/10 text-destructive" : "bg-accent text-accent-foreground"
-        }`}>
-          {state === "loading" && <Loader2 className="h-6 w-6 animate-spin" />}
-          {state === "success" && <CheckCircle2 className="h-6 w-6" />}
-          {state === "already" && <ShieldCheck className="h-6 w-6" />}
-          {state === "error" && <AlertCircle className="h-6 w-6" />}
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{heading}</h1>
-        <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-muted-foreground">{description}</p>
-        {state === "error" && (
-          <Button asChild variant="outline" className="mt-6">
-            <a href="mailto:hello@kudospot.io?subject=Testimonial%20decline%20link">Contact support</a>
-          </Button>
+    <main className="flex min-h-screen items-center justify-center bg-[#f4f4f3] p-4">
+      <Card aria-live="polite" className="w-full max-w-md rounded-2xl border-border/80 p-8 text-center shadow-[0_12px_40px_rgba(15,23,42,0.08)] sm:p-10">
+        {state === "ready" && (
+          <>
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground"><Hand className="h-7 w-7" /></div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Customer response</p>
+            <h1 className="text-2xl font-semibold tracking-tight">Decline this testimonial?</h1>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Confirm that you don't want the testimonial in the email to be published. The business will record your choice and won't display this testimonial.</p>
+            <Button className="mt-6 w-full rounded-xl" variant="outline" onClick={() => void confirmDecline()}>Confirm decline</Button>
+            <p className="mt-3 text-xs text-muted-foreground">Nothing changes until you press the button above.</p>
+          </>
         )}
-        <div className="mt-9 border-t border-border pt-5">
-          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><KudoSpotIcon className="h-3.5 w-3.5" /> Your response is handled securely by KudoSpot.</div>
+        {state === "loading" && (
+          <>
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground"><Loader2 className="h-7 w-7 animate-spin" /></div>
+            <h1 className="text-xl font-semibold tracking-tight">Saving your response</h1>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Please keep this page open for a moment.</p>
+          </>
+        )}
+        {state === "success" && (
+          <>
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-7 w-7" /></div>
+            <h1 className="text-xl font-semibold tracking-tight">Thank you for letting us know.</h1>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Your response is recorded, and this testimonial won't be used publicly.</p>
+          </>
+        )}
+        {state === "already" && (
+          <>
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground"><MailCheck className="h-7 w-7" /></div>
+            <h1 className="text-xl font-semibold tracking-tight">Response already received</h1>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">This link has already been used. The business has your response.</p>
+          </>
+        )}
+        {state === "error" && (
+          <>
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive"><AlertCircle className="h-7 w-7" /></div>
+            <h1 className="text-xl font-semibold tracking-tight">We couldn't save your response</h1>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">The link may have expired or the connection may have failed. Contact the business if you still need help.</p>
+            {token && <Button className="mt-5 w-full rounded-xl" variant="outline" onClick={() => setState("ready")}>Try again</Button>}
+          </>
+        )}
+        <div className="mt-8 border-t border-border/70 pt-5">
+          <div className="flex items-center justify-center gap-2"><KudoSpotIcon className="h-5 w-5" /><span className="text-sm font-semibold text-foreground">KudoSpot</span></div>
+          <p className="mt-1 text-[11px] text-muted-foreground">Customer testimonials, with permission.</p>
         </div>
-      </section>
+      </Card>
     </main>
   );
 };
