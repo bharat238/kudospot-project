@@ -256,19 +256,53 @@ const Testimonials = () => {
   };
 
   const bulkApprove = async () => {
-    if (selected.size === 0) return;
+    if (!user || selected.size === 0 || bulkApproving) return;
+
+    const selectedItems = items.filter((item) => selected.has(item.id));
+    const sendable = selectedItems.filter((item) =>
+      Boolean(item.customer_email?.trim()) &&
+      Boolean(item.ai_rewritten_text?.trim()) &&
+      item.approval_status !== "approved" &&
+      item.approval_status !== "declined" &&
+      item.status !== "declined" &&
+      item.status !== "published"
+    );
+    const skipped = selectedItems.length - sendable.length;
+    if (sendable.length === 0) {
+      toast.error("Each selected testimonial needs a customer email and an AI rewrite before you can request approval.");
+      return;
+    }
+
     setBulkApproving(true);
-    const ids = Array.from(selected);
-    const updates = ids.map((id) => {
-      const it = items.find((i) => i.id === id);
-      const text = it?.ai_rewritten_text || it?.original_text || "";
-      return supabase.from("testimonials").update({ approved_text: text, status: "approved", approved_at: new Date().toISOString() }).eq("id", id);
-    });
-    await Promise.all(updates);
-    toast.success(`${ids.length} testimonial${ids.length === 1 ? "" : "s"} approved`);
-    setSelected(new Set());
-    setBulkApproving(false);
-    load();
+    try {
+      const results = await Promise.all(sendable.map(async (item) => {
+        try {
+          const { data, error } = await supabase.functions.invoke("send-approval-email", {
+            body: { testimonial_id: item.id },
+          });
+          if (error || !data?.success) return { item, success: false };
+          trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: item.id, entity_type: "approval", campaign: item.campaign ?? undefined });
+          return { item, success: true };
+        } catch {
+          return { item, success: false };
+        }
+      }));
+
+      const sent = results.filter((result) => result.success).length;
+      const failed = results.length - sent;
+      if (sent > 0) toast.success(sent + " customer approval request" + (sent === 1 ? "" : "s") + " sent. Testimonials remain unpublished until customers approve.");
+      if (failed > 0 || skipped > 0) toast.error(failed + " request" + (failed === 1 ? "" : "s") + " failed and " + skipped + " item" + (skipped === 1 ? "" : "s") + " skipped. Check customer emails and AI rewrites, then retry.");
+
+      setSelected(new Set());
+      await load();
+      if (active) {
+        const { data } = await supabase.from("testimonials").select("*").eq("id", active.id).eq("user_id", user.id).maybeSingle();
+        if (data) setActive(data);
+      }
+      setApprovalRefreshKey((current) => current + 1);
+    } finally {
+      setBulkApproving(false);
+    }
   };
 
   const exportCSV = () => {
