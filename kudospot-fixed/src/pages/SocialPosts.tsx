@@ -32,7 +32,7 @@ const tryCopyText = async (value: string) => {
 
 const SocialPosts = () => {
   const { user } = useAuth();
-  const { plan, canDoAIRewrite, showUpgradeToast } = usePlanLimits();
+  const { plan, showUpgradeToast } = usePlanLimits();
   const [posts, setPosts] = useState<SocialPostWithTestimonial[]>([]);
   const [captionDrafts, setCaptionDrafts] = useState<Record<string, string>>({});
   const [savingCaptionIds, setSavingCaptionIds] = useState<Set<string>>(new Set());
@@ -129,10 +129,7 @@ const SocialPosts = () => {
   const generate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.testimonial_id) return toast.error("Pick a testimonial.");
-    if (plan === "free") {
-      const generatedCount = posts.length;
-      if (!canDoAIRewrite(generatedCount)) return showUpgradeToast("more AI social posts");
-    }
+    if (plan === "free") return showUpgradeToast("the social post generator");
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-social-post", { body: form });
@@ -204,8 +201,8 @@ const SocialPosts = () => {
           <h1 className="text-3xl font-bold mb-1">Social posts</h1>
           <p className="text-muted-foreground">Platform-tailored captions, generated from your testimonials.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Generate</Button></DialogTrigger>
+        <Dialog open={open} onOpenChange={(nextOpen) => { if (plan === "free" && nextOpen) { showUpgradeToast("the social post generator"); return; } setOpen(nextOpen); }}>
+          <DialogTrigger asChild><Button onClick={(event) => { if (plan === "free") { event.preventDefault(); showUpgradeToast("the social post generator"); } }}><Plus className="h-4 w-4 mr-1" /> {plan === "free" ? "Upgrade to generate" : "Generate"}</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Generate social post</DialogTitle>
