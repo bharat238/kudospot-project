@@ -75,13 +75,47 @@ BEGIN
   END IF;
 
   IF TG_OP = 'DELETE' THEN
-    RAISE EXCEPTION 'Approval links cannot be deleted; revoke unused links instead.'
-      USING ERRCODE = '42501';
+    -- Permit FK cascades after the owning testimonial has been deleted, but
+    -- prevent a workspace owner from erasing a token while its testimonial exists.
+    IF EXISTS (
+      SELECT 1 FROM public.testimonials AS t
+      WHERE t.id = OLD.testimonial_id
+    ) THEN
+      RAISE EXCEPTION 'Approval links cannot be deleted; revoke unused links instead.'
+        USING ERRCODE = '42501';
+    END IF;
+    RETURN OLD;
   END IF;
 
   RETURN NEW;
 END;
 $$;
+
+-- Remove unusable orphan tokens before adding the FK. A token without a
+-- matching testimonial cannot represent a consent request.
+DELETE FROM public.approval_tokens AS token
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM public.testimonials AS t
+  WHERE t.id = token.testimonial_id
+    AND t.user_id = token.user_id
+);
+
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'approval_tokens_testimonial_id_fkey'
+      AND conrelid = 'public.approval_tokens'::regclass
+  ) THEN
+    ALTER TABLE public.approval_tokens
+      ADD CONSTRAINT approval_tokens_testimonial_id_fkey
+      FOREIGN KEY (testimonial_id)
+      REFERENCES public.testimonials(id)
+      ON DELETE CASCADE;
+  END IF;
+END;
+$;
 
 DROP TRIGGER IF EXISTS approval_tokens_guard_mutations ON public.approval_tokens;
 CREATE TRIGGER approval_tokens_guard_mutations
