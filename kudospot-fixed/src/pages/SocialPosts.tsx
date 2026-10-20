@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Copy, Trash2, Loader2, Linkedin, Instagram, Twitter, Download, Quote, type LucideIcon } from "lucide-react";
+import { Plus, Copy, Trash2, Loader2, Linkedin, Instagram, Twitter, Download, Quote, AlertCircle, RefreshCw, type LucideIcon } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 
@@ -39,6 +39,7 @@ const SocialPosts = () => {
   const [testimonials, setTestimonials] = useState<Pick<Tables<"testimonials">, "id" | "customer_name">[]>([]);
   const [profile, setProfile] = useState<Pick<Tables<"profiles">, "business_name" | "business_logo_url"> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
@@ -55,6 +56,7 @@ const SocialPosts = () => {
   const load = async () => {
     if (!user) return;
     setLoading(true);
+    setLoadError(null);
     try {
       // Step 1: fetch social posts
       const { data: postsData, error: postsError } = await supabase
@@ -73,10 +75,13 @@ const SocialPosts = () => {
       // for the off-screen PNG graphic export (downloadGraphic/quoteText
       // below previously referenced a `p.testimonials` join that no longer
       // exists post-fix, silently breaking the "Download PNG" feature).
-      const { data: testimonialsData } = await supabase
-        .from("testimonials")
-        .select("id, customer_name, customer_role, approved_text, ai_rewritten_text, original_text")
-        .in("id", testimonialIds);
+      const testimonialLookup = testimonialIds.length > 0
+        ? await supabase.from("testimonials")
+          .select("id, customer_name, customer_role, approved_text, ai_rewritten_text, original_text")
+          .in("id", testimonialIds)
+        : { data: [], error: null };
+      if (testimonialLookup.error) throw testimonialLookup.error;
+      const testimonialsData = testimonialLookup.data;
 
       // Step 4: build a lookup map keyed by testimonial id
       const testimonialMap = Object.fromEntries(
@@ -100,13 +105,17 @@ const SocialPosts = () => {
       setPosts(postsWithNames);
       setCaptionDrafts(Object.fromEntries(postsWithNames.map((post) => [post.id, post.caption_text || ""])));
 
-      const [{ data: t }, { data: pr }] = await Promise.all([
+      const [testimonialResult, profileResult] = await Promise.all([
         supabase.from("testimonials").select("id, customer_name").eq("user_id", user.id).eq("approval_status", "approved"),
         supabase.from("profiles").select("business_name, business_logo_url").eq("id", user.id).maybeSingle(),
       ]);
-      setTestimonials(t || []); setProfile(pr || null);
+      if (testimonialResult.error) throw testimonialResult.error;
+      if (profileResult.error) throw profileResult.error;
+      setTestimonials(testimonialResult.data || []);
+      setProfile(profileResult.data || null);
     } catch (error) {
       console.error("Error loading social posts:", error);
+      setLoadError("We couldn't load your social posts. Check your connection and try again.");
       toast.error("Failed to load social posts");
     } finally {
       setLoading(false);
@@ -240,6 +249,13 @@ const SocialPosts = () => {
             <Loader2 className="h-12 w-12 animate-spin mb-4 opacity-20" />
             <p>Loading your social posts...</p>
           </div>
+        ) : loadError ? (
+          <Card className="rounded-[22px] border-[#e6e8ed] bg-white px-6 py-10 text-center sm:px-10">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f1f2f5] text-[#515661]"><AlertCircle className="h-5 w-5" /></div>
+            <h2 className="font-semibold text-[#202126]">Social posts couldn't be loaded</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">{loadError}</p>
+            <Button variant="outline" className="mt-5 rounded-full border-[#e1e4e9]" onClick={() => void load()}><RefreshCw className="mr-2 h-4 w-4" />Try again</Button>
+          </Card>
         ) : posts.length === 0 ? (
           <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center sm:px-10 sm:py-16">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><Quote className="h-6 w-6" /></div>
