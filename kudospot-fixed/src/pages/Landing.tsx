@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PLAN_CATALOG } from "@/config/planCatalog";
+import { PRODUCT_FAQS } from "@/config/faqCatalog";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -223,7 +224,7 @@ const Landing = () => {
           </div>
           <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-3">
             {PLAN_CATALOG.map((plan) => (
-              <Card key={plan.name} className={`relative p-7 ${plan.highlight ? "border-foreground shadow-lg ring-1 ring-foreground" : "border-border/80"}`}>
+              <Card key={plan.name} className={`relative p-7 ${plan.highlight ? "border-primary shadow-lg ring-1 ring-primary md:scale-[1.02]" : "border-border/80"}`}>
                 {plan.highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-foreground px-3 py-1 text-[10px] font-semibold text-background">Popular plan</div>}
                 <h3 className="mb-1 font-semibold">{plan.name}</h3>
                 <div className="mb-5 flex items-baseline gap-1"><span className="text-4xl font-semibold tracking-tight">{plan.price}</span><span className="text-sm text-muted-foreground">{plan.period}</span></div>
@@ -232,19 +233,13 @@ const Landing = () => {
               </Card>
             ))}
           </div>
+        <p className="mx-auto mt-5 max-w-3xl text-center text-xs leading-5 text-muted-foreground">Paid checkouts grant 30 days of access and do not renew automatically. Renew manually from your account when you need another period.</p>
         </section>
 
         <section id="faq" className="container mx-auto max-w-3xl py-16 md:py-20">
           <div className="mb-10 text-center"><h2 className="mb-3 text-3xl font-semibold tracking-tight sm:text-4xl">Questions, answered.</h2><p className="text-muted-foreground">The essentials before you get started.</p></div>
           <Accordion type="single" collapsible className="w-full">
-            {[
-              { q: "How does the AI rewrite work?", a: "KudoSpot helps structure a testimonial into a clearer story while keeping the customer's meaning. Review all AI-assisted edits and never publish invented claims as customer facts." },
-              { q: "Do customers approve the rewrite?", a: "KudoSpot supports a customer approval flow so the testimonial can be reviewed before publication." },
-              { q: "Is there a free plan?", a: "Yes. The free plan includes 10 testimonials and 5 AI rewrites. No credit card is required to start." },
-              { q: "Can I use my own brand?", a: "You can customize your collection experience and testimonial displays to better match your brand." },
-              { q: "Where do widgets work?", a: "Widgets are designed for websites that allow you to add an HTML embed snippet, including many site builders and custom sites." },
-              { q: "Can I cancel anytime?", a: "You can manage your plan from your account settings. Review the current plan terms before upgrading." },
-            ].map((item, index) => <AccordionItem key={item.q} value={`q${index}`}><AccordionTrigger className="text-left">{item.q}</AccordionTrigger><AccordionContent className="leading-6 text-muted-foreground">{item.a}</AccordionContent></AccordionItem>)}
+            {PRODUCT_FAQS.map((item, index) => <AccordionItem key={item.q} value={"product-faq-" + index}><AccordionTrigger className="text-left">{item.q}</AccordionTrigger><AccordionContent className="leading-6 text-muted-foreground">{item.a}</AccordionContent></AccordionItem>)}
           </Accordion>
         </section>
 
