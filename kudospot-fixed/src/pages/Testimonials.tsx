@@ -16,7 +16,7 @@ import { trackEvent } from "@/lib/track";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Tables } from "@/integrations/supabase/types";
 type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
 
 const tryCopyText = async (value: string) => {
@@ -179,8 +179,8 @@ const Testimonials = () => {
       setActive(updated);
       setApprovalRefreshKey((current) => current + 1);
       void load();
-    } catch (e: any) {
-      toast.error(e.message || "Rewrite failed");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Rewrite failed");
     } finally {
       setRewritingIds(prev => {
         const next = new Set(prev);
@@ -263,8 +263,8 @@ const Testimonials = () => {
       }
       void load();
       return url;
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to create approval link");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to create approval link");
       return null;
     } finally {
       setSendingIds((current) => {
@@ -375,7 +375,7 @@ const Testimonials = () => {
       "created_at",
     ];
 
-    const escape = (val: any): string => {
+    const escape = (val: unknown): string => {
       if (val === null || val === undefined) return "";
       const str = String(val).replace(/"/g, '""');
       return `"${str}"`;
@@ -663,7 +663,7 @@ const Testimonials = () => {
   );
 };
 
-const StatusPill = ({ testimonial }: { testimonial: any }) => {
+const StatusPill = ({ testimonial }: { testimonial: Testimonial }) => {
   const { status, approval_status } = testimonial;
 
   if (approval_status === "approved") {
@@ -684,8 +684,8 @@ const StatusPill = ({ testimonial }: { testimonial: any }) => {
   return <span className="inline-flex items-center rounded-full border border-border bg-secondary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Pending</span>;
 };
 
-const ApprovalWorkflow = ({ testimonial, refreshKey, onResend, onCopy, isSending }: { testimonial: any; refreshKey: number; onResend: () => void; onCopy: () => void; isSending: boolean }) => {
-  const [tokens, setTokens] = useState<any[]>([]);
+const ApprovalWorkflow = ({ testimonial, refreshKey, onResend, onCopy, isSending }: { testimonial: Testimonial; refreshKey: number; onResend: () => void; onCopy: () => void; isSending: boolean }) => {
+  const [tokens, setTokens] = useState<Pick<Tables<"approval_tokens">, "token" | "testimonial_id" | "user_id" | "used_at" | "created_at">[]>([]);
 
   useEffect(() => {
     let current = true;
