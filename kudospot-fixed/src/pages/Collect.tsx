@@ -22,7 +22,7 @@ const blank = {
   form_name: "",
   headline: "Share your experience",
   subheadline: "We'd love to hear how it went.",
-  brand_color: "#7C3AED",
+  brand_color: "#C94320",
   thank_you_message: "Thank you! Your feedback means a lot.",
   collect_rating: true,
   collect_video: false,
@@ -360,7 +360,7 @@ const Collect = () => {
                         <Label>Brand color</Label>
                         <div className="flex gap-2 mt-1">
                           <Input type="color" value={form.brand_color} onChange={(e) => setForm({ ...form, brand_color: e.target.value })} className="w-14 h-10 p-1" />
-                          <Input value={form.brand_color} onChange={(e) => setForm({ ...form, brand_color: e.target.value })} placeholder="#7C3AED" />
+                          <Input value={form.brand_color} onChange={(e) => setForm({ ...form, brand_color: e.target.value })} placeholder="#C94320" />
                         </div>
                       </div>
                       <div className="flex items-end gap-4 pb-2">
