@@ -625,72 +625,89 @@ const Testimonials = () => {
 
 const StatusPill = ({ testimonial }: { testimonial: any }) => {
   const { status, approval_status } = testimonial;
-  
-  if (status === "approved") {
-    return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-success/10 text-success border border-success/20">Approved</span>;
+
+  if (approval_status === "approved" || status === "published") {
+    return <span className="inline-flex items-center rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-success">Customer approved</span>;
   }
-  if (status === "declined") {
-    return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-destructive/10 text-destructive border border-destructive/20">Declined</span>;
+  if (approval_status === "declined" || status === "declined" || status === "rejected") {
+    return <span className="inline-flex items-center rounded-full border border-destructive/20 bg-destructive/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-destructive">Declined</span>;
   }
   if (approval_status === "sent") {
-    return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">Awaiting Approval</span>;
+    return <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Awaiting customer</span>;
   }
-  if (approval_status === "approved") {
-    return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-success/10 text-success border border-success/20">Customer approved ✓</span>;
+  if (status === "ai_rewritten" || testimonial.ai_rewritten_text) {
+    return <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-foreground">AI rewritten</span>;
   }
-  if (status === "ai_rewritten") {
-    return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-primary-light text-primary border border-primary/20">Rewritten</span>;
+  if (status === "approved") {
+    return <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Needs customer approval</span>;
   }
-  
-  return <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-secondary text-muted-foreground border border-border">Pending</span>;
+  return <span className="inline-flex items-center rounded-full border border-border bg-secondary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Pending</span>;
 };
 
-const ApprovalWorkflow = ({ testimonial, onResend, onCopy, isSending }: { testimonial: any; onResend: () => void; onCopy: () => void; isSending: boolean }) => {
+const ApprovalWorkflow = ({ testimonial, refreshKey, onResend, onCopy, isSending }: { testimonial: any; refreshKey: number; onResend: () => void; onCopy: () => void; isSending: boolean }) => {
   const [tokens, setTokens] = useState<any[]>([]);
-  useEffect(() => {
-    supabase.from("approval_tokens").select("*").eq("testimonial_id", testimonial.id).order("created_at", { ascending: false }).then(({ data }) => setTokens(data || []));
-  }, [testimonial.id]);
 
-  const hasOpen = tokens.some((t) => !t.used_at);
-  const status = testimonial.status;
+  useEffect(() => {
+    let current = true;
+    let query = supabase.from("approval_tokens").select("token,testimonial_id,user_id,used_at,created_at").eq("testimonial_id", testimonial.id).order("created_at", { ascending: false });
+    if (testimonial.user_id) query = query.eq("user_id", testimonial.user_id);
+    query.then(({ data, error }) => {
+      if (!current) return;
+      if (error) {
+        toast.error("Approval link history could not be loaded.");
+        setTokens([]);
+      } else {
+        setTokens(data || []);
+      }
+    });
+    return () => { current = false; };
+  }, [testimonial.id, testimonial.user_id, refreshKey]);
+
+  const hasOpen = tokens.some((token) => !token.used_at);
+  const customerApproved = testimonial.approval_status === "approved" || testimonial.status === "published";
+  const customerDeclined = testimonial.approval_status === "declined" || testimonial.status === "declined" || testimonial.status === "rejected";
+  const customerResponded = customerApproved || customerDeclined;
+  const waiting = testimonial.approval_status === "sent" || hasOpen;
+  const finalLabel = customerDeclined ? "Declined" : customerApproved ? "Approved" : "Awaiting response";
+  const finalIcon = customerDeclined ? X : customerApproved ? Check : Clock;
+  const finalActive = customerResponded || waiting;
 
   const steps = [
-    { key: "pending", label: "Pending", icon: Clock, active: status === "pending" || status === "ai_rewritten", done: status === "approved" || status === "rejected" },
-    { key: "approved", label: "Approved", icon: Check, active: status === "approved", done: status === "approved" },
-    { key: "rejected", label: "Rejected", icon: X, active: status === "rejected", done: status === "rejected" },
+    { key: "collected", label: "Collected", icon: MessageSquareQuote, active: !waiting && !customerResponded, done: waiting || customerResponded },
+    { key: "waiting", label: "Customer review", icon: Clock, active: waiting, done: customerResponded },
+    { key: "final", label: finalLabel, icon: finalIcon, active: customerResponded, done: customerResponded },
   ];
 
   return (
-    <Card className="p-4 bg-secondary/30">
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-xs font-semibold uppercase text-muted-foreground">Approval workflow</div>
-        {tokens.length > 0 && <span className="text-xs text-muted-foreground">{tokens.length} request{tokens.length === 1 ? "" : "s"} sent</span>}
+    <Card className="rounded-2xl border-border/80 bg-muted/25 p-4 sm:p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div><div className="text-sm font-semibold">Customer approval</div><p className="mt-1 text-xs text-muted-foreground">Testimonials stay private until the customer approves them.</p></div>
+        {tokens.length > 0 && <span className="rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-medium text-muted-foreground">{tokens.length} link{tokens.length === 1 ? "" : "s"} created</span>}
       </div>
-      <div className="flex items-center gap-2 mb-3">
-        {steps.filter((s) => s.key !== "rejected" || status === "rejected").map((s, i, arr) => (
-          <div key={s.key} className="flex items-center gap-2 flex-1">
-            <div className={`h-7 w-7 rounded-full flex items-center justify-center ${s.active && s.key === "approved" ? "bg-success text-white" : s.active && s.key === "rejected" ? "bg-destructive text-white" : s.active ? "bg-warning text-white" : s.done ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
-              <s.icon className="h-3.5 w-3.5" />
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        {steps.map((step, index) => (
+          <div key={step.key} className="min-w-0">
+            <div className={"mb-2 flex h-8 w-8 items-center justify-center rounded-full " + (step.key === "final" && customerApproved ? "bg-success text-white" : step.key === "final" && customerDeclined ? "bg-destructive text-white" : step.active ? "bg-accent text-accent-foreground" : step.done ? "bg-success/10 text-success" : "bg-secondary text-muted-foreground")}>
+              <step.icon className="h-4 w-4" />
             </div>
-            <span className={`text-sm ${s.active ? "font-semibold" : "text-muted-foreground"}`}>{s.label}</span>
-            {i < arr.length - 1 && <div className="flex-1 h-px bg-border" />}
+            <div className={"text-[10px] leading-4 sm:text-xs " + (step.active ? "font-semibold text-foreground" : "text-muted-foreground")}>{step.label}</div>
           </div>
         ))}
       </div>
-      {status !== "approved" && status !== "rejected" && (
-        <div className="flex flex-wrap gap-2 pt-2 border-t">
+      {!customerResponded && (
+        <div className="flex flex-wrap gap-2 border-t border-border/70 pt-3">
           {hasOpen ? (
-            <Button size="sm" variant="outline" onClick={onResend} disabled={isSending}>
-              {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RotateCw className="h-3.5 w-3.5 mr-1" />} Resend approval link
+            <Button size="sm" variant="outline" className="rounded-lg" onClick={onResend} disabled={isSending}>
+              {isSending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RotateCw className="mr-1.5 h-3.5 w-3.5" />} Create fresh approval link
             </Button>
           ) : (
-            <Button size="sm" onClick={onCopy} disabled={!testimonial.ai_rewritten_text || isSending}>
-              {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Link2 className="h-3.5 w-3.5 mr-1" />} Send approval link
+            <Button size="sm" className="rounded-lg" onClick={onCopy} disabled={!testimonial.ai_rewritten_text || isSending}>
+              {isSending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Link2 className="mr-1.5 h-3.5 w-3.5" />} Request customer approval
             </Button>
           )}
-          {tokens[0] && (
-            <Button size="sm" variant="ghost" onClick={async () => { const copied = await tryCopyText(`${window.location.origin}/approve/${tokens[0].token}`); if (copied) { toast.success("Latest link copied"); } else { toast.error("Clipboard access was blocked. Try again from a secure browser context."); } }} disabled={isSending}>
-              <Copy className="h-3.5 w-3.5 mr-1" /> Copy latest
+          {tokens[0] && !tokens[0].used_at && (
+            <Button size="sm" variant="ghost" onClick={async () => { const copied = await tryCopyText(`${window.location.origin}/approve/${tokens[0].token}`); if (copied) toast.success("Approval link copied"); else toast.error("Clipboard access was blocked. Copy the link from your browser after opening the preview."); }} disabled={isSending}>
+              <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy latest link
             </Button>
           )}
         </div>
@@ -698,5 +715,4 @@ const ApprovalWorkflow = ({ testimonial, onResend, onCopy, isSending }: { testim
     </Card>
   );
 };
-
 export default Testimonials;
