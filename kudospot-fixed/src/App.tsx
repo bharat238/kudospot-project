@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -39,6 +39,49 @@ import ForFreelancers from "./pages/for/Freelancers";
 
 const queryClient = new QueryClient();
 
+const AppRoutes = () => {
+  const location = useLocation();
+  return (
+    <>
+      <ScrollToTop />
+      <div key={location.pathname} className="kudospot-page-enter">
+<Routes>
+  <Route path="/" element={<Landing />} />
+  <Route path="/login" element={<Login />} />
+  <Route path="/signup" element={<Signup />} />
+  <Route path="/forgot-password" element={<ForgotPassword />} />
+  <Route path="/reset-password" element={<ResetPassword />} />
+  <Route path="/collect/:slug" element={<PublicForm />} />
+  <Route path="/approve/:token" element={<Approve />} />
+  <Route path="/decline/:token" element={<Decline />} />
+  <Route path="/embed/:id" element={<Embed />} />
+  <Route path="/case-studies/:slug" element={<PublicCaseStudy />} />
+  <Route path="/wall/:slug" element={<WallOfLove />} />
+  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+  <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
+  <Route path="/collect" element={<ProtectedRoute><Collect /></ProtectedRoute>} />
+  <Route path="/widgets" element={<ProtectedRoute><Widgets /></ProtectedRoute>} />
+  <Route path="/case-studies" element={<ProtectedRoute><CaseStudies /></ProtectedRoute>} />
+  <Route path="/social-posts" element={<ProtectedRoute><SocialPosts /></ProtectedRoute>} />
+  <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+  <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+  <Route path="/upgrade" element={<ProtectedRoute><Upgrade /></ProtectedRoute>} />
+  <Route path="/privacy" element={<Privacy />} />
+  <Route path="/terms" element={<Terms />} />
+  <Route path="/pricing" element={<Pricing />} />
+  <Route path="/affiliates" element={<Affiliates />} />
+  <Route path="/contact" element={<Contact />} />
+  <Route path="/changelog" element={<Changelog />} />
+  <Route path="/help" element={<Help />} />
+  <Route path="/compare/senja" element={<VsSenja />} />
+  <Route path="/for/freelancers" element={<ForFreelancers />} />
+  <Route path="*" element={<NotFound />} />
+</Routes>
+      </div>
+    </>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -46,39 +89,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <ScrollToTop />
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/collect/:slug" element={<PublicForm />} />
-            <Route path="/approve/:token" element={<Approve />} />
-            <Route path="/decline/:token" element={<Decline />} />
-            <Route path="/embed/:id" element={<Embed />} />
-            <Route path="/case-studies/:slug" element={<PublicCaseStudy />} />
-            <Route path="/wall/:slug" element={<WallOfLove />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
-            <Route path="/collect" element={<ProtectedRoute><Collect /></ProtectedRoute>} />
-            <Route path="/widgets" element={<ProtectedRoute><Widgets /></ProtectedRoute>} />
-            <Route path="/case-studies" element={<ProtectedRoute><CaseStudies /></ProtectedRoute>} />
-            <Route path="/social-posts" element={<ProtectedRoute><SocialPosts /></ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/upgrade" element={<ProtectedRoute><Upgrade /></ProtectedRoute>} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/affiliates" element={<Affiliates />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/changelog" element={<Changelog />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/compare/senja" element={<VsSenja />} />
-            <Route path="/for/freelancers" element={<ForFreelancers />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppRoutes />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
