@@ -202,7 +202,7 @@ const PublicForm = () => {
               color: data.original_text.length >= MAX_CHARS 
                 ? '#ef4444' 
                 : data.original_text.length >= MAX_CHARS * 0.9 
-                ? '#f59e0b' 
+                ? 'hsl(var(--warning))' 
                 : '#9ca3af', 
             }}>
               {data.original_text.length} / {MAX_CHARS}
