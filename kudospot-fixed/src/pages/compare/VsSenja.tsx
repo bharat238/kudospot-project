@@ -115,7 +115,7 @@ const VsSenja = () => {
             <div>
               <h3 className="font-semibold text-lg mb-4">If you need</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• <strong>Imports:</strong> Senja lists imports from 35 sources; KudoSpot platform imports are not yet available.</li>
+                <li>• <strong>Imports:</strong> Senja advertises imports from 30+ sources; KudoSpot platform imports are not yet available.</li>
                 <li>• <strong>Video testimonials:</strong> Senja supports collection and video Reels. KudoSpot video collection is not yet available.</li>
                 <li>• <strong>Established ecosystem:</strong> Senja has been around longer</li>
               </ul>
