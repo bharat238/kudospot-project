@@ -16,7 +16,7 @@ const Pricing = () => {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-50">
-        <div className="container mx-auto flex h-16 items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-bold text-lg">
             <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-8 w-8" />
             KudoSpot
@@ -33,7 +33,7 @@ const Pricing = () => {
       </header>
 
       {/* Pricing section */}
-      <section className="container mx-auto py-20">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Start free. Upgrade when you need more capacity. No card is required for the free plan.</p>
@@ -89,7 +89,7 @@ const Pricing = () => {
 
       {/* FAQ section */}
       <section className="bg-muted/30 py-20">
-        <div className="container mx-auto max-w-2xl">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-2">Frequently asked questions</h2>
             <p className="text-muted-foreground">Have a question? We've got answers.</p>
@@ -112,7 +112,7 @@ const Pricing = () => {
 
       {/* CTA section */}
       <section className="bg-gradient-soft py-16">
-        <div className="container mx-auto text-center">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to start collecting real social proof?</h2>
           <p className="text-muted-foreground mb-8 max-w-lg mx-auto">Start free and turn customer stories into social proof your next customer can trust.</p>
           <Link to="/signup">
@@ -125,7 +125,7 @@ const Pricing = () => {
 
       {/* Footer */}
       <footer className="border-t border-border/60 py-10 text-sm text-muted-foreground">
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-medium text-foreground">
             <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-5 w-5" />
             KudoSpot
