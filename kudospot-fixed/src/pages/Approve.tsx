@@ -25,7 +25,7 @@ const Approve = () => {
         body: { token, action: "approve" },
       });
       if (error || data?.error || !data?.success) throw error || new Error(data?.error || "Approval could not be saved");
-      if (typeof data.name === "string" && data.name.trim()) setName(data.name);
+      if (typeof data.customer_name === "string" && data.customer_name.trim()) setName(data.customer_name);
       setState(data.already ? "already" : "success");
     } catch (error) {
       console.error("Could not save customer approval:", error);
