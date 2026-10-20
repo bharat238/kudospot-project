@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import {
   MessageSquareQuote, CheckCircle2, Clock, Plus, Copy, ExternalLink, Heart,
   PanelsTopLeft, FileText, Share2, Inbox, ArrowUpRight, TrendingUp, Sparkles,
-  ArrowRight, MousePointerClick, Loader2
+  ArrowRight, MousePointerClick, Loader2, AlertCircle
 } from "lucide-react";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
@@ -37,11 +37,17 @@ const Dashboard = () => {
   const [socialPosts, setSocialPosts] = useState<any[]>([]);
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const reloadProfile = async () => {
     if (!user) return;
-    const { data } = await supabase.from("profiles").select("full_name,business_name,onboarding_completed").eq("id", user.id).maybeSingle();
+    const { data, error } = await supabase.from("profiles").select("full_name,business_name,onboarding_completed").eq("id", user.id).maybeSingle();
+    if (error) {
+      toast.error("Your profile couldn't be refreshed. Please try again.");
+      return;
+    }
     setProfile(data);
+    setLoadError(null);
     setLoading(false);
   };
 
@@ -51,23 +57,33 @@ const Dashboard = () => {
 
     const load = async () => {
       setLoading(true);
-      const [profileResult, testimonialResult, formResult, widgetResult, caseStudyResult, socialResult] = await Promise.all([
-        supabase.from("profiles").select("full_name,business_name,onboarding_completed").eq("id", user.id).maybeSingle(),
-        supabase.from("testimonials").select("id,customer_name,customer_role,customer_company,original_text,ai_rewritten_text,approved_text,status,rating,created_at,approved_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
-        supabase.from("collection_forms").select("id,form_name,public_slug,is_active,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("widgets").select("id,widget_name,is_published,views,clicks").eq("user_id", user.id),
-        supabase.from("case_studies").select("id,title,is_published,views").eq("user_id", user.id),
-        supabase.from("social_posts").select("id,status,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-      ]);
+      setLoadError(null);
+      try {
+        const [profileResult, testimonialResult, formResult, widgetResult, caseStudyResult, socialResult] = await Promise.all([
+          supabase.from("profiles").select("full_name,business_name,onboarding_completed").eq("id", user.id).maybeSingle(),
+          supabase.from("testimonials").select("id,customer_name,customer_role,customer_company,original_text,ai_rewritten_text,approved_text,status,rating,created_at,approved_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
+          supabase.from("collection_forms").select("id,form_name,public_slug,is_active,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("widgets").select("id,widget_name,is_published,views,clicks").eq("user_id", user.id),
+          supabase.from("case_studies").select("id,title,is_published,views").eq("user_id", user.id),
+          supabase.from("social_posts").select("id,status,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+        ]);
 
-      if (!current) return;
-      setProfile(profileResult.data);
-      setTestimonials((testimonialResult.data || []) as Testimonial[]);
-      setForms(formResult.data || []);
-      setWidgets(widgetResult.data || []);
-      setCaseStudies(caseStudyResult.data || []);
-      setSocialPosts(socialResult.data || []);
-      setLoading(false);
+        const failedQuery = [profileResult, testimonialResult, formResult, widgetResult, caseStudyResult, socialResult].find((result) => result.error);
+        if (failedQuery?.error) throw failedQuery.error;
+        if (!current) return;
+
+        setProfile(profileResult.data);
+        setTestimonials((testimonialResult.data || []) as Testimonial[]);
+        setForms(formResult.data || []);
+        setWidgets(widgetResult.data || []);
+        setCaseStudies(caseStudyResult.data || []);
+        setSocialPosts(socialResult.data || []);
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+        if (current) setLoadError("We couldn't load your workspace data. Check your connection and try again.");
+      } finally {
+        if (current) setLoading(false);
+      }
     };
 
     void load();
@@ -123,6 +139,19 @@ const Dashboard = () => {
 
   if (loading) {
     return <AppShell><div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /><span className="ml-3 text-sm text-muted-foreground">Loading your workspace…</span></div></AppShell>;
+  }
+
+  if (loadError) {
+    return (
+      <AppShell>
+        <Card className="mx-auto max-w-xl rounded-2xl p-8 text-center">
+          <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-destructive/10 text-destructive"><AlertCircle className="h-5 w-5" /></div>
+          <h1 className="text-lg font-semibold">Dashboard data is unavailable</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{loadError}</p>
+          <Button className="mt-5" variant="outline" onClick={() => window.location.reload()}>Try again</Button>
+        </Card>
+      </AppShell>
+    );
   }
 
   if (profile && !profile.onboarding_completed) {
