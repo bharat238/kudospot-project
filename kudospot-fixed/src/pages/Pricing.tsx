@@ -4,28 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Check, ArrowRight } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PLAN_CATALOG } from "@/config/planCatalog";
+import { PRODUCT_FAQS } from "@/config/faqCatalog";
 import { useAuth } from "@/contexts/AuthContext";
 
 const plans = PLAN_CATALOG;
-
-const faqs = [
-  {
-    q: "Can I change plans later?",
-    a: "Each paid payment grants 30 days of access. Plans do not auto-renew; renew manually from your account when you need another period.",
-  },
-  {
-    q: "Do you offer refunds?",
-    a: "For billing or refund questions, contact hello@kudospot.io so the team can review your request.",
-  },
-  {
-    q: "What payment methods do you accept?",
-    a: "Payments are processed through Razorpay. The payment methods available to you are shown at checkout.",
-  },
-  {
-    q: "What happens if I exceed my plan limits?",
-    a: "Free plans have limits on testimonials, AI rewrites and widgets. Starter and Pro increase those limits; the feature list above shows each plan's current capacity.",
-  },
-];
 
 const Pricing = () => {
   const { user } = useAuth();
@@ -55,6 +37,7 @@ const Pricing = () => {
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Start free. Upgrade when you need more capacity. No card is required for the free plan.</p>
+          <p className="mt-4 text-sm text-muted-foreground">Paid checkouts grant 30 days of access and do not auto-renew. Renew manually when you need another period.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -62,7 +45,7 @@ const Pricing = () => {
             <Card
               key={plan.id}
               className={`p-8 flex flex-col relative ${
-                plan.highlight ? "border-primary shadow-lg md:scale-[1.02]" : "border-border/80"
+                plan.highlight ? "border-primary shadow-lg ring-1 ring-primary md:scale-[1.02]" : "border-border/80"
               }`}
             >
               {plan.highlight && (
@@ -113,7 +96,7 @@ const Pricing = () => {
           </div>
 
           <Accordion type="single" collapsible className="space-y-3">
-            {faqs.map((faq, i) => (
+            {PRODUCT_FAQS.map((faq, i) => (
               <AccordionItem key={i} value={`faq-${i}`} className="border border-border rounded-lg px-4">
                 <AccordionTrigger className="text-left font-medium hover:text-primary">
                   {faq.q}
