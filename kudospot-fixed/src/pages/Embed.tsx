@@ -66,7 +66,11 @@ const Embed = () => {
             .in("id", safeWidget.testimonial_ids)
             .in("status", ["approved", "published"]);
           if (error) throw error;
-          approvedItems = (data || []) as PublicTestimonial[];
+          approvedItems = ((data || []) as PublicTestimonial[]).sort((a, b) => {
+            const aIndex = safeWidget.testimonial_ids?.indexOf(a.id) ?? -1;
+            const bIndex = safeWidget.testimonial_ids?.indexOf(b.id) ?? -1;
+            return (aIndex < 0 ? Number.MAX_SAFE_INTEGER : aIndex) - (bIndex < 0 ? Number.MAX_SAFE_INTEGER : bIndex);
+          });
         }
         if (!current) return;
         setWidget(safeWidget);
