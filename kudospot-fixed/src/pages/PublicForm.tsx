@@ -83,7 +83,6 @@ const PublicForm = () => {
         }
         return;
       }
-      trackEvent({ user_id: form.user_id, event_type: "form_submit", entity_id: form.id, entity_type: "form", campaign: form.campaign });
       try {
         await supabase.functions.invoke("notify-owner", {
           body: {
