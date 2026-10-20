@@ -103,7 +103,7 @@ const PublicForm = () => {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
   if (!form) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Form not found.</div>;
 
-  const accent = form.brand_color || "#7C3AED";
+  const accent = form.brand_color || "#C94320";
   const questions: string[] = Array.isArray(form.questions) ? form.questions : [];
   const pageTitle = form.form_name || form.headline || "Share your experience";
   const pageDesc = form.subheadline || `Share your experience with ${pageTitle}.`;
