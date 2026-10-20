@@ -20,7 +20,7 @@ export const MarketingNav = () => {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-card/90 backdrop-blur-xl">
-      <div className="container mx-auto flex h-[68px] items-center justify-between gap-4">
+      <div className="container mx-auto flex h-[68px] items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
         <Link to="/" aria-label="KudoSpot home" className="flex shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
           <img src="/kudospot-icon.svg" alt="" className="h-8 w-8" />
           <span className="text-xl font-semibold tracking-tight text-foreground">KudoSpot</span>
