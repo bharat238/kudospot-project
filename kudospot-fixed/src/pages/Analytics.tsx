@@ -375,8 +375,8 @@ const Analytics = () => {
                       <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={32} />
                       <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: "1px solid hsl(var(--border))" }} />
                       <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                      <Line type="monotone" dataKey="submissions" stroke="#9bc72b" strokeWidth={2.5} dot={false} name="Submissions" />
-                      <Line type="monotone" dataKey="approvals" stroke="#15803d" strokeWidth={2.5} dot={false} name="Approvals" />
+                      <Line type="monotone" dataKey="submissions" stroke="#26282e" strokeWidth={2.5} dot={false} name="Submissions" />
+                      <Line type="monotone" dataKey="approvals" stroke="#C8F34C" strokeWidth={2.5} dot={false} name="Approvals" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
