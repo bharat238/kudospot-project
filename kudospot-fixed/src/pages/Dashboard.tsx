@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import {
   MessageSquareQuote, CheckCircle2, Clock, Plus, Copy, ExternalLink, Heart,
   PanelsTopLeft, FileText, Share2, Inbox, ArrowUpRight, TrendingUp, Sparkles,
-  ArrowRight, MousePointerClick, Loader2, AlertCircle
+  ArrowRight, MousePointerClick, Loader2, AlertCircle, Search, Filter
 } from "lucide-react";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
@@ -46,6 +46,8 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<DashboardProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [recentSearch, setRecentSearch] = useState("");
+  const [recentStatus, setRecentStatus] = useState("all");
 
   const reloadProfile = async () => {
     if (!user) return;
@@ -134,6 +136,14 @@ const Dashboard = () => {
   const displayName = profile?.full_name?.trim()?.split(/\s+/)[0] || String(user?.user_metadata?.full_name || "").split(/\s+/)[0] || user?.email?.split("@")[0] || "there";
   const activeForm = forms.find((form) => form.is_active);
   const collectionUrl = activeForm?.public_slug ? `${window.location.origin}/collect/${activeForm.public_slug}` : null;
+
+  const recentRows = testimonials.filter((item) => {
+    const searchable = [item.customer_name, item.customer_role, item.customer_company, item.original_text, item.ai_rewritten_text, item.approved_text].filter(Boolean).join(" ").toLowerCase();
+    const normalizedStatus = item.status === "rejected" ? "declined" : item.status;
+    const matchesSearch = searchable.includes(recentSearch.trim().toLowerCase());
+    const matchesStatus = recentStatus === "all" || normalizedStatus === recentStatus;
+    return matchesSearch && matchesStatus;
+  }).slice(0, 7);
 
   const copyCollectionUrl = async () => {
     if (!collectionUrl) return;
@@ -306,7 +316,24 @@ const Dashboard = () => {
         <Card className="min-w-0 overflow-hidden rounded-[20px] border-[#e7e5e0] bg-white shadow-[0_2px_8px_rgba(25,24,20,0.035)] xl:col-span-8">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eceae6] px-5 py-4 sm:px-6">
             <div><h2 className="text-base font-semibold text-[#242420] sm:text-lg">Recent testimonials</h2><p className="mt-1 text-[11px] text-[#77756f] sm:text-xs">Latest customer feedback and its approval status</p></div>
-            <Link to="/testimonials" className="inline-flex items-center gap-1 rounded-full border border-[#e7e5e0] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#484741] transition hover:bg-[#f5f4f1]">View all <ArrowRight className="h-3.5 w-3.5" /></Link>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <label className="flex h-9 min-w-[150px] flex-1 items-center gap-2 rounded-full border border-[#e7e5e0] bg-white px-3 text-[#85827b] sm:min-w-[175px] sm:flex-none">
+                <Search className="h-3.5 w-3.5 shrink-0" />
+                <input aria-label="Search recent testimonials" value={recentSearch} onChange={(event) => setRecentSearch(event.target.value)} placeholder="Search testimonials" className="min-w-0 w-full bg-transparent text-[11px] text-[#34332f] outline-none placeholder:text-[#96938c]" />
+              </label>
+              <label className="flex h-9 items-center gap-1.5 rounded-full border border-[#e7e5e0] bg-white pl-3 pr-2 text-[#77756f]">
+                <Filter className="h-3.5 w-3.5 shrink-0" />
+                <select aria-label="Filter testimonials by status" value={recentStatus} onChange={(event) => setRecentStatus(event.target.value)} className="max-w-[120px] bg-transparent py-1 text-[11px] font-medium text-[#484741] outline-none">
+                  <option value="all">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="ai_rewritten">AI rewritten</option>
+                  <option value="approved">Approved</option>
+                  <option value="published">Published</option>
+                  <option value="declined">Declined</option>
+                </select>
+              </label>
+              <Link to="/testimonials" className="inline-flex h-9 items-center gap-1 rounded-full border border-[#e7e5e0] bg-white px-3 text-[11px] font-semibold text-[#484741] transition hover:bg-[#f5f4f1]">View all <ArrowRight className="h-3.5 w-3.5" /></Link>
+            </div>
           </div>
           {testimonials.length === 0 ? (
             <div className="px-6 py-12 text-center">
@@ -320,7 +347,7 @@ const Dashboard = () => {
               <table className="w-full min-w-[580px] border-collapse text-left">
                 <thead><tr className="bg-[#f7f6f3] text-[10px] font-medium uppercase tracking-[0.1em] text-[#77756f]"><th className="px-5 py-3 sm:px-6">Customer</th><th className="px-4 py-3">Feedback</th><th className="px-4 py-3">Added</th><th className="px-5 py-3 sm:px-6">Status</th></tr></thead>
                 <tbody>
-                  {testimonials.slice(0, 7).map((item) => (
+                  {recentRows.length === 0 ? <tr><td colSpan={4} className="px-5 py-10 text-center text-xs text-[#77756f]">{recentSearch || recentStatus !== "all" ? "No testimonials match these filters." : "No testimonials yet."}</td></tr> : recentRows.map((item) => (
                     <tr key={item.id} className="border-t border-[#eeece7] align-middle transition hover:bg-[#faf9f7]">
                       <td className="px-5 py-3 sm:px-6"><div className="flex items-center gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#fff0e9] text-xs font-semibold text-[#a83a1c]">{item.customer_name?.trim()?.[0]?.toUpperCase() || "?"}</span><div className="min-w-0"><div className="max-w-[150px] truncate text-xs font-semibold text-[#34332f]">{item.customer_name || "Customer"}</div><div className="max-w-[150px] truncate text-[10px] text-[#77756f]">{[item.customer_role, item.customer_company].filter(Boolean).join(" · ") || "Customer"}</div></div></div></td>
                       <td className="max-w-[260px] px-4 py-3"><p className="line-clamp-2 text-xs leading-5 text-[#68665f]">{item.approved_text || item.ai_rewritten_text || item.original_text}</p></td>
