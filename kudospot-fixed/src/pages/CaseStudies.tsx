@@ -19,6 +19,11 @@ import KudoSpotIcon from "@/components/KudoSpotIcon";
 import type { Database } from "@/integrations/supabase/types";
 type CaseStudy = Database["public"]["Tables"]["case_studies"]["Row"];
 
+const tryCopyText = async (value: string) => {
+  try { await navigator.clipboard.writeText(value); return true; }
+  catch { return false; }
+};
+
 const CaseStudies = () => {
   const { user } = useAuth();
   const { canAddCaseStudy, showUpgradeToast } = usePlanLimits();
@@ -37,7 +42,7 @@ const CaseStudies = () => {
     if (!user) return;
     const [{ data: cs }, { data: t }] = await Promise.all([
       supabase.from("case_studies").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("testimonials").select("id, customer_name, approved_text, ai_rewritten_text, original_text").eq("user_id", user.id).eq("status", "approved"),
+      supabase.from("testimonials").select("id, customer_name, approved_text, ai_rewritten_text, original_text").eq("user_id", user.id).in("status", ["approved", "published"]),
     ]);
     setItems(cs || []); setTestimonials(t || []);
   };
@@ -63,16 +68,22 @@ const CaseStudies = () => {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this case study?")) return;
-    await supabase.from("case_studies").delete().eq("id", id);
-    toast.success("Deleted"); setActive(null); load();
+    if (!user || !window.confirm("Delete this case study? This cannot be undone.")) return;
+    const { error } = await supabase.from("case_studies").delete().eq("id", id).eq("user_id", user.id);
+    if (error) return toast.error(error.message || "The case study could not be deleted.");
+    toast.success("Case study deleted");
+    setActive(null);
+    void load();
   };
 
   const togglePublish = async (cs: any) => {
-    await supabase.from("case_studies").update({ is_published: !cs.is_published }).eq("id", cs.id);
-    toast.success(cs.is_published ? "Unpublished" : "Published");
-    setActive({ ...cs, is_published: !cs.is_published });
-    load();
+    if (!user) return;
+    const next = !cs.is_published;
+    const { error } = await supabase.from("case_studies").update({ is_published: next }).eq("id", cs.id).eq("user_id", user.id);
+    if (error) return toast.error(error.message || "Publish status couldn't be changed.");
+    toast.success(next ? "Case study published" : "Case study unpublished");
+    setActive({ ...cs, is_published: next });
+    void load();
   };
 
   const update = async (field: string, value: any) => {
@@ -218,8 +229,8 @@ const CaseStudies = () => {
                   <span className="text-sm">{active.is_published ? "Public" : "Private"}</span>
                   {active.is_published && (
                     <div className="flex items-center gap-1 ml-auto">
-                      <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(publicUrl(active.published_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5 mr-1" /> Copy link</Button>
-                      <Button size="sm" variant="outline" onClick={() => window.open(publicUrl(active.published_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5 mr-1" /> Open</Button>
+                      <Button size="sm" variant="outline" onClick={async () => { const copied = await tryCopyText(publicUrl(active.published_slug)); copied ? toast.success("Case study link copied") : toast.error("Clipboard access was blocked. Copy the URL from your browser."); }}><Copy className="h-3.5 w-3.5 mr-1" /> Copy link</Button>
+                      <Button size="sm" variant="outline" onClick={() => window.open(publicUrl(active.published_slug), "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5 mr-1" /> Open</Button>
                     </div>
                   )}
                 </div>
