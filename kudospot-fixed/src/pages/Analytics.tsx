@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ComponentType } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -421,7 +422,7 @@ const Analytics = () => {
   );
 };
 
-function StatCard({ label, value, sub, icon: Icon, tint }: { label: string; value: number; sub: string; icon: React.ComponentType<{ className?: string }>; tint: "orange" | "stone" | "amber" | "green" }) {
+function StatCard({ label, value, sub, icon: Icon, tint }: { label: string; value: number; sub: string; icon: ComponentType<{ className?: string }>; tint: "orange" | "stone" | "amber" | "green" }) {
   const iconClass = {
     orange: "bg-orange-50 text-orange-800",
     stone: "bg-stone-100 text-stone-800",
