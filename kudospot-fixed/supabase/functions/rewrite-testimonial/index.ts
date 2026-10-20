@@ -135,6 +135,17 @@ Rewrite this testimonial following all rules.`;
       return new Response(JSON.stringify({ error: "The approval links could not be reset. Please try again before rewriting." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const { error: caseStudyError } = await supabase
+      .from("case_studies")
+      .update({ is_published: false })
+      .eq("user_id", user.id)
+      .contains("testimonial_ids", [testimonial_id])
+      .eq("is_published", true);
+    if (caseStudyError) {
+      console.error("Could not unpublish linked case studies before rewrite:", caseStudyError.message);
+      return new Response(JSON.stringify({ error: "A linked case study could not be taken offline safely. Please try again before rewriting." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { error: updateError } = await supabase.from("testimonials").update({
       ai_rewritten_text: rewritten,
       status: "ai_rewritten",
