@@ -16,6 +16,7 @@ import {
   Mail, Send, Clock, CheckCircle2, AlertCircle, Users, ToggleLeft, QrCode
 } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
+import type { Json, Tables } from "@/integrations/supabase/types";
 
 // ─── blank form template ────────────────────────────────────────────────────
 const blank = {
@@ -109,15 +110,45 @@ const parseCSV = (text: string): { name: string; email: string }[] => {
   });
 };
 
+type CollectionFormRow = Tables<"collection_forms">;
+type EmailSequenceRow = Tables<"email_sequences">;
+type EmailSendRow = Tables<"email_sends">;
+type SequenceEmail = { delay_days: number; subject: string; body: string };
+type CollectionFormDraft = {
+  form_name: string;
+  headline: string;
+  subheadline: string;
+  brand_color: string;
+  thank_you_message: string;
+  collect_rating: boolean;
+  collect_video: boolean;
+  logo_url: string | null;
+  campaign: string;
+  questions: string[];
+};
+
+const normalizeSequenceEmails = (value: Json | null | undefined): SequenceEmail[] => {
+  if (!Array.isArray(value)) return DEFAULT_SEQ_EMAILS;
+  return (value as unknown[]).flatMap((item): SequenceEmail[] => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const record = item as Record<string, unknown>;
+    return [{
+      delay_days: typeof record.delay_days === "number" ? record.delay_days : 0,
+      subject: typeof record.subject === "string" ? record.subject : "",
+      body: typeof record.body === "string" ? record.body : "",
+    }];
+  });
+};
+
 // ────────────────────────────────────────────────────────────────────────────
 const Collect = () => {
   const { user } = useAuth();
 
   // Forms tab
-  const [forms, setForms] = useState<any[]>([]);
+  const [forms, setForms] = useState<CollectionFormRow[]>([]);
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState<any>(blank);
+  const [editing, setEditing] = useState<CollectionFormRow | null>(null);
+  const [form, setForm] = useState<CollectionFormDraft>(blank);
   const [uploading, setUploading] = useState(false);
   const [qrModal, setQrModal] = useState<{ 
     open: boolean; 
@@ -126,17 +157,17 @@ const Collect = () => {
   }>({ open: false, formUrl: "", formName: "" });
 
   // Sequences tab
-  const [sequences, setSequences] = useState<any[]>([]);
+  const [sequences, setSequences] = useState<EmailSequenceRow[]>([]);
   const [seqOpen, setSeqOpen] = useState(false);
-  const [editingSeq, setEditingSeq] = useState<any | null>(null);
-  const [seqForm, setSeqForm] = useState({ sequence_name: "Standard 3-step ask", emails: DEFAULT_SEQ_EMAILS });
+  const [editingSeq, setEditingSeq] = useState<EmailSequenceRow | null>(null);
+  const [seqForm, setSeqForm] = useState<{ sequence_name: string; emails: SequenceEmail[] }>({ sequence_name: "Standard 3-step ask", emails: DEFAULT_SEQ_EMAILS });
   const [savingSeq, setSavingSeq] = useState(false);
   const [updatingSeqId, setUpdatingSeqId] = useState<string | null>(null);
 
   // Send Requests tab
   const [sendForm, setSendForm] = useState({ customer_name: "", customer_email: "", form_id: "" });
   const [csvRows, setCsvRows] = useState<{ name: string; email: string }[]>([]);
-  const [sends, setSends] = useState<any[]>([]);
+  const [sends, setSends] = useState<EmailSendRow[]>([]);
   const [sending, setSending] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,9 +228,20 @@ const Collect = () => {
     void loadForms();
   };
 
-  const startEdit = (f: any) => {
+  const startEdit = (f: CollectionFormRow) => {
     setEditing(f);
-    setForm({ ...blank, ...f, questions: Array.isArray(f.questions) ? f.questions : blank.questions });
+    setForm({
+      form_name: f.form_name || blank.form_name,
+      headline: f.headline || blank.headline,
+      subheadline: f.subheadline || blank.subheadline,
+      brand_color: f.brand_color || blank.brand_color,
+      thank_you_message: f.thank_you_message || blank.thank_you_message,
+      collect_rating: f.collect_rating ?? blank.collect_rating,
+      collect_video: f.collect_video ?? blank.collect_video,
+      logo_url: f.logo_url,
+      campaign: f.campaign || "",
+      questions: Array.isArray(f.questions) ? f.questions.filter((question): question is string => typeof question === "string") : blank.questions,
+    });
     setOpen(true);
   };
 
@@ -212,20 +254,20 @@ const Collect = () => {
       const { error } = await supabase.storage.from("form-assets").upload(path, file, { upsert: true });
       if (error) throw error;
       const { data } = supabase.storage.from("form-assets").getPublicUrl(path);
-      setForm((f: any) => ({ ...f, logo_url: data.publicUrl }));
+      setForm((current) => ({ ...current, logo_url: data.publicUrl }));
       toast.success("Logo uploaded");
-    } catch (e: any) {
-      toast.error(e.message || "Upload failed");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
     }
   };
 
   const updateQ = (i: number, v: string) => {
-    const qs = [...(form.questions || [])]; qs[i] = v; setForm((f: any) => ({ ...f, questions: qs }));
+    const qs = [...(form.questions || [])]; qs[i] = v; setForm((current) => ({ ...current, questions: qs }));
   };
-  const addQ = () => setForm((f: any) => ({ ...f, questions: [...(f.questions || []), ""] }));
-  const removeQ = (i: number) => setForm((f: any) => ({ ...f, questions: f.questions.filter((_: any, j: number) => j !== i) }));
+  const addQ = () => setForm((current) => ({ ...current, questions: [...current.questions, ""] }));
+  const removeQ = (i: number) => setForm((current) => ({ ...current, questions: current.questions.filter((_, j) => j !== i) }));
 
   const publicUrl = (slug: string) => `${window.location.origin}/collect/${slug}`;
   const wallUrl = (slug: string) => `${window.location.origin}/wall/${slug}`;
@@ -236,9 +278,9 @@ const Collect = () => {
     setSeqForm({ sequence_name: "Standard 3-step ask", emails: DEFAULT_SEQ_EMAILS });
     setSeqOpen(true);
   };
-  const startEditSeq = (s: any) => {
+  const startEditSeq = (s: EmailSequenceRow) => {
     setEditingSeq(s);
-    setSeqForm({ sequence_name: s.sequence_name, emails: Array.isArray(s.emails) ? s.emails : DEFAULT_SEQ_EMAILS });
+    setSeqForm({ sequence_name: s.sequence_name, emails: normalizeSequenceEmails(s.emails) });
     setSeqOpen(true);
   };
 
@@ -267,7 +309,7 @@ const Collect = () => {
     void loadSequences();
   };
 
-  const toggleSeq = async (seq: any) => {
+  const toggleSeq = async (seq: EmailSequenceRow) => {
     if (!user || updatingSeqId === seq.id) return;
     setUpdatingSeqId(seq.id);
     const next = !seq.is_active;
@@ -278,9 +320,13 @@ const Collect = () => {
     void loadSequences();
   };
 
-  const updateSeqEmail = (emailIdx: number, field: string, value: string) => {
-    const emails = seqForm.emails.map((e, i) => i === emailIdx ? { ...e, [field]: value } : e);
-    setSeqForm((s) => ({ ...s, emails }));
+  const updateSeqEmail = (emailIdx: number, field: keyof SequenceEmail, value: string) => {
+    const emails = seqForm.emails.map((email, index) => {
+      if (index !== emailIdx) return email;
+      if (field === "delay_days") return { ...email, delay_days: Number(value) };
+      return { ...email, [field]: value };
+    });
+    setSeqForm((current) => ({ ...current, emails }));
   };
 
   // ── send requests ─────────────────────────────────────────────────────
@@ -339,8 +385,8 @@ const Collect = () => {
       }
       setSendForm({ customer_name: "", customer_email: "", form_id: "" });
       void loadSends();
-    } catch (error: any) {
-      toast.error(error?.message || "The contact could not be logged. Please try again.");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "The contact could not be logged. Please try again.");
     } finally {
       setSending(false);
     }
@@ -371,8 +417,8 @@ const Collect = () => {
       setCsvRows([]);
       if (csvInputRef.current) csvInputRef.current.value = "";
       void loadSends();
-    } catch (error: any) {
-      toast.error(error?.message || "The contacts could not be logged. Please try again.");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "The contacts could not be logged. Please try again.");
     } finally {
       setSending(false);
     }
@@ -606,8 +652,8 @@ const Collect = () => {
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {Array.isArray(seq.emails) ? seq.emails.length : 0} emails
-                        {Array.isArray(seq.emails) && seq.emails.length > 0 && ` · Day 0, ${seq.emails.slice(1).map((e: any) => `Day ${e.delay_days}`).join(", ")}`}
+                        {normalizeSequenceEmails(seq.emails).length} emails
+                        {normalizeSequenceEmails(seq.emails).length > 0 && ` · Day 0, ${normalizeSequenceEmails(seq.emails).slice(1).map((email) => `Day ${email.delay_days}`).join(", ")}`}
                       </div>
                     </div>
                     <div className="flex gap-2">
