@@ -126,7 +126,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           <header className="sticky top-0 z-30 border-b border-[#e9e7e2] bg-[#f8f8f6]/95 px-3 backdrop-blur-xl sm:px-5 lg:px-7">
             <div className="flex min-h-[70px] items-center justify-between gap-3 py-3">
               <Link to="/dashboard" aria-label="KudoSpot dashboard" className="md:hidden"><Logo /></Link>
-              <nav aria-label="Primary navigation" className="hidden min-w-0 items-center gap-0.5 rounded-full border border-[#e7e5e0] bg-white p-1 shadow-[0_1px_2px_rgba(25,24,20,0.035)] md:flex">
+              <nav aria-label="Primary navigation" className="hidden min-w-0 max-w-full flex-1 items-center gap-0.5 overflow-x-auto rounded-full border border-[#e7e5e0] bg-white p-1 shadow-[0_1px_2px_rgba(25,24,20,0.035)] md:flex">
                 {topNav.map((item) => (
                   <NavLink key={item.to} to={item.to} end={item.end}
                     className={({ isActive }) => "whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors lg:px-4 " + (isActive ? "bg-[#242420] text-white shadow-sm" : "text-[#6b6963] hover:bg-[#f3f2ee] hover:text-[#252522]")}>
