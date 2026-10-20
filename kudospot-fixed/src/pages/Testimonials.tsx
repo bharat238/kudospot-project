@@ -20,6 +20,15 @@ import KudoSpotIcon from "@/components/KudoSpotIcon";
 import type { Database } from "@/integrations/supabase/types";
 type Testimonial = Database["public"]["Tables"]["testimonials"]["Row"];
 
+const tryCopyText = async (value: string) => {
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const Testimonials = () => {
   const { user } = useAuth();
   const { plan, canAddTestimonial, canDoAIRewrite, showUpgradeToast } = usePlanLimits();
@@ -193,60 +202,74 @@ const Testimonials = () => {
   };
 
   const createApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }) => {
-    if (!user) return null;
-    if (sendingIds.has(t.id)) return null;
-    setSendingIds(prev => new Set(prev).add(t.id));
+    if (!user || sendingIds.has(t.id)) return null;
+    setSendingIds((current) => new Set(current).add(t.id));
 
     try {
-      // If customer email exists, send via email automatically
+      // Send via email when the customer has an address and an AI-assisted draft is ready.
       if (t.customer_email && t.ai_rewritten_text) {
-        try {
-          const { data: emailData, error: emailError } = await supabase.functions.invoke("send-approval-email", {
-            body: { testimonial_id: t.id },
-          });
-          if (emailError) throw emailError;
+        const { data: emailData, error: emailError } = await supabase.functions.invoke("send-approval-email", {
+          body: { testimonial_id: t.id },
+        });
+
+        if (!emailError) {
           trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
           if (!opts?.silent) {
             if (emailData?.approval_url) {
-              await navigator.clipboard.writeText(emailData.approval_url);
-              toast.success(emailData.message || "Approval email sent! Link also copied to clipboard.");
+              const copied = await tryCopyText(emailData.approval_url);
+              toast.success(emailData.message || (copied
+                ? "Approval email sent. The link was also copied."
+                : "Approval email sent. Your browser blocked clipboard access, so copy the link from the approval details."));
             } else {
               toast.success("Approval email sent to " + t.customer_email);
             }
           }
-          load();
+          void load();
           return emailData?.approval_url || null;
-        } catch (e: any) {
-          toast.error(e.message || "Email send failed — falling back to link copy");
         }
+
+        // A failed send is handled separately from clipboard failures to avoid
+        // generating a second approval token after a successful email send.
+        toast.error(emailError.message || "Email send failed. Creating a manual approval link instead.");
       }
 
-      // Fallback: create token and copy link manually
       if (opts?.resend) {
-        await supabase.from("approval_tokens").update({ used_at: new Date().toISOString() }).eq("testimonial_id", t.id).is("used_at", null);
+        const { error: expireError } = await supabase
+          .from("approval_tokens")
+          .update({ used_at: new Date().toISOString() })
+          .eq("testimonial_id", t.id)
+          .is("used_at", null);
+        if (expireError) throw expireError;
       }
-      const { data, error } = await supabase.from("approval_tokens").insert({ testimonial_id: t.id, user_id: user.id, campaign: t.campaign || null }).select("token").single();
+
+      const { data, error } = await supabase
+        .from("approval_tokens")
+        .insert({ testimonial_id: t.id, user_id: user.id, campaign: t.campaign || null })
+        .select("token")
+        .single();
       if (error) throw error;
+
       const url = `${window.location.origin}/approve/${data.token}`;
-      await navigator.clipboard.writeText(url);
+      const copied = await tryCopyText(url);
       trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
       if (!opts?.silent) {
-        if (!t.customer_email) {
-          toast.success("Approval link copied. No email on file — paste it and send manually.");
-        } else if (!t.ai_rewritten_text) {
-          toast.success("Approval link copied. Run AI Rewrite first for best results.");
-        } else {
-          toast.success(opts?.resend ? "Fresh link copied — old one invalidated" : "Approval link copied — share it with your customer");
-        }
+        const message = !t.customer_email
+          ? "Approval link created. No email is on file, so send the link manually."
+          : !t.ai_rewritten_text
+            ? "Approval link created. Run AI Rewrite for the best approval experience."
+            : opts?.resend
+              ? "A fresh approval link was created and the previous link was invalidated."
+              : "Approval link created. Share it with your customer.";
+        toast.success(copied ? message : `${message} Clipboard access was blocked; use Copy latest to try again.`);
       }
-      load();
+      void load();
       return url;
-    } catch (e: any) {
-      toast.error(e.message || "Failed to create approval link");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to create approval link");
       return null;
     } finally {
-      setSendingIds(prev => {
-        const next = new Set(prev);
+      setSendingIds((current) => {
+        const next = new Set(current);
         next.delete(t.id);
         return next;
       });
@@ -665,7 +688,7 @@ const ApprovalWorkflow = ({ testimonial, onResend, onCopy, isSending }: { testim
             </Button>
           )}
           {tokens[0] && (
-            <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/approve/${tokens[0].token}`); toast.success("Latest link copied"); }} disabled={isSending}>
+            <Button size="sm" variant="ghost" onClick={async () => { const copied = await tryCopyText(`${window.location.origin}/approve/${tokens[0].token}`); copied ? toast.success("Latest link copied") : toast.error("Clipboard access was blocked. Try again from a secure browser context."); }} disabled={isSending}>
               <Copy className="h-3.5 w-3.5 mr-1" /> Copy latest
             </Button>
           )}
