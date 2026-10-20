@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, ExternalLink, Trash2, Loader2, Copy, X } from "lucide-react";
+import { Plus, ExternalLink, Trash2, Loader2, Copy, X, AlertCircle, RefreshCw } from "lucide-react";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 
@@ -28,6 +28,8 @@ const CaseStudies = () => {
   const { user } = useAuth();
   const { canAddCaseStudy, showUpgradeToast } = usePlanLimits();
   const [items, setItems] = useState<Tables<"case_studies">[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   type TestimonialPickerItem = Pick<
     Tables<"testimonials">,
     "id" | "customer_name" | "approved_text" | "ai_rewritten_text" | "original_text"
@@ -39,14 +41,29 @@ const CaseStudies = () => {
   const [form, setForm] = useState({ client_name: "", context: "", campaign: "", testimonial_ids: [] as string[] });
 
   const load = async () => {
-    if (!user) return;
-    const [{ data: cs }, { data: t }] = await Promise.all([
-      supabase.from("case_studies").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("testimonials").select("id, customer_name, approved_text, ai_rewritten_text, original_text").eq("user_id", user.id).eq("approval_status", "approved"),
-    ]);
-    setItems(cs || []); setTestimonials(t || []);
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [caseStudyResult, testimonialResult] = await Promise.all([
+        supabase.from("case_studies").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("testimonials").select("id, customer_name, approved_text, ai_rewritten_text, original_text").eq("user_id", user.id).eq("approval_status", "approved"),
+      ]);
+      if (caseStudyResult.error) throw caseStudyResult.error;
+      if (testimonialResult.error) throw testimonialResult.error;
+      setItems(caseStudyResult.data || []);
+      setTestimonials(testimonialResult.data || []);
+    } catch (error) {
+      console.error("Failed to load case studies:", error);
+      setLoadError("We couldn't load your case studies. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { void load(); }, [user]);
 
   const generate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +78,7 @@ const CaseStudies = () => {
       toast.success("Case study generated!");
       setOpen(false); setForm({ client_name: "", context: "", campaign: "", testimonial_ids: [] });
       setActive(data.case_study);
-      load();
+      void load();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally { setGenerating(false); }
@@ -101,7 +118,7 @@ const CaseStudies = () => {
       title: active.title, challenge: active.challenge, solution: active.solution, results: active.results, pull_quote: active.pull_quote, campaign: active.campaign || null, key_stats: cleanedStats,
     }).eq("id", active.id);
     if (error) return toast.error(error.message);
-    toast.success("Saved"); load();
+    toast.success("Saved"); void load();
   };
 
   const updateStat = (i: number, v: string) => {
@@ -176,7 +193,18 @@ const CaseStudies = () => {
         </Dialog>
       </div>
 
-      {items.length === 0 ? (
+      {loadError ? (
+        <Card className="rounded-[22px] border-[#e6e8ed] bg-white px-6 py-10 text-center sm:px-10">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f1f2f5] text-[#515661]"><AlertCircle className="h-5 w-5" /></div>
+          <h2 className="font-semibold text-[#202126]">Case studies couldn't be loaded</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">{loadError}</p>
+          <Button variant="outline" className="mt-5 rounded-full border-[#e1e4e9]" onClick={() => void load()}><RefreshCw className="mr-2 h-4 w-4" />Try again</Button>
+        </Card>
+      ) : loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+          {[0, 1, 2].map((key) => <Card key={key} className="animate-pulse rounded-[20px] border-[#e6e8ed] bg-white p-5"><div className="mb-4 h-4 w-2/3 rounded bg-[#eff0f3]" /><div className="mb-3 h-3 w-full rounded bg-[#eff0f3]" /><div className="mb-2 h-3 w-5/6 rounded bg-[#eff0f3]" /><div className="mt-6 h-8 w-1/3 rounded bg-[#eff0f3]" /></Card>)}
+        </div>
+      ) : items.length === 0 ? (
         <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center text-muted-foreground sm:px-10 sm:py-16">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><KudoSpotIcon className="h-6 w-6" /></div>
           <h2 className="text-lg font-semibold text-[#202126]">Turn an approved customer story into a case study.</h2>
