@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, CheckSquare, Search, Send, Mail, Download } from "lucide-react";
+import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, CheckSquare, Search, Send, Mail, Download, AlertCircle } from "lucide-react";
 import { trackEvent } from "@/lib/track";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
@@ -33,8 +33,9 @@ const Testimonials = () => {
   const { user } = useAuth();
   const { plan, canAddTestimonial, canDoAIRewrite, showUpgradeToast } = usePlanLimits();
   const [items, setItems] = useState<Testimonial[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [bulkApproving, setBulkApproving] = useState(false);
+  const [approvalRefreshKey, setApprovalRefreshKey] = useState(0);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
@@ -50,10 +51,16 @@ const Testimonials = () => {
   const [formErrors, setFormErrors] = useState<{ customer_name?: string; original_text?: string }>({});
 
   const load = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data } = await supabase.from("testimonials").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setItems(data || []);
+    if (!user) { setPageLoading(false); return; }
+    setPageLoading(true);
+    setLoadError(null);
+    const { data, error } = await supabase.from("testimonials").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    if (error) {
+      console.error("Failed to load testimonials:", error.message);
+      setLoadError("Your testimonials could not be loaded. Check your connection and try again.");
+    } else {
+      setItems(data || []);
+    }
     setPageLoading(false);
   };
 
@@ -109,7 +116,8 @@ const Testimonials = () => {
       const { error } = await supabase
         .from("testimonials")
         .update({ ...form })
-        .eq("id", editing.id);
+        .eq("id", editing.id)
+        .eq("user_id", user.id);
       if (error) return toast.error(error.message);
       toast.success("Testimonial updated");
       setEditing(null);
