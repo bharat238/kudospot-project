@@ -145,10 +145,11 @@ const Settings = () => {
         </div>
 
         </div>
-        <div className="min-w-0 space-y-6">\n        {/* Support & Legal Section */}
+        <div className="min-w-0 space-y-6">
+        {/* Support & Legal Section */}
         <div>
           <h2 className="text-lg font-semibold mb-3">Support & Legal</h2>
-          <Card className="p-6">
+          <Card className="rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] sm:p-6">
             <p className="text-xs text-muted-foreground mb-6">Get help, share feedback, or review our policies.</p>
             <div className="space-y-2">
               <Link to="/help">
@@ -195,7 +196,7 @@ const Settings = () => {
         <div>
           <h2 className="text-lg font-semibold mb-3">Billing</h2>
           <div className="space-y-4">
-            <Card className="p-6">
+            <Card className="rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] sm:p-6">
               <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-semibold text-lg mb-1">Current plan</h2>
@@ -224,7 +225,7 @@ const Settings = () => {
               )}
             </Card>
 
-            <Card className="p-6">
+            <Card className="rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] sm:p-6">
               <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
                 <KudoSpotIcon className="h-4 w-4 text-primary" /> Usage
               </h2>
@@ -243,6 +244,7 @@ const Settings = () => {
               </div>
             </Card>
           </div>
+        </div>
         </div>
       </div>
     </AppShell>
