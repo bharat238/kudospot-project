@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     if (!resend) {
       const { data: existingToken, error: existingError } = await supabaseAdmin
         .from("approval_tokens")
-        .select("token")
+        .select("token,approval_text")
         .eq("testimonial_id", testimonial.id)
         .eq("user_id", user.id)
         .is("used_at", null)
@@ -101,7 +101,20 @@ Deno.serve(async (req) => {
         console.error("Could not check for an active approval link:", existingError.message);
         return json({ error: "An approval link could not be checked. Please try again." }, 500);
       }
-      approvalToken = existingToken?.token || null;
+      if (existingToken?.token && existingToken.approval_text === testimonialText) {
+        approvalToken = existingToken.token;
+      } else if (existingToken?.token) {
+        const { error: expireStaleError } = await supabaseAdmin
+          .from("approval_tokens")
+          .update({ used_at: new Date().toISOString() })
+          .eq("token", existingToken.token)
+          .eq("user_id", user.id)
+          .is("used_at", null);
+        if (expireStaleError) {
+          console.error("Could not revoke approval link for outdated text:", expireStaleError.message);
+          return json({ error: "The previous approval link could not be replaced. Please try again." }, 500);
+        }
+      }
     }
 
     if (!approvalToken) {
@@ -111,6 +124,7 @@ Deno.serve(async (req) => {
           testimonial_id: testimonial.id,
           user_id: user.id,
           campaign: testimonial.campaign || null,
+          approval_text: testimonialText,
         })
         .select("token")
         .single();
