@@ -510,10 +510,10 @@ const Collect = () => {
                     </div>
                     <div className="space-y-2">
                       {(form.questions || []).map((q: string, i: number) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <GripVertical className="h-4 w-4 text-muted-foreground" />
-                          <Input value={q} onChange={(e) => updateQ(i, e.target.value)} placeholder={`Question ${i + 1}`} />
-                          <Button type="button" size="icon" variant="ghost" onClick={() => removeQ(i)}><X className="h-4 w-4" /></Button>
+                        <div key={i} className="flex min-w-0 items-center gap-2">
+                          <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <Input className="min-w-0 flex-1" value={q} onChange={(e) => updateQ(i, e.target.value)} placeholder={`Question ${i + 1}`} />
+                          <Button type="button" size="icon" variant="ghost" className="shrink-0" aria-label={`Remove question ${i + 1}`} onClick={() => removeQ(i)}><X className="h-4 w-4" /></Button>
                         </div>
                       ))}
                       {(form.questions || []).length === 0 && <p className="text-xs text-muted-foreground">No prompts — customer sees a blank textarea.</p>}
@@ -528,7 +528,12 @@ const Collect = () => {
           </div>
 
           {forms.length === 0 ? (
-            <Card className="p-16 text-center text-muted-foreground">No forms yet. Create one to start collecting.</Card>
+            <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center sm:px-10 sm:py-16">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><Inbox className="h-6 w-6" /></div>
+              <h2 className="text-lg font-semibold text-[#202126]">Create your first collection form</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">Customize the headline, prompts and brand color, then share a link or QR code with customers.</p>
+              <Button className="mt-5 rounded-full bg-[#202126] text-white hover:bg-[#383b43]" onClick={() => { setEditing(null); setForm(blank); setOpen(true); }}><Plus className="mr-2 h-4 w-4" />New collection form</Button>
+            </Card>
           ) : (
             <div className="grid gap-4">
               {forms.map((form) => (
