@@ -203,7 +203,7 @@ const SocialPosts = () => {
         </div>
         <Dialog open={open} onOpenChange={(nextOpen) => { if (plan === "free" && nextOpen) { showUpgradeToast("the social post generator"); return; } setOpen(nextOpen); }}>
           <DialogTrigger asChild><Button onClick={(event) => { if (plan === "free") { event.preventDefault(); showUpgradeToast("the social post generator"); } }}><Plus className="h-4 w-4 mr-1" /> {plan === "free" ? "Upgrade to generate" : "Generate"}</Button></DialogTrigger>
-          <DialogContent className="max-h-[85vh] w-[calc(100vw-2rem)] max-w-md overflow-y-auto rounded-2xl">
+          <DialogContent className="max-h-[85dvh] w-[calc(100vw-2rem)] max-w-md overflow-y-auto rounded-2xl sm:w-full">
             <DialogHeader>
               <DialogTitle>Generate social post</DialogTitle>
               <DialogDescription>Generate a platform-specific social post from an approved testimonial.</DialogDescription>
@@ -236,7 +236,7 @@ const SocialPosts = () => {
       </div>
   
         {loading ? (
-          <div className="flex flex-col items-center justify-center p-24 text-muted-foreground">
+          <div className="flex min-h-56 flex-col items-center justify-center px-4 py-14 text-center text-muted-foreground">
             <Loader2 className="h-12 w-12 animate-spin mb-4 opacity-20" />
             <p>Loading your social posts...</p>
           </div>
@@ -252,7 +252,7 @@ const SocialPosts = () => {
           {posts.map((p) => {
             const Icon = ICONS[p.platform] || Linkedin;
             return (
-              <Card key={p.id} className="p-5">
+              <Card key={p.id} className="rounded-[22px] border-[#e6e8ed] bg-white p-4 shadow-[0_3px_14px_rgba(36,40,50,0.035)] sm:p-5">
                 <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex min-w-0 items-center gap-2">
                     <Icon className="h-4 w-4 text-primary" />
@@ -267,7 +267,7 @@ const SocialPosts = () => {
                     <Button size="sm" variant="ghost" className="text-destructive" aria-label={`Delete social post for ${p.customer_name || "testimonial"}`} title="Delete post" onClick={() => remove(p.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
-                <Textarea rows={6} aria-label={`Caption for ${p.customer_name || "testimonial"}`} value={captionDrafts[p.id] ?? p.caption_text} onChange={(e) => setCaptionDrafts((current) => ({ ...current, [p.id]: e.target.value }))} onBlur={() => void saveCaption(p.id)} className="text-sm" /><div className="mt-2 flex justify-end text-[11px] text-muted-foreground">{savingCaptionIds.has(p.id) ? "Saving caption…" : (captionDrafts[p.id] ?? p.caption_text) !== p.caption_text ? "Unsaved changes · save when you leave this field" : "Caption saved"}</div>
+                <Textarea rows={6} aria-label={`Caption for ${p.customer_name || "testimonial"}`} value={captionDrafts[p.id] ?? p.caption_text} onChange={(e) => setCaptionDrafts((current) => ({ ...current, [p.id]: e.target.value }))} onBlur={() => void saveCaption(p.id)} className="text-sm" /><div className="mt-2 flex flex-wrap justify-start text-[11px] text-muted-foreground sm:justify-end">{savingCaptionIds.has(p.id) ? "Saving caption…" : (captionDrafts[p.id] ?? p.caption_text) !== p.caption_text ? "Unsaved changes · save when you leave this field" : "Caption saved"}</div>
               </Card>
             );
           })}
