@@ -130,10 +130,10 @@ const Settings = () => {
                 </div>
                 <div className="space-y-2 mt-3">
                   {(profile.rejection_templates || []).map((t: string, i: number) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <GripVertical className="h-4 w-4 text-muted-foreground" />
-                      <Input value={t} onChange={(e) => updateTpl(i, e.target.value)} placeholder={`Reason ${i + 1}`} />
-                      <Button type="button" size="icon" variant="ghost" onClick={() => removeTpl(i)}><X className="h-4 w-4" /></Button>
+                    <div key={i} className="flex min-w-0 items-center gap-2">
+                      <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <Input className="min-w-0 flex-1" value={t} onChange={(e) => updateTpl(i, e.target.value)} placeholder={`Reason ${i + 1}`} />
+                      <Button type="button" size="icon" variant="ghost" className="shrink-0" aria-label={`Remove rejection template ${i + 1}`} onClick={() => removeTpl(i)}><X className="h-4 w-4" /></Button>
                     </div>
                   ))}
                 </div>
