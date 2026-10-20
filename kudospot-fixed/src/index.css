@@ -6,45 +6,45 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 0 0% 9%;
+    --background: 220 18% 97%;
+    --foreground: 228 10% 13%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 228 10% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 228 10% 13%;
     --primary: 0 0% 9%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 20 100% 96%;
-    --primary-glow: 13 84% 54%;
-    --secondary: 0 0% 94%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 30%;
-    --accent: 21 100% 94%;
-    --accent-foreground: 15 75% 36%;
+    --primary-light: 78 100% 91%;
+    --primary-glow: 78 100% 69%;
+    --secondary: 220 15% 96%;
+    --secondary-foreground: 228 10% 13%;
+    --muted: 220 15% 96%;
+    --muted-foreground: 225 7% 38%;
+    --accent: 78 100% 85%;
+    --accent-foreground: 228 10% 13%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --success: 158 64% 35%;
     --success-foreground: 0 0% 100%;
     --warning: 35 88% 42%;
     --warning-foreground: 0 0% 100%;
-    --border: 0 0% 92%;
-    --input: 0 0% 90%;
-    --ring: 206 100% 47%;
-    --link: 206 100% 47%;
+    --border: 220 12% 91%;
+    --input: 220 12% 89%;
+    --ring: 76 70% 40%;
+    --link: 228 10% 13%;
     --radius: 0.875rem;
-    --gradient-primary: linear-gradient(115deg, #C94320, #C0441E);
-    --gradient-soft: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    --gradient-primary: linear-gradient(115deg, #d9ff68, #c8f34b);
+    --gradient-soft: linear-gradient(180deg, #ffffff, #f7f8fa);
     --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.04);
     --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.05);
     --shadow-lg: 0 16px 44px hsl(0 0% 0% / 0.08);
-    --shadow-glow: 0 10px 36px hsl(13 84% 54% / 0.15);
+    --shadow-glow: 0 10px 36px hsl(78 95% 70% / 0.18);
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 9%;
     --sidebar-primary: 0 0% 9%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 21 100% 94%;
-    --sidebar-accent-foreground: 15 75% 36%;
+    --sidebar-accent: 78 100% 85%;
+    --sidebar-accent-foreground: 228 10% 13%;
     --sidebar-border: 0 0% 91%;
     --sidebar-ring: 206 100% 47%;
   }
@@ -103,8 +103,8 @@
     letter-spacing: -0.035em;
   }
   ::selection {
-    background: hsl(21 100% 88%);
-    color: hsl(0 0% 10%);
+    background: hsl(78 100% 84%);
+    color: hsl(228 10% 13%);
   }
 }
 
