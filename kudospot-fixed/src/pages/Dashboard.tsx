@@ -167,10 +167,10 @@ const Dashboard = () => {
   }
 
   const statCards = [
-    { label: "Total testimonials", value: stats.total, description: "Stories collected", icon: MessageSquareQuote, cardClass: "bg-card text-foreground", labelClass: "text-muted-foreground", valueClass: "text-foreground", descriptionClass: "text-muted-foreground", iconClass: "bg-orange-50 text-orange-800" },
-    { label: "Pending review", value: stats.pending, description: "Awaiting your next step", icon: Clock, cardClass: "border-[#C94320] bg-[#C94320] text-white", labelClass: "text-white/85", valueClass: "text-white", descriptionClass: "text-white/80", iconClass: "bg-white/20 text-white" },
-    { label: "AI rewritten", value: stats.rewritten, description: "Ready to review", icon: Sparkles, cardClass: "bg-card text-foreground", labelClass: "text-muted-foreground", valueClass: "text-foreground", descriptionClass: "text-muted-foreground", iconClass: "bg-stone-100 text-stone-700" },
-    { label: "Approved", value: stats.approved, description: "Cleared to showcase", icon: CheckCircle2, cardClass: "bg-card text-foreground", labelClass: "text-muted-foreground", valueClass: "text-foreground", descriptionClass: "text-muted-foreground", iconClass: "bg-emerald-50 text-emerald-700" },
+    { label: "Needs review", value: stats.pending, description: "Ready for your next step", icon: Clock, cardClass: "border-[#c94320] bg-[#c94320] text-white", labelClass: "text-white/85", valueClass: "text-white", descriptionClass: "text-white/80", iconClass: "bg-white/20 text-white" },
+    { label: "AI rewritten", value: stats.rewritten, description: "Ready to review", icon: Sparkles, cardClass: "bg-white text-foreground", labelClass: "text-[#77756f]", valueClass: "text-[#242420]", descriptionClass: "text-[#77756f]", iconClass: "bg-[#f0efeb] text-[#53524c]" },
+    { label: "Customer approved", value: stats.approved, description: "Cleared to showcase", icon: CheckCircle2, cardClass: "bg-white text-foreground", labelClass: "text-[#77756f]", valueClass: "text-[#242420]", descriptionClass: "text-[#77756f]", iconClass: "bg-[#e8f4ed] text-[#27724c]" },
+    { label: "Published widgets", value: stats.publishedWidgets, description: "Showing social proof", icon: PanelsTopLeft, cardClass: "bg-white text-foreground", labelClass: "text-[#77756f]", valueClass: "text-[#242420]", descriptionClass: "text-[#77756f]", iconClass: "bg-[#f9e9e0] text-[#a83a1c]" },
   ];
 
   const quickActions = [
@@ -191,89 +191,141 @@ const Dashboard = () => {
         <Link to="/testimonials"><Button className="h-11 rounded-xl px-5"><Plus className="mr-1 h-4 w-4" /> Add testimonial</Button></Link>
       </div>
 
-      <section aria-label="Testimonial summary" className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((stat) => (
-          <Card key={stat.label} className={`rounded-2xl border-border/80 p-4 shadow-[0_2px_8px_rgba(15,23,42,0.035)] sm:p-5 ${stat.cardClass}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className={`text-xs font-medium sm:text-sm ${stat.labelClass}`}>{stat.label}</p>
-                <div className={`mt-2 text-3xl font-semibold tracking-tight tabular-nums sm:text-[34px] ${stat.valueClass}`}>{stat.value.toLocaleString()}</div>
-                <p className={`mt-1.5 text-xs ${stat.descriptionClass}`}>{stat.description}</p>
-              </div>
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${stat.iconClass}`}><stat.icon className="h-[18px] w-[18px]" /></div>
-            </div>
-          </Card>
-        ))}
-      </section>
-
-      <section className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.9fr)]">
-        <Card className="overflow-hidden rounded-2xl border-border/80 p-5 shadow-[0_2px_8px_rgba(15,23,42,0.035)] sm:p-6">
-          <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+      <section aria-label="Workspace overview" className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <Card className="rounded-[20px] border-[#e7e5e0] bg-white p-5 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-6 xl:col-span-3">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold sm:text-lg">Testimonial activity</h2>
-              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">Collected vs approved over the last six months</p>
+              <p className="text-xs font-medium text-[#77756f]">Testimonial library</p>
+              <p className="mt-2 text-[32px] font-semibold leading-none tracking-tight text-[#242420] tabular-nums">{stats.total.toLocaleString()}</p>
+              <p className="mt-2 text-xs text-[#77756f]">Customer stories collected</p>
             </div>
-            <span className="rounded-full border border-border/80 bg-muted/70 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">6 months</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0efeb] text-[#55534d]"><MessageSquareQuote className="h-[17px] w-[17px]" /></span>
           </div>
-          <div role="img" aria-label="Bar chart comparing testimonials collected and approved over the last six months" className="grid h-[190px] grid-cols-6 gap-2 border-b border-border/70 px-1 sm:gap-4">
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between gap-2 text-[11px]">
+              <span className="font-medium text-[#55534d]">Customer approval progress</span>
+              <span className="font-semibold tabular-nums text-[#242420]">{stats.total ? Math.round((stats.approved / stats.total) * 100) : 0}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-[#eeede9]">
+              <div className="h-full rounded-full bg-[#e65a30] transition-all" style={{ width: (stats.total ? Math.round((stats.approved / stats.total) * 100) : 0) + "%" }} />
+            </div>
+            <div className="mt-3 flex items-center justify-between text-[11px] text-[#77756f]">
+              <span>{stats.approved} approved</span><span>{stats.total - stats.approved} not approved yet</span>
+            </div>
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <Link to="/testimonials" className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-[#242420] px-3 text-xs font-semibold text-white transition hover:bg-[#3a3934]"><MessageSquareQuote className="h-3.5 w-3.5" />Manage stories</Link>
+            <Link to="/collect" className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full border border-[#e4e2dc] bg-white px-3 text-xs font-semibold text-[#484741] transition hover:bg-[#f5f4f1]"><Plus className="h-3.5 w-3.5" />New form</Link>
+          </div>
+        </Card>
+
+        <div className="grid grid-cols-2 gap-3 xl:col-span-4">
+          {statCards.map((stat) => (
+            <Card key={stat.label} className={"min-w-0 rounded-[18px] border-[#e7e5e0] p-4 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-5 " + stat.cardClass}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className={"text-[11px] font-medium leading-4 sm:text-xs " + stat.labelClass}>{stat.label}</p>
+                  <div className={"mt-2 text-[26px] font-semibold leading-none tracking-tight tabular-nums sm:text-[30px] " + stat.valueClass}>{stat.value.toLocaleString()}</div>
+                </div>
+                <div className={"flex h-8 w-8 shrink-0 items-center justify-center rounded-xl " + stat.iconClass}><stat.icon className="h-4 w-4" /></div>
+              </div>
+              <p className={"mt-2 text-[10px] leading-4 sm:text-[11px] " + stat.descriptionClass}>{stat.description}</p>
+            </Card>
+          ))}
+        </div>
+
+        <Card className="min-w-0 overflow-hidden rounded-[20px] border-[#e7e5e0] bg-white p-4 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-5 xl:col-span-5">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="text-base font-semibold text-[#242420]">Collection activity</h2>
+              <p className="mt-1 text-[11px] text-[#77756f] sm:text-xs">Testimonials collected vs customer-approved</p>
+            </div>
+            <span className="rounded-full border border-[#e7e5e0] bg-[#f8f7f4] px-3 py-1.5 text-[10px] font-medium text-[#68665f]">Last 6 months</span>
+          </div>
+          <div role="img" aria-label="Bar chart comparing testimonials collected and approved over the last six months" className="grid h-[150px] grid-cols-6 gap-2 border-b border-[#eceae6] px-1 sm:gap-3">
             {monthlyActivity.map((month) => (
               <div key={month.label} className="flex min-w-0 flex-col items-center justify-end">
-                <div className="flex h-[150px] w-full max-w-[46px] items-end justify-center gap-1.5">
-                  <div title={`${month.collected} collected`} className="w-[42%] rounded-t-md bg-foreground transition-all" style={{ height: `${Math.max(3, (month.collected / chartMax) * 100)}%` }} />
-                  <div title={`${month.approved} approved`} className="w-[42%] rounded-t-md bg-[#EC5329] transition-all" style={{ height: `${Math.max(3, (month.approved / chartMax) * 100)}%` }} />
+                <div className="flex h-[118px] w-full max-w-[44px] items-end justify-center gap-1">
+                  <div title={month.collected + " collected"} className="w-[42%] rounded-t-md bg-[#292925] transition-all" style={{ height: Math.max(3, (month.collected / chartMax) * 100) + "%" }} />
+                  <div title={month.approved + " approved"} className="w-[42%] rounded-t-md bg-[#e65a30] transition-all" style={{ height: Math.max(3, (month.approved / chartMax) * 100) + "%" }} />
                 </div>
-                <span className="mt-3 pb-2 text-[10px] text-muted-foreground sm:text-xs">{month.label}</span>
+                <span className="mt-2 pb-2 text-[10px] text-[#77756f]">{month.label}</span>
               </div>
             ))}
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-foreground" />Collected ({stats.total})</span>
-            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#EC5329]" />Approved ({stats.approved})</span>
-            <span className="ml-auto inline-flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5" />Actual account activity</span>
-          </div>
-        </Card>
-
-        <Card className="rounded-2xl border-border/80 p-5 shadow-[0_2px_8px_rgba(15,23,42,0.035)] sm:p-6">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div><h2 className="text-base font-semibold sm:text-lg">Quick actions</h2><p className="mt-1 text-xs text-muted-foreground sm:text-sm">Keep your customer proof moving</p></div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 text-orange-700"><ArrowUpRight className="h-4 w-4" /></div>
-          </div>
-          <div className="space-y-2">
-            {quickActions.map((action) => (
-              <Link key={action.to} to={action.to} className="group flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3 transition hover:border-border hover:bg-muted/50">
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${action.tint}`}><action.icon className="h-[18px] w-[18px]" /></span>
-                <span className="min-w-0 flex-1"><span className="block text-sm font-medium text-foreground">{action.title}</span><span className="mt-1 block text-xs text-muted-foreground">{action.description}</span></span>
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
-              </Link>
-            ))}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-[#68665f] sm:text-[11px]">
+            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#292925]" />Collected ({stats.total})</span>
+            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#e65a30]" />Approved ({stats.approved})</span>
+            <span className="ml-auto inline-flex items-center gap-1 text-[#77756f]"><TrendingUp className="h-3 w-3" />Live account totals</span>
           </div>
         </Card>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(310px,0.75fr)]">
-        <Card className="overflow-hidden rounded-2xl border-border/80 shadow-[0_2px_8px_rgba(15,23,42,0.035)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
-            <div><h2 className="text-base font-semibold sm:text-lg">Recent testimonials</h2><p className="mt-1 text-xs text-muted-foreground">The latest feedback added to your workspace</p></div>
-            <Link to="/testimonials" className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:underline">View all <ArrowRight className="h-3.5 w-3.5" /></Link>
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <div className="space-y-4 xl:col-span-4">
+          <Card className="rounded-[20px] border-[#e7e5e0] bg-white p-5 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div><h2 className="text-base font-semibold text-[#242420]">Active collection form</h2><p className="mt-1 text-[11px] text-[#77756f]">Share a link to collect customer feedback</p></div>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff0e9] text-[#a83a1c]"><Inbox className="h-4 w-4" /></span>
+            </div>
+            {activeForm ? (
+              <>
+                <div className="mb-3 flex items-center justify-between gap-3"><span className="truncate text-sm font-semibold text-[#34332f]">{activeForm.form_name || "Customer feedback form"}</span><span className="rounded-full bg-[#e8f4ed] px-2 py-1 text-[10px] font-semibold text-[#27724c]">Active</span></div>
+                {collectionUrl && <div className="mb-4 rounded-xl border border-[#e7e5e0] bg-[#f8f7f4] px-3 py-2.5 text-[11px] text-[#77756f] break-all">{collectionUrl.replace(/^https?:\/\//, "")}</div>}
+                <div className="flex gap-2"><Button size="sm" className="h-9 flex-1 rounded-full bg-[#242420] text-white hover:bg-[#3a3934]" onClick={copyCollectionUrl}><Copy className="mr-1 h-3.5 w-3.5" />Copy link</Button><Button size="sm" variant="outline" className="h-9 rounded-full border-[#e4e2dc]" asChild><a href={collectionUrl || "/collect"} target="_blank" rel="noreferrer"><ExternalLink className="mr-1 h-3.5 w-3.5" />Open</a></Button></div>
+              </>
+            ) : (
+              <div className="rounded-xl border border-dashed border-[#dedcd7] bg-[#faf9f7] px-4 py-5 text-center"><p className="text-sm font-medium text-[#34332f]">No collection form yet</p><p className="mt-1 text-xs leading-5 text-[#77756f]">Create a shareable form to start gathering feedback.</p><Link to="/collect"><Button size="sm" className="mt-4 rounded-full bg-[#242420] text-white hover:bg-[#3a3934]"><Plus className="mr-1 h-3.5 w-3.5" />Create form</Button></Link></div>
+            )}
+          </Card>
+
+          <Card className="rounded-[20px] border-[#e7e5e0] bg-white p-5 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-6">
+            <div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-[#242420]">Quick actions</h2><p className="mt-1 text-[11px] text-[#77756f]">Keep customer proof moving</p></div><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0efeb] text-[#55534d]"><ArrowUpRight className="h-4 w-4" /></span></div>
+            <div className="space-y-1">
+              {quickActions.map((action) => (
+                <Link key={action.to} to={action.to} className="group flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-[#f6f5f2]">
+                  <span className={"flex h-9 w-9 shrink-0 items-center justify-center rounded-xl " + action.tint}><action.icon className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-[#34332f]">{action.title}</span><span className="mt-0.5 block text-[10px] text-[#77756f]">{action.description}</span></span>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#85827b] transition group-hover:translate-x-0.5" />
+                </Link>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="rounded-[20px] border-[#e7e5e0] bg-white p-5 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-6">
+            <div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-[#242420]">Published social proof</h2><p className="mt-1 text-[11px] text-[#77756f]">Your stories in use</p></div><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff0e9] text-[#a83a1c]"><Heart className="h-4 w-4" /></span></div>
+            <div className="divide-y divide-[#eeece7]">
+              <Link to="/widgets" className="flex items-center justify-between gap-3 py-3 first:pt-0"><span className="flex items-center gap-2 text-xs text-[#68665f]"><PanelsTopLeft className="h-4 w-4" />Published widgets</span><span className="text-sm font-semibold tabular-nums text-[#242420]">{stats.publishedWidgets}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-[#85827b]" /></span></Link>
+              <Link to="/case-studies" className="flex items-center justify-between gap-3 py-3"><span className="flex items-center gap-2 text-xs text-[#68665f]"><FileText className="h-4 w-4" />Published case studies</span><span className="text-sm font-semibold tabular-nums text-[#242420]">{stats.publishedCaseStudies}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-[#85827b]" /></span></Link>
+              <Link to="/social-posts" className="flex items-center justify-between gap-3 py-3 last:pb-0"><span className="flex items-center gap-2 text-xs text-[#68665f]"><Share2 className="h-4 w-4" />Social posts created</span><span className="text-sm font-semibold tabular-nums text-[#242420]">{stats.socialPostCount}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-[#85827b]" /></span></Link>
+              <Link to="/analytics" className="flex items-center justify-between gap-3 py-3 last:pb-0"><span className="flex items-center gap-2 text-xs text-[#68665f]"><MousePointerClick className="h-4 w-4" />Widget views / clicks</span><span className="text-sm font-semibold tabular-nums text-[#242420]">{stats.widgetViews.toLocaleString()} / {stats.widgetClicks.toLocaleString()}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-[#85827b]" /></span></Link>
+            </div>
+          </Card>
+        </div>
+
+        <Card className="min-w-0 overflow-hidden rounded-[20px] border-[#e7e5e0] bg-white shadow-[0_2px_8px_rgba(25,24,20,0.035)] xl:col-span-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eceae6] px-5 py-4 sm:px-6">
+            <div><h2 className="text-base font-semibold text-[#242420] sm:text-lg">Recent testimonials</h2><p className="mt-1 text-[11px] text-[#77756f] sm:text-xs">Latest customer feedback and its approval status</p></div>
+            <Link to="/testimonials" className="inline-flex items-center gap-1 rounded-full border border-[#e7e5e0] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#484741] transition hover:bg-[#f5f4f1]">View all <ArrowRight className="h-3.5 w-3.5" /></Link>
           </div>
           {testimonials.length === 0 ? (
             <div className="px-6 py-12 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-700"><MessageSquareQuote className="h-5 w-5" /></div>
-              <p className="font-medium">Your first customer story starts here.</p>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">Add a testimonial or create a collection form to start building your social proof library.</p>
-              <div className="mt-5 flex flex-wrap justify-center gap-2"><Link to="/testimonials"><Button size="sm"><Plus className="mr-1 h-3.5 w-3.5" />Add testimonial</Button></Link><Link to="/collect"><Button size="sm" variant="outline">Create a form</Button></Link></div>
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff0e9] text-[#a83a1c]"><MessageSquareQuote className="h-5 w-5" /></div>
+              <p className="font-medium text-[#34332f]">Your first customer story starts here.</p>
+              <p className="mx-auto mt-1 max-w-sm text-sm text-[#77756f]">Add a testimonial or create a collection form to start building your social proof library.</p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2"><Link to="/testimonials"><Button size="sm" className="rounded-full bg-[#242420] text-white hover:bg-[#3a3934]"><Plus className="mr-1 h-3.5 w-3.5" />Add testimonial</Button></Link><Link to="/collect"><Button size="sm" variant="outline" className="rounded-full border-[#e4e2dc]">Create a form</Button></Link></div>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[580px] border-collapse text-left">
-                <thead><tr className="bg-muted/45 text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground"><th className="px-5 py-3 sm:px-6">Customer</th><th className="px-4 py-3">Feedback</th><th className="px-4 py-3">Added</th><th className="px-5 py-3 sm:px-6">Status</th></tr></thead>
+                <thead><tr className="bg-[#f7f6f3] text-[10px] font-medium uppercase tracking-[0.1em] text-[#77756f]"><th className="px-5 py-3 sm:px-6">Customer</th><th className="px-4 py-3">Feedback</th><th className="px-4 py-3">Added</th><th className="px-5 py-3 sm:px-6">Status</th></tr></thead>
                 <tbody>
-                  {testimonials.slice(0, 5).map((item) => (
-                    <tr key={item.id} className="border-t border-border/60 align-middle transition hover:bg-muted/30">
-                      <td className="px-5 py-3.5 sm:px-6"><div className="flex items-center gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-50 text-xs font-semibold text-orange-800">{item.customer_name?.trim()?.[0]?.toUpperCase() || "?"}</span><div className="min-w-0"><div className="max-w-[150px] truncate text-xs font-semibold text-foreground">{item.customer_name || "Customer"}</div><div className="max-w-[150px] truncate text-[10px] text-muted-foreground">{[item.customer_role, item.customer_company].filter(Boolean).join(" · ") || "Customer"}</div></div></div></td>
-                      <td className="max-w-[240px] px-4 py-3.5"><p className="line-clamp-2 text-xs leading-5 text-muted-foreground">{item.approved_text || item.ai_rewritten_text || item.original_text}</p></td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-[10px] text-muted-foreground">{new Date(item.created_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</td>
-                      <td className="px-5 py-3.5 sm:px-6"><StatusBadge status={item.status} /></td>
+                  {testimonials.slice(0, 7).map((item) => (
+                    <tr key={item.id} className="border-t border-[#eeece7] align-middle transition hover:bg-[#faf9f7]">
+                      <td className="px-5 py-3 sm:px-6"><div className="flex items-center gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#fff0e9] text-xs font-semibold text-[#a83a1c]">{item.customer_name?.trim()?.[0]?.toUpperCase() || "?"}</span><div className="min-w-0"><div className="max-w-[150px] truncate text-xs font-semibold text-[#34332f]">{item.customer_name || "Customer"}</div><div className="max-w-[150px] truncate text-[10px] text-[#77756f]">{[item.customer_role, item.customer_company].filter(Boolean).join(" · ") || "Customer"}</div></div></div></td>
+                      <td className="max-w-[260px] px-4 py-3"><p className="line-clamp-2 text-xs leading-5 text-[#68665f]">{item.approved_text || item.ai_rewritten_text || item.original_text}</p></td>
+                      <td className="whitespace-nowrap px-4 py-3 text-[10px] text-[#77756f]">{new Date(item.created_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</td>
+                      <td className="px-5 py-3 sm:px-6"><StatusBadge status={item.status} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -281,34 +333,6 @@ const Dashboard = () => {
             </div>
           )}
         </Card>
-
-        <div className="space-y-4">
-          <Card className="rounded-2xl border-border/80 p-5 shadow-[0_2px_8px_rgba(15,23,42,0.035)] sm:p-6">
-            <div className="mb-4 flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700"><Heart className="h-[18px] w-[18px]" /></div>
-              <div><h2 className="font-semibold">Collection form</h2><p className="mt-1 text-xs text-muted-foreground">A simple link customers can use to share their experience</p></div>
-            </div>
-            {activeForm ? (
-              <>
-                <div className="mb-3 flex items-center justify-between gap-3"><span className="truncate text-sm font-medium">{activeForm.form_name || "Customer feedback form"}</span><span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">Active</span></div>
-                {collectionUrl && <div className="mb-4 rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-[11px] text-muted-foreground break-all">{collectionUrl.replace(/^https?:\/\//, "")}</div>}
-                <div className="flex gap-2"><Button size="sm" className="flex-1" onClick={copyCollectionUrl}><Copy className="mr-1 h-3.5 w-3.5" />Copy link</Button><Button size="sm" variant="outline" asChild><a href={collectionUrl || "/collect"} target="_blank" rel="noreferrer"><ExternalLink className="mr-1 h-3.5 w-3.5" />Open</a></Button></div>
-              </>
-            ) : (
-              <div className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-5 text-center"><p className="text-sm font-medium">No collection form yet</p><p className="mt-1 text-xs text-muted-foreground">Create a shareable form to start gathering feedback.</p><Link to="/collect"><Button size="sm" className="mt-4"><Plus className="mr-1 h-3.5 w-3.5" />Create form</Button></Link></div>
-            )}
-          </Card>
-
-          <Card className="rounded-2xl border-border/80 p-5 shadow-[0_2px_8px_rgba(15,23,42,0.035)] sm:p-6">
-            <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="font-semibold">Your social proof</h2><p className="mt-1 text-xs text-muted-foreground">Published content across KudosSpot</p></div><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-100 text-stone-800"><KudoSpotIcon className="h-4 w-4" /></span></div>
-            <div className="divide-y divide-border/70">
-              <Link to="/widgets" className="flex items-center justify-between gap-3 py-3 first:pt-0"><span className="flex items-center gap-2.5 text-xs text-muted-foreground"><PanelsTopLeft className="h-4 w-4" />Published widgets</span><span className="text-sm font-semibold tabular-nums">{stats.publishedWidgets}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-muted-foreground" /></span></Link>
-              <Link to="/case-studies" className="flex items-center justify-between gap-3 py-3"><span className="flex items-center gap-2.5 text-xs text-muted-foreground"><FileText className="h-4 w-4" />Published case studies</span><span className="text-sm font-semibold tabular-nums">{stats.publishedCaseStudies}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-muted-foreground" /></span></Link>
-              <Link to="/social-posts" className="flex items-center justify-between gap-3 py-3 last:pb-0"><span className="flex items-center gap-2.5 text-xs text-muted-foreground"><Share2 className="h-4 w-4" />Social posts created</span><span className="text-sm font-semibold tabular-nums">{stats.socialPostCount}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-muted-foreground" /></span></Link>
-              <Link to="/analytics" className="flex items-center justify-between gap-3 py-3 last:pb-0"><span className="flex items-center gap-2.5 text-xs text-muted-foreground"><MousePointerClick className="h-4 w-4" />Widget views / clicks</span><span className="text-sm font-semibold tabular-nums">{stats.widgetViews.toLocaleString()} / {stats.widgetClicks.toLocaleString()}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-muted-foreground" /></span></Link>
-            </div>
-          </Card>
-        </div>
       </section>
     </AppShell>
   );
