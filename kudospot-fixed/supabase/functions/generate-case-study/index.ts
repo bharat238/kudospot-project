@@ -111,10 +111,13 @@ Generate the case study as JSON only.`;
     const aiData = await aiResp.json();
     const rawText = aiData.choices?.[0]?.message?.content?.trim() ?? "";
 
-    let parsed: any;
+    type GeneratedCaseStudy = { title?: string; challenge?: string; solution?: string; results?: string; key_stats?: Array<{ label?: string; value?: string; result?: string }>; pull_quote?: string; about_client?: string };
+    let parsed: GeneratedCaseStudy;
     try {
       const clean = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-      parsed = JSON.parse(clean);
+      const decoded: unknown = JSON.parse(clean);
+      if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) throw new Error("Expected an object from the AI response.");
+      parsed = decoded as GeneratedCaseStudy;
     } catch {
       console.error("JSON parse failed, raw:", rawText);
       return new Response(JSON.stringify({ error: "AI returned invalid JSON. Try again." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
