@@ -55,7 +55,14 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: profile } = await supabase.from("profiles").select("business_name, brand_voice").eq("id", user.id).maybeSingle();
+    const { data: profile } = await supabase.from("profiles").select("business_name, brand_voice, plan, plan_expires_at").eq("id", user.id).maybeSingle();
+    const paidPlanActive =
+      (profile?.plan === "starter" || profile?.plan === "pro") &&
+      typeof profile.plan_expires_at === "string" &&
+      Date.parse(profile.plan_expires_at) > Date.now();
+    if (!paidPlanActive) {
+      return new Response(JSON.stringify({ error: "Case study generation requires an active paid plan." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     // Security fix: always filter by user_id
     const { data: testimonials } = await supabase
       .from("testimonials")
