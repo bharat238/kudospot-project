@@ -93,6 +93,23 @@ const Widgets = () => {
 
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    const handleWidgetResize = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data;
+      if (!data || data.type !== "kudospot-widget-resize" || typeof data.widgetId !== "string") return;
+      const frame = Array.from(document.querySelectorAll<HTMLIFrameElement>('iframe[src*="/embed/"]'))
+        .find((candidate) => candidate.contentWindow === event.source && candidate.src.includes(`/embed/${data.widgetId}`));
+      const height = Number(data.height);
+      if (frame && Number.isFinite(height)) {
+        frame.style.height = `${Math.max(120, Math.min(4000, height))}px`;
+      }
+    };
+
+    window.addEventListener("message", handleWidgetResize);
+    return () => window.removeEventListener("message", handleWidgetResize);
+  }, []);
+
   const resetEditor = () => {
     setForm(makeBlank());
     setEditingWidgetId(null);
@@ -181,7 +198,14 @@ const Widgets = () => {
     toast.success(next ? "Widget published" : "Widget unpublished");
   };
 
-  const embedCode = (id: string) => `<iframe src="${window.location.origin}/embed/${id}" style="width:100%;border:0;min-height:240px" loading="lazy" title="KudoSpot testimonial widget"></iframe>`;
+  const embedCode = (id: string) => {
+    const origin = window.location.origin;
+    const frameId = `kudospot-widget-${id}`;
+    return [
+      `<iframe id="${frameId}" src="${origin}/embed/${id}" style="display:block;width:100%;height:180px;border:0;overflow:hidden" loading="lazy" title="KudoSpot testimonial widget"></iframe>`,
+      `<script>(function(){var f=document.getElementById("${frameId}");if(!f)return;window.addEventListener("message",function(e){if(e.origin!=="${origin}"||e.source!==f.contentWindow)return;var d=e.data;if(!d||d.type!=="kudospot-widget-resize"||d.widgetId!=="${id}")return;var h=Number(d.height);if(Number.isFinite(h))f.style.height=Math.max(120,Math.min(4000,h))+"px";});})();<\/script>`,
+    ].join("\\n");
+  };
 
   const copyEmbed = async (widget: WidgetRow) => {
     try {
