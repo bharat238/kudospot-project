@@ -356,9 +356,9 @@ const Analytics = () => {
         <>
           <div ref={reportRef} className="space-y-5 bg-transparent">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="Widget views" value={stats.widgetViews} sub="In the selected period" icon={Eye} tint="orange" />
+              <StatCard label="Widget views" value={stats.widgetViews} sub="In the selected period" icon={Eye} tint="lime" />
               <StatCard label="Widget clicks" value={stats.widgetClicks} sub={`${stats.ctr}% click-through rate`} icon={MousePointerClick} tint="stone" />
-              <StatCard label="Collection submissions" value={stats.formSubmissions} sub="Feedback received" icon={Send} tint="amber" />
+              <StatCard label="Collection submissions" value={stats.formSubmissions} sub="Feedback received" icon={Send} tint="lime" />
               <StatCard label="Approvals" value={stats.approvalsApproved} sub={`${stats.approvalRate}% of approval requests`} icon={CheckCircle2} tint="green" />
             </div>
 
@@ -422,12 +422,11 @@ const Analytics = () => {
   );
 };
 
-function StatCard({ label, value, sub, icon: Icon, tint }: { label: string; value: number; sub: string; icon: ComponentType<{ className?: string }>; tint: "orange" | "stone" | "amber" | "green" }) {
+function StatCard({ label, value, sub, icon: Icon, tint }: { label: string; value: number; sub: string; icon: ComponentType<{ className?: string }>; tint: "lime" | "stone" | "green" }) {
   const iconClass = {
-    orange: "bg-[#f0f7d8] text-[#3c481e]",
+    lime: "bg-[#eaffae] text-[#3c481e]",
     stone: "bg-stone-100 text-stone-800",
-    amber: "bg-amber-50 text-amber-800",
-    green: "bg-emerald-50 text-emerald-800",
+        green: "bg-emerald-50 text-emerald-800",
   }[tint];
   return <Card className="rounded-2xl border-border/80 p-4 shadow-[0_2px_8px_rgba(15,23,42,0.035)] sm:p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-medium text-muted-foreground sm:text-sm">{label}</p><div className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">{value.toLocaleString()}</div><p className="mt-1.5 text-xs text-muted-foreground">{sub}</p></div><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconClass}`}><Icon className="h-[18px] w-[18px]" /></span></div></Card>;
 }
