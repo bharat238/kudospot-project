@@ -3,19 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Check, X, ArrowRight } from "lucide-react";
 
 const comparisonData = [
-  { feature: "AI rewriting", kudospot: true, senja: "Basic" },
-  { feature: "Social post generator", kudospot: true, senja: false },
-  { feature: "Case study generator", kudospot: true, senja: false },
-  { feature: "Email approval flow", kudospot: true, senja: true },
-  { feature: "Widget embed", kudospot: true, senja: true },
+  { feature: "AI assistance", kudospot: "AI rewrite drafts", senja: "AI testimonial analysis" },
+  { feature: "Social content", kudospot: "Text post generator", senja: "Video Reels" },
+  { feature: "Case study generator", kudospot: true, senja: true },
+  { feature: "Customer approval links", kudospot: true, senja: "Not verified" },
+  { feature: "Website widgets", kudospot: true, senja: true },
   { feature: "Wall of Love", kudospot: true, senja: true },
-  { feature: "Razorpay (India payments)", kudospot: true, senja: false },
-  { feature: "Video testimonials", kudospot: true, senja: true },
-  { feature: "CSV export", kudospot: true, senja: "Coming soon" },
-  { feature: "Analytics dashboard", kudospot: true, senja: true },
-  { feature: "Platform imports", kudospot: "Coming soon", senja: true },
-  { feature: "Starting price", kudospot: "Free forever", senja: "$29/mo" },
-];
+  { feature: "Payment provider", kudospot: "Razorpay (INR)", senja: "Stripe (cards)" },
+  { feature: "Video testimonial collection", kudospot: "Coming soon", senja: "Available" },
+  { feature: "CSV testimonial export", kudospot: true, senja: true },
+  { feature: "Widget analytics", kudospot: true, senja: true },
+  { feature: "Third-party imports", kudospot: "Coming soon", senja: "35 sources listed" },
+  { feature: "Free plan", kudospot: "Free: 10 testimonials, 5 AI rewrites, 1 widget", senja: "Free: 15 text/video testimonials" },
+  { feature: "Paid plan pricing", kudospot: "₹499 / ₹1,299 per 30-day access period", senja: "Starter $29/mo; Pro $59/mo" },
+];;
 
 const VsSenja = () => {
   return (
@@ -45,7 +46,7 @@ const VsSenja = () => {
             KudoSpot vs Senja
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Compare features, pricing, and find out why founders choose KudoSpot for their testimonial needs.
+            Compare the workflows that matter. Some capabilities and billing models differ, so review the detail before deciding.
           </p>
         </div>
       </section>
@@ -101,17 +102,17 @@ const VsSenja = () => {
                 KudoSpot strengths
               </h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• <strong>AI-powered workflows:</strong> Rewrite, generate social posts, and create case studies automatically</li>
-                <li>• <strong>India-first payments:</strong> Native Razorpay integration with UPI and local payment methods</li>
+                <li>• <strong>Focused workflow:</strong> Draft testimonial rewrites, request customer approval, then reuse approved stories in widgets, case studies, and social content.</li>
+                <li>• <strong>INR checkout:</strong> Paid access is purchased through Razorpay with the payment methods available in checkout.</li>
                 <li>• <strong>Free forever:</strong> Start with 10 testimonials, 5 AI rewrites, and 1 widget at no cost</li>
-                <li>• <strong>Lightweight:</strong> Fast, focused, and simple to use — no clutter</li>
+                <li>• <strong>Simple billing:</strong> Free to start; paid access lasts 30 days per payment and is renewed manually.</li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold text-lg mb-4">If you need</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• <strong>Broad integrations:</strong> Senja connects to more platforms</li>
-                <li>• <strong>Video testimonials:</strong> Both support them, Senja has more options</li>
+                <li>• <strong>Imports:</strong> Senja lists imports from 35 sources; KudoSpot platform imports are not yet available.</li>
+                <li>• <strong>Video testimonials:</strong> Senja supports collection and video Reels. KudoSpot video collection is not yet available.</li>
                 <li>• <strong>Established ecosystem:</strong> Senja has been around longer</li>
               </ul>
             </div>
