@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
   Plus, Copy, ExternalLink, Trash2, Upload, X, GripVertical, Inbox,
-  Mail, Send, Clock, CheckCircle2, AlertCircle, Users, ToggleLeft, QrCode
+  Mail, Send, Clock, CheckCircle2, AlertCircle, Users, ToggleLeft, QrCode, RefreshCw
 } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
 import type { Json, Tables } from "@/integrations/supabase/types";
@@ -146,6 +146,8 @@ const Collect = () => {
 
   // Forms tab
   const [forms, setForms] = useState<CollectionFormRow[]>([]);
+  const [formsLoading, setFormsLoading] = useState(true);
+  const [formsError, setFormsError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<CollectionFormRow | null>(null);
   const [form, setForm] = useState<CollectionFormDraft>(blank);
@@ -158,6 +160,8 @@ const Collect = () => {
 
   // Sequences tab
   const [sequences, setSequences] = useState<EmailSequenceRow[]>([]);
+  const [sequencesLoading, setSequencesLoading] = useState(true);
+  const [sequencesError, setSequencesError] = useState<string | null>(null);
   const [seqOpen, setSeqOpen] = useState(false);
   const [editingSeq, setEditingSeq] = useState<EmailSequenceRow | null>(null);
   const [seqForm, setSeqForm] = useState<{ sequence_name: string; emails: SequenceEmail[] }>({ sequence_name: "Standard 3-step ask", emails: DEFAULT_SEQ_EMAILS });
@@ -168,32 +172,64 @@ const Collect = () => {
   const [sendForm, setSendForm] = useState({ customer_name: "", customer_email: "", form_id: "" });
   const [csvRows, setCsvRows] = useState<{ name: string; email: string }[]>([]);
   const [sends, setSends] = useState<EmailSendRow[]>([]);
+  const [sendsLoading, setSendsLoading] = useState(true);
+  const [sendsError, setSendsError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   // ── loaders ────────────────────────────────────────────────────────────
   const loadForms = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("collection_forms").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setForms(data || []);
+    if (!user) { setFormsLoading(false); return; }
+    setFormsLoading(true);
+    setFormsError(null);
+    try {
+      const { data, error } = await supabase.from("collection_forms").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      if (error) throw error;
+      setForms(data || []);
+    } catch (error) {
+      console.error("Failed to load collection forms:", error);
+      setFormsError("We couldn't load your collection forms. Check your connection and try again.");
+    } finally {
+      setFormsLoading(false);
+    }
   };
 
   const loadSequences = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("email_sequences").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setSequences(data || []);
+    if (!user) { setSequencesLoading(false); return; }
+    setSequencesLoading(true);
+    setSequencesError(null);
+    try {
+      const { data, error } = await supabase.from("email_sequences").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      if (error) throw error;
+      setSequences(data || []);
+    } catch (error) {
+      console.error("Failed to load email sequences:", error);
+      setSequencesError("We couldn't load your email sequences. Check your connection and try again.");
+    } finally {
+      setSequencesLoading(false);
+    }
   };
 
   const loadSends = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("email_sends").select("*").eq("user_id", user.id).order("sent_at", { ascending: false }).limit(30);
-    setSends(data || []);
+    if (!user) { setSendsLoading(false); return; }
+    setSendsLoading(true);
+    setSendsError(null);
+    try {
+      const { data, error } = await supabase.from("email_sends").select("*").eq("user_id", user.id).order("sent_at", { ascending: false }).limit(30);
+      if (error) throw error;
+      setSends(data || []);
+    } catch (error) {
+      console.error("Failed to load request history:", error);
+      setSendsError("We couldn't load the request history. Check your connection and try again.");
+    } finally {
+      setSendsLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadForms();
-    loadSequences();
-    loadSends();
+    void loadForms();
+    void loadSequences();
+    void loadSends();
   }, [user]);
   
   // Auto-select the first form when there's only one
@@ -527,7 +563,16 @@ const Collect = () => {
             </Dialog>
           </div>
 
-          {forms.length === 0 ? (
+          {formsError ? (
+            <Card className="rounded-[22px] border-[#e6e8ed] bg-white px-6 py-10 text-center sm:px-10">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f1f2f5] text-[#515661]"><AlertCircle className="h-5 w-5" /></div>
+              <h2 className="font-semibold text-[#202126]">Collection forms couldn't be loaded</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">{formsError}</p>
+              <Button variant="outline" className="mt-5 rounded-full border-[#e1e4e9]" onClick={() => void loadForms()}><RefreshCw className="mr-2 h-4 w-4" />Try again</Button>
+            </Card>
+          ) : formsLoading ? (
+            <div className="grid gap-4">{[0, 1].map((key) => <Card key={key} className="animate-pulse rounded-[20px] border-[#e6e8ed] bg-white p-5"><div className="mb-4 h-4 w-1/3 rounded bg-[#eff0f3]" /><div className="mb-3 h-3 w-full rounded bg-[#eff0f3]" /><div className="h-3 w-4/5 rounded bg-[#eff0f3]" /></Card>)}</div>
+          ) : forms.length === 0 ? (
             <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center sm:px-10 sm:py-16">
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><Inbox className="h-6 w-6" /></div>
               <h2 className="text-lg font-semibold text-[#202126]">Create your first collection form</h2>
@@ -639,7 +684,16 @@ const Collect = () => {
             </Dialog>
           </div>
 
-          {sequences.length === 0 ? (
+          {sequencesError ? (
+            <Card className="rounded-[22px] border-[#e6e8ed] bg-white px-6 py-10 text-center sm:px-10">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f1f2f5] text-[#515661]"><AlertCircle className="h-5 w-5" /></div>
+              <h2 className="font-semibold text-[#202126]">Email sequences couldn't be loaded</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">{sequencesError}</p>
+              <Button variant="outline" className="mt-5 rounded-full border-[#e1e4e9]" onClick={() => void loadSequences()}><RefreshCw className="mr-2 h-4 w-4" />Try again</Button>
+            </Card>
+          ) : sequencesLoading ? (
+            <div className="grid gap-4">{[0, 1].map((key) => <Card key={key} className="animate-pulse rounded-[20px] border-[#e6e8ed] bg-white p-5"><div className="mb-4 h-4 w-1/3 rounded bg-[#eff0f3]" /><div className="mb-3 h-3 w-full rounded bg-[#eff0f3]" /><div className="h-3 w-4/5 rounded bg-[#eff0f3]" /></Card>)}</div>
+          ) : sequences.length === 0 ? (
             <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center sm:px-10 sm:py-16">
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><Mail className="h-6 w-6" /></div>
               <h2 className="text-lg font-semibold text-[#202126]">Prepare your first outreach sequence</h2>
@@ -711,7 +765,7 @@ const Collect = () => {
                 <Button className="w-full" onClick={sendSingleRequest} disabled={sending || !sendForm.customer_name || !sendForm.customer_email}>
                   <Send className="h-4 w-4 mr-1" /> Log & copy link
                 </Button>
-                {forms.length === 0 && (
+                {!formsLoading && !formsError && forms.length === 0 && (
                   <p className="text-xs text-warning text-center">Create a collection form first to get a shareable link.</p>
                 )}
               </Card>
@@ -762,27 +816,38 @@ const Collect = () => {
           </div>
 
           {/* Send history */}
-          {sends.length > 0 && (
-            <div className="mt-8">
-              <h2 className="font-semibold mb-3">Recently prepared requests</h2>
-              <Card className="overflow-hidden">
+          <div className="mt-8">
+            <h2 className="font-semibold mb-3">Recently prepared requests</h2>
+            {sendsError ? (
+              <Card className="rounded-[22px] border-[#e6e8ed] bg-white px-6 py-8 text-center">
+                <p className="font-semibold text-[#202126]">Request history couldn't be loaded</p>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">{sendsError}</p>
+                <Button variant="outline" size="sm" className="mt-4 rounded-full border-[#e1e4e9]" onClick={() => void loadSends()}><RefreshCw className="mr-2 h-3.5 w-3.5" />Try again</Button>
+              </Card>
+            ) : sendsLoading ? (
+              <div className="rounded-xl border border-[#e6e8ed] bg-white px-5 py-6 text-sm text-[#777c85]">Loading request history…</div>
+            ) : sends.length > 0 ? (
+              <Card className="overflow-hidden rounded-[20px] border-[#e6e8ed] bg-white">
                 <div className="divide-y text-sm">
                   {sends.map((s) => (
-                    <div key={s.id} className="px-5 py-3 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2 min-w-0">
+                    <div key={s.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5">
+                      <div className="flex min-w-0 items-center gap-2">
                         {statusIcon(s.status)}
-                        <span className="font-medium truncate">{s.customer_name || "—"}</span>
-                        <span className="text-muted-foreground truncate">{s.customer_email}</span>
+                        <span className="max-w-[35%] truncate font-medium">{s.customer_name || "—"}</span>
+                        <span className="min-w-0 truncate text-muted-foreground">{s.customer_email}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground shrink-0">
-                        {new Date(s.sent_at).toLocaleDateString()}
-                      </div>
+                      <div className="shrink-0 text-xs text-muted-foreground">{new Date(s.sent_at).toLocaleDateString()}</div>
                     </div>
                   ))}
                 </div>
               </Card>
-            </div>
-          )}
+            ) : (
+              <Card className="rounded-[20px] border-dashed border-[#dfe2e7] bg-white px-5 py-8 text-center">
+                <p className="text-sm font-medium text-[#30333a]">No requests prepared yet</p>
+                <p className="mt-1 text-xs leading-5 text-[#777c85]">Single and bulk requests you log here will appear in this history.</p>
+              </Card>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
