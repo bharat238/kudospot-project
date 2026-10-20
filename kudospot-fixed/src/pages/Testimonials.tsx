@@ -596,7 +596,7 @@ const Testimonials = () => {
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {filtered.map((t) => (
-            <Card key={t.id} role="button" tabIndex={0} aria-label={`Open testimonial from ${t.customer_name || "customer"}`} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActive(t); } }} className="group relative cursor-pointer rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] transition-all hover:-translate-y-0.5 hover:border-[#c8f34c] hover:shadow-[0_8px_24px_rgba(35,38,48,0.07)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a5cd32] sm:p-5" onClick={() => setActive(t)}>
+            <Card key={t.id} role="button" tabIndex={0} aria-label={`Open testimonial from ${t.customer_name || "customer"}`} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setActive(t); } }} className="group relative cursor-pointer rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] transition-all hover:-translate-y-0.5 hover:border-[#c8f34c] hover:shadow-[0_8px_24px_rgba(35,38,48,0.07)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a5cd32] sm:p-5" onClick={() => setActive(t)}>
               <div className="absolute right-3 top-3 sm:right-4 sm:top-4" onClick={(e) => e.stopPropagation()}>
                 <Checkbox checked={selected.has(t.id)} onCheckedChange={() => toggleSelect(t.id)} />
               </div>
