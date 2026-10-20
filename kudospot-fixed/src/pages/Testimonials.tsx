@@ -449,7 +449,7 @@ const Testimonials = () => {
           <h1 className="text-3xl font-bold mb-1">Testimonials</h1>
           <p className="text-muted-foreground">Collect, rewrite, approve.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={exportCSV} disabled={filtered.length === 0}>
             <Download className="h-4 w-4 mr-1" /> Export CSV
           </Button>
@@ -568,7 +568,7 @@ const Testimonials = () => {
       {loadError ? (
         <Card className="rounded-2xl p-10 text-center"><AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" /><h2 className="font-semibold">Testimonials could not be loaded</h2><p className="mt-2 text-sm text-muted-foreground">{loadError}</p><Button variant="outline" className="mt-5" onClick={() => void load()}>Try again</Button></Card>
       ) : pageLoading ? (
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="p-5 animate-pulse">
               <div className="flex items-center gap-3 mb-3">
@@ -596,8 +596,8 @@ const Testimonials = () => {
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {filtered.map((t) => (
-            <Card key={t.id} className="p-5 cursor-pointer hover:shadow-card transition relative" onClick={() => setActive(t)}>
-              <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
+            <Card key={t.id} className="group relative cursor-pointer rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] transition-all hover:-translate-y-0.5 hover:border-[#c8f34c] hover:shadow-[0_8px_24px_rgba(35,38,48,0.07)] sm:p-5" onClick={() => setActive(t)}>
+              <div className="absolute right-3 top-3 sm:right-4 sm:top-4" onClick={(e) => e.stopPropagation()}>
                 <Checkbox checked={selected.has(t.id)} onCheckedChange={() => toggleSelect(t.id)} />
               </div>
               <div className="flex items-start gap-3 mb-3 pr-8">
