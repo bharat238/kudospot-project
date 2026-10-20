@@ -47,6 +47,7 @@ const Dashboard = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [recentSearch, setRecentSearch] = useState("");
   const [recentStatus, setRecentStatus] = useState("all");
+  const [activityRange, setActivityRange] = useState("6");
 
   const reloadProfile = async () => {
     if (!user) return;
@@ -114,8 +115,9 @@ const Dashboard = () => {
 
   const monthlyActivity = useMemo(() => {
     const now = new Date();
-    const months = Array.from({ length: 6 }, (_, index) => {
-      const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    const monthCount = Number(activityRange);
+    return Array.from({ length: monthCount }, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (monthCount - 1 - index), 1);
       const next = new Date(date.getFullYear(), date.getMonth() + 1, 1);
       const collected = testimonials.filter((item) => {
         const created = new Date(item.created_at);
@@ -128,9 +130,10 @@ const Dashboard = () => {
       }).length;
       return { label: date.toLocaleDateString("en", { month: "short" }), collected, approved };
     });
-    return months;
-  }, [testimonials]);
+  }, [testimonials, activityRange]);
 
+  const periodCollected = monthlyActivity.reduce((sum, month) => sum + month.collected, 0);
+  const periodApproved = monthlyActivity.reduce((sum, month) => sum + month.approved, 0);
   const chartMax = Math.max(1, ...monthlyActivity.flatMap((month) => [month.collected, month.approved]));
   const displayName = profile?.full_name?.trim()?.split(/\s+/)[0] || String(user?.user_metadata?.full_name || "").split(/\s+/)[0] || user?.email?.split("@")[0] || "there";
   const activeForm = forms.find((form) => form.is_active);
@@ -221,16 +224,26 @@ const Dashboard = () => {
         </Card>
 
         <Card className="min-w-0 overflow-hidden rounded-[22px] border-[#e6e8ed] bg-white p-5 shadow-[0_3px_14px_rgba(36,40,50,0.035)] sm:p-6 xl:col-span-6">
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-[#202126]">Collection activity</h2><p className="mt-1 text-[11px] leading-5 text-[#777c85] sm:text-xs">Compare customer stories collected with those approved over time.</p></div><span className="rounded-full border border-[#e7e9ed] bg-[#fafbfc] px-3 py-1.5 text-[10px] font-medium text-[#777c85]">Last 6 months</span></div>
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div><h2 className="text-base font-semibold text-[#202126]">Collection activity</h2><p className="mt-1 text-[11px] leading-5 text-[#777c85] sm:text-xs">Compare customer stories collected with those approved over time.</p></div>
+            <label className="flex h-8 items-center gap-2 rounded-full border border-[#e7e9ed] bg-[#fafbfc] px-3 text-[10px] font-medium text-[#777c85]">
+              <span>Period</span>
+              <select aria-label="Activity chart time range" value={activityRange} onChange={(event) => setActivityRange(event.target.value)} className="max-w-[112px] bg-transparent text-[10px] font-semibold text-[#444851] outline-none">
+                <option value="3">3 months</option>
+                <option value="6">6 months</option>
+                <option value="12">12 months</option>
+              </select>
+            </label>
+          </div>
           <div className="relative">
             <div className="pointer-events-none absolute inset-0 flex flex-col justify-between pb-7 pt-1" aria-hidden="true"><div className="border-t border-dashed border-[#eceef1]" /><div className="border-t border-dashed border-[#eceef1]" /><div className="border-t border-dashed border-[#eceef1]" /><div className="border-t border-[#e7e9ed]" /></div>
-            <div role="img" aria-label="Bar chart comparing testimonials collected and approved over the last six months" className="relative grid h-[170px] grid-cols-6 gap-2 px-1 sm:gap-4">
+            <div role="img" aria-label={`Bar chart comparing testimonials collected and approved over the last ${activityRange} months`} className="relative grid h-[170px] gap-2 px-1 sm:gap-4" style={{ gridTemplateColumns: `repeat(${monthlyActivity.length}, minmax(0, 1fr))` }}>
               {monthlyActivity.map((month) => (
                 <div key={month.label} className="flex min-w-0 flex-col items-center justify-end"><div className="flex h-[138px] w-full max-w-[48px] items-end justify-center gap-1.5"><div title={month.collected + " collected"} className="w-[42%] rounded-t-md bg-[#26282e] transition-all" style={{ height: Math.max(3, (month.collected / chartMax) * 100) + "%" }} /><div title={month.approved + " approved"} className="w-[42%] rounded-t-md bg-[#c8f34c] transition-all" style={{ height: Math.max(3, (month.approved / chartMax) * 100) + "%" }} /></div><span className="mt-2 pb-1 text-[10px] text-[#777c85]">{month.label}</span></div>
               ))}
             </div>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#eff0f3] pt-3 text-[10px] text-[#686d77] sm:text-[11px]"><span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#26282e]" />Collected ({stats.total})</span><span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#c8f34c]" />Customer approved ({stats.approved})</span><span className="ml-auto inline-flex items-center gap-1.5 text-[#777c85]"><TrendingUp className="h-3 w-3" />From your account</span></div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#eff0f3] pt-3 text-[10px] text-[#686d77] sm:text-[11px]"><span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#26282e]" />Collected ({periodCollected})</span><span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#c8f34c]" />Customer approved ({periodApproved})</span><span className="ml-auto inline-flex items-center gap-1.5 text-[#777c85]"><TrendingUp className="h-3 w-3" />From your account</span></div>
         </Card>
 
         <Card className="min-w-0 rounded-[22px] border-[#e6e8ed] bg-white p-5 shadow-[0_3px_14px_rgba(36,40,50,0.035)] sm:p-6 xl:col-span-3">
