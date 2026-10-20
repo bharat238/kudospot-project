@@ -68,7 +68,7 @@ const Landing = () => {
           <div className="container mx-auto grid items-center gap-12 py-14 md:grid-cols-[0.92fr_1.08fr] md:py-20 lg:gap-16 lg:py-24">
             <div className="relative z-10">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground shadow-sm">
-                <Sparkles className="h-3.5 w-3.5 text-orange-700" /> AI-powered testimonial platform
+                <Sparkles className="h-3.5 w-3.5 text-[#3d4924]" /> AI-powered testimonial platform
               </div>
               <h1 className="mb-6 max-w-2xl text-4xl font-semibold leading-[1.04] tracking-[-0.055em] text-foreground sm:text-5xl lg:text-[58px]">
                 Turn customer feedback into your <span className="bg-gradient-primary bg-clip-text text-transparent">growth engine.</span>
@@ -88,7 +88,7 @@ const Landing = () => {
             </div>
 
             <div className="relative mx-auto w-full max-w-[700px]">
-              <div className="pointer-events-none absolute -inset-8 -z-10 rounded-[36px] bg-gradient-to-br from-orange-100/70 via-amber-100/50 to-transparent blur-2xl" />
+              <div className="pointer-events-none absolute -inset-8 -z-10 rounded-[36px] bg-gradient-to-br from-[#eaffae]/65 via-[#f5f8e9]/70 to-transparent blur-2xl" />
               <div className="overflow-hidden rounded-2xl border border-white/80 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.12)] ring-1 ring-black/[0.03]">
                 <div className="flex min-h-[390px]">
                   <aside className="hidden w-[150px] shrink-0 border-r border-border/70 bg-white/80 p-3 sm:block">
@@ -98,7 +98,7 @@ const Landing = () => {
                     </div>
                     <div className="space-y-1">
                       {dashboardNav.map((item) => (
-                        <div key={item.label} className={`flex items-center gap-2 rounded-md px-2 py-2 text-[10px] ${item.active ? "bg-orange-50 font-semibold text-orange-800" : "text-muted-foreground"}`}>
+                        <div key={item.label} className={`flex items-center gap-2 rounded-md px-2 py-2 text-[10px] ${item.active ? "bg-[#f0f7d8] font-semibold text-[#3d4924]" : "text-muted-foreground"}`}>
                           <item.icon className="h-3.5 w-3.5" />{item.label}
                         </div>
                       ))}
@@ -127,7 +127,7 @@ const Landing = () => {
                       ))}
                     </div>
                     <div className="rounded-xl border border-border/80 bg-white">
-                      <div className="flex items-center justify-between border-b border-border/70 px-3.5 py-3"><span className="text-xs font-semibold">Recent testimonials</span><span className="text-[10px] font-medium text-orange-700">View all</span></div>
+                      <div className="flex items-center justify-between border-b border-border/70 px-3.5 py-3"><span className="text-xs font-semibold">Recent testimonials</span><span className="text-[10px] font-medium text-[#3d4924]">View all</span></div>
                       {[
                         { initials: "SJ", name: "Sarah Johnson", role: "Product designer", time: "2h ago", quote: "KudoSpot made it much easier to collect and share customer feedback.", color: "bg-rose-100 text-rose-700" },
                         { initials: "MC", name: "Mike Chen", role: "Founder at GrowthLab", time: "5h ago", quote: "A simple way to turn real customer wins into stories we can use.", color: "bg-sky-100 text-sky-700" },
@@ -146,11 +146,11 @@ const Landing = () => {
                 </div>
               </div>
               <div className="absolute -right-3 top-12 hidden items-center gap-3 rounded-xl border border-white bg-white/95 p-3.5 shadow-lg sm:flex lg:-right-7">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 text-orange-700"><Send className="h-4 w-4" /></span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f0f7d8] text-[#3d4924]"><Send className="h-4 w-4" /></span>
                 <span><span className="block text-xs font-semibold">Collect feedback</span><span className="mt-1 block text-[10px] text-muted-foreground">Share a link with customers</span></span>
               </div>
               <div className="absolute -bottom-5 -left-3 hidden items-center gap-3 rounded-xl border border-white bg-white/95 p-3.5 shadow-lg sm:flex lg:-left-7">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-800"><Sparkles className="h-4 w-4" /></span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f0f1f4] text-[#454953]"><Sparkles className="h-4 w-4" /></span>
                 <span><span className="block text-xs font-semibold">Showcase everywhere</span><span className="mt-1 block text-[10px] text-muted-foreground">Embed on your site or share</span></span>
               </div>
             </div>
@@ -168,14 +168,14 @@ const Landing = () => {
 
         <section id="how-it-works" className="container mx-auto grid items-center gap-12 py-20 md:grid-cols-2 md:py-24">
           <div>
-            <div className="mb-4 inline-flex rounded-full bg-orange-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-orange-800">Collect</div>
+            <div className="mb-4 inline-flex rounded-full bg-[#f0f7d8] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#3d4924]">Collect</div>
             <h2 className="mb-5 max-w-lg text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">Get testimonials without the awkward ask.</h2>
             <p className="mb-7 max-w-lg leading-7 text-muted-foreground">Share a simple, branded form with customers. Use guided prompts to gather specific feedback, then organize and reuse the stories across your website and marketing.</p>
             <Link to="/signup"><Button className="rounded-full px-5">Create a collection form <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Card className="p-5 shadow-md">
-              <div className="mb-4 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 text-orange-700"><MessageSquareQuote className="h-4 w-4" /></span><span className="text-sm font-semibold">Share your experience</span></div>
+              <div className="mb-4 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f0f7d8] text-[#3d4924]"><MessageSquareQuote className="h-4 w-4" /></span><span className="text-sm font-semibold">Share your experience</span></div>
               <p className="mb-3 text-xs text-muted-foreground">What do you like most about the product?</p>
               <div className="mb-4 h-10 rounded-lg border border-border bg-muted/30 px-3 py-3 text-[10px] text-muted-foreground">Your answer...</div>
               <p className="mb-2 text-xs text-muted-foreground">Would you recommend us?</p>
@@ -183,7 +183,7 @@ const Landing = () => {
               <div className="rounded-full bg-foreground py-2.5 text-center text-[10px] font-medium text-background">Submit testimonial</div>
             </Card>
             <Card className="flex flex-col justify-center p-5 shadow-md">
-              <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-xs font-semibold text-rose-700">ED</div><div><div className="text-xs font-semibold">Emily Davis</div><div className="mt-1 text-[10px] text-muted-foreground">Marketing lead</div></div></div><span className="text-orange-700"><Share2 className="h-4 w-4" /></span></div>
+              <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-xs font-semibold text-rose-700">ED</div><div><div className="text-xs font-semibold">Emily Davis</div><div className="mt-1 text-[10px] text-muted-foreground">Marketing lead</div></div></div><span className="text-[#3d4924]"><Share2 className="h-4 w-4" /></span></div>
               <p className="text-sm leading-6">“KudoSpot makes it easier to collect feedback and turn customer stories into useful social proof.”</p>
               <div className="mt-4 flex gap-1 text-amber-500">{[1,2,3,4,5].map((n) => <Star key={n} className="h-4 w-4 fill-current" />)}</div>
               <div className="mt-4 border-t border-border pt-3 text-[10px] text-muted-foreground">Example testimonial preview</div>
@@ -194,7 +194,7 @@ const Landing = () => {
         <section id="features" className="border-y border-border/70 bg-secondary/40 py-20 md:py-24">
           <div className="container mx-auto">
             <div className="mx-auto mb-12 max-w-2xl text-center">
-              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-orange-800">One simple workflow</div>
+              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#3d4924]">One simple workflow</div>
               <h2 className="mb-4 text-3xl font-semibold tracking-tight sm:text-4xl">From customer feedback to social proof.</h2>
               <p className="text-muted-foreground">Collect stories once, then put them to work across your website and marketing.</p>
             </div>
@@ -207,7 +207,7 @@ const Landing = () => {
                 { icon: BarChart3, title: "Understand", desc: "Track engagement and performance" },
               ].map((feature, index) => (
                 <Card key={feature.title} className="border-border/80 bg-white p-5 transition duration-200 hover:-translate-y-1 hover:shadow-lg">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-800"><feature.icon className="h-5 w-5" /></div>
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-[#f0f7d8] text-[#3d4924]"><feature.icon className="h-5 w-5" /></div>
                   <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Step {index + 1}</div>
                   <h3 className="mb-2 font-semibold">{feature.title}</h3>
                   <p className="text-sm leading-5 text-muted-foreground">{feature.desc}</p>
@@ -245,7 +245,7 @@ const Landing = () => {
 
         <section className="container mx-auto pb-20 md:pb-24">
           <div className="overflow-hidden rounded-3xl border border-border bg-gradient-soft px-6 py-12 text-center sm:px-12 md:py-16">
-            <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-orange-800 shadow-sm"><KudoSpotIcon className="h-5 w-5" /></div>
+            <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3d4924] shadow-sm"><KudoSpotIcon className="h-5 w-5" /></div>
             <h2 className="mb-4 text-3xl font-semibold tracking-tight sm:text-5xl">Make customer love visible.</h2>
             <p className="mx-auto mb-8 max-w-xl text-muted-foreground">Start collecting customer stories and turn them into proof your next customer can trust.</p>
             <Link to="/signup"><Button size="lg" className="h-12 rounded-full px-7">Get started free <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
