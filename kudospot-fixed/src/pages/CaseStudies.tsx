@@ -62,8 +62,8 @@ const CaseStudies = () => {
       setOpen(false); setForm({ client_name: "", context: "", campaign: "", testimonial_ids: [] });
       setActive(data.case_study);
       load();
-    } catch (e: any) {
-      toast.error(e.message || "Generation failed");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally { setGenerating(false); }
   };
 
@@ -76,7 +76,7 @@ const CaseStudies = () => {
     void load();
   };
 
-  const togglePublish = async (cs: any) => {
+  const togglePublish = async (cs: CaseStudy) => {
     if (!user) return;
     const next = !cs.is_published;
     const { error } = await supabase.from("case_studies").update({ is_published: next }).eq("id", cs.id).eq("user_id", user.id);
@@ -86,7 +86,7 @@ const CaseStudies = () => {
     void load();
   };
 
-  const update = async (field: string, value: any) => {
+  const update = (field: "title" | "challenge" | "solution" | "results" | "pull_quote" | "campaign", value: string) => {
     if (!active) return;
     setActive({ ...active, [field]: value });
   };
@@ -229,7 +229,7 @@ const CaseStudies = () => {
                   <span className="text-sm">{active.is_published ? "Public" : "Private"}</span>
                   {active.is_published && (
                     <div className="flex items-center gap-1 ml-auto">
-                      <Button size="sm" variant="outline" onClick={async () => { const copied = await tryCopyText(publicUrl(active.published_slug)); copied ? toast.success("Case study link copied") : toast.error("Clipboard access was blocked. Copy the URL from your browser."); }}><Copy className="h-3.5 w-3.5 mr-1" /> Copy link</Button>
+                      <Button size="sm" variant="outline" onClick={async () => { const copied = await tryCopyText(publicUrl(active.published_slug)); if (copied) { toast.success("Case study link copied"); } else { toast.error("Clipboard access was blocked. Copy the URL from your browser."); } }}><Copy className="h-3.5 w-3.5 mr-1" /> Copy link</Button>
                       <Button size="sm" variant="outline" onClick={() => window.open(publicUrl(active.published_slug), "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5 mr-1" /> Open</Button>
                     </div>
                   )}
