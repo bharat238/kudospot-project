@@ -50,13 +50,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-soft p-4">
+    <div className="flex min-h-dvh items-center justify-center bg-[#eaebef] px-3 py-6 sm:p-4">
       <div className="w-full max-w-md">
-        <Link to="/" className="flex items-center justify-center gap-2 font-bold text-xl mb-8">
+        <Link to="/" className="mb-7 flex items-center justify-center gap-2 font-semibold text-xl text-[#202126]">
           <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-8 w-8" />
           KudoSpot
         </Link>
-        <Card className="p-8 shadow-elevated">
+        <Card className="rounded-[22px] border-[#e6e8ed] bg-white p-5 shadow-[0_8px_30px_rgba(30,34,42,0.07)] sm:p-8">
           <h1 className="text-2xl font-bold mb-1">Welcome back</h1>
           <p className="text-sm text-muted-foreground mb-6">Log in to your dashboard.</p>
 
