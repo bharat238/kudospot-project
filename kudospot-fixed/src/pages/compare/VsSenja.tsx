@@ -94,6 +94,10 @@ const VsSenja = () => {
             </table>
           </div>
 
+          <p className="mt-5 text-xs leading-5 text-muted-foreground">
+            Competitor features and prices checked on 20 October 2026 from Senja's published pricing page. Plans can change; KudoSpot's paid checkout is a one-time 30-day access period, while Senja lists monthly subscriptions. <a href="https://senja.io/pricing" target="_blank" rel="noreferrer" className="underline underline-offset-4">Verify Senja pricing</a>.
+          </p>
+
           {/* Key differentiators */}
           <div className="mt-16 grid md:grid-cols-2 gap-8">
             <div>
