@@ -49,3 +49,19 @@ CREATE POLICY "Public read approved testimonials in published content"
       )
     )
   );
+
+-- Expose only public branding fields for active collection forms. A table-level
+-- profiles SELECT policy would also expose unrelated private billing/account fields.
+CREATE OR REPLACE VIEW public.public_business_profiles
+WITH (security_barrier = true)
+AS
+SELECT p.id AS user_id, p.business_name, p.business_logo_url
+FROM public.profiles AS p
+WHERE EXISTS (
+  SELECT 1
+  FROM public.collection_forms AS f
+  WHERE f.user_id = p.id
+    AND f.is_active = true
+);
+
+GRANT SELECT ON public.public_business_profiles TO anon, authenticated;
