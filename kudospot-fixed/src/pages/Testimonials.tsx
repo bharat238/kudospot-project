@@ -705,13 +705,13 @@ const StatusPill = ({ testimonial }: { testimonial: Testimonial }) => {
     return <span className="inline-flex items-center rounded-full border border-destructive/20 bg-destructive/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-destructive">Declined</span>;
   }
   if (approval_status === "sent") {
-    return <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Awaiting customer</span>;
+    return <span className="inline-flex items-center rounded-full border border-[#e0e8bd] bg-[#f4f8e7] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#58613b]">Awaiting customer</span>;
   }
   if (status === "ai_rewritten" || testimonial.ai_rewritten_text) {
     return <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-foreground">AI rewritten</span>;
   }
   if (status === "approved") {
-    return <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Needs customer approval</span>;
+    return <span className="inline-flex items-center rounded-full border border-[#e0e8bd] bg-[#f4f8e7] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#58613b]">Needs customer approval</span>;
   }
   return <span className="inline-flex items-center rounded-full border border-border bg-secondary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Pending</span>;
 };
