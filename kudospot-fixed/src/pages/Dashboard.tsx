@@ -176,203 +176,148 @@ const Dashboard = () => {
     return <OnboardingWizard onDone={reloadProfile} />;
   }
 
-  const statCards = [
-    { label: "Needs review", value: stats.pending, description: "Ready for your next step", icon: Clock, cardClass: "border-[#c94320] bg-[#c94320] text-white", labelClass: "text-white/85", valueClass: "text-white", descriptionClass: "text-white/80", iconClass: "bg-white/20 text-white" },
-    { label: "AI rewritten", value: stats.rewritten, description: "Ready to review", icon: Sparkles, cardClass: "bg-white text-foreground", labelClass: "text-[#77756f]", valueClass: "text-[#242420]", descriptionClass: "text-[#77756f]", iconClass: "bg-[#f0efeb] text-[#53524c]" },
-    { label: "Customer approved", value: stats.approved, description: "Cleared to showcase", icon: CheckCircle2, cardClass: "bg-white text-foreground", labelClass: "text-[#77756f]", valueClass: "text-[#242420]", descriptionClass: "text-[#77756f]", iconClass: "bg-[#e8f4ed] text-[#27724c]" },
-    { label: "Published widgets", value: stats.publishedWidgets, description: "Showing social proof", icon: PanelsTopLeft, cardClass: "bg-white text-foreground", labelClass: "text-[#77756f]", valueClass: "text-[#242420]", descriptionClass: "text-[#77756f]", iconClass: "bg-[#f9e9e0] text-[#a83a1c]" },
-  ];
-
   const quickActions = [
-    { to: "/collect", title: "Collect feedback", description: "Create or share a form", icon: Inbox, tint: "bg-orange-50 text-orange-700" },
-    { to: "/widgets", title: "Showcase widgets", description: "Display reviews on your site", icon: PanelsTopLeft, tint: "bg-stone-100 text-stone-800" },
-    { to: "/case-studies", title: "Build a case study", description: "Turn a customer win into a story", icon: FileText, tint: "bg-amber-50 text-amber-700" },
-    { to: "/social-posts", title: "Create social content", description: "Prepare a testimonial post", icon: Share2, tint: "bg-emerald-50 text-emerald-700" },
+    { to: "/collect", title: "Collect feedback", description: "Create or share a form", icon: Inbox, tint: "bg-[#f0f7d8] text-[#333e1d]" },
+    { to: "/widgets", title: "Showcase widgets", description: "Display reviews on your site", icon: PanelsTopLeft, tint: "bg-[#f1f2f5] text-[#454953]" },
+    { to: "/case-studies", title: "Build a case study", description: "Turn a customer win into a story", icon: FileText, tint: "bg-[#f1f2f5] text-[#454953]" },
+    { to: "/social-posts", title: "Create social content", description: "Prepare a testimonial post", icon: Share2, tint: "bg-[#f0f7d8] text-[#333e1d]" },
   ];
 
   return (
     <AppShell>
-      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-[0.13em] text-muted-foreground">Workspace overview</div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Good to see you, {displayName}.</h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">Here's the latest on your customer stories and social proof.</p>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#e4e7dd] bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#62675a]">
+            <span className="h-2 w-2 rounded-full bg-[#bbeb43]" /> Workspace overview
+          </div>
+          <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.045em] text-[#202126] sm:text-[36px]">Good morning, {displayName}.</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#777c85]">Stay on top of your customer stories, approvals and published social proof.</p>
         </div>
-        <Link to="/testimonials"><Button className="h-11 rounded-xl px-5"><Plus className="mr-1 h-4 w-4" /> Add testimonial</Button></Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/collect"><Button variant="outline" className="h-10 rounded-full border-[#dfe2e7] bg-white px-4 text-xs font-semibold text-[#333740] hover:bg-[#f4f5f7]"><Inbox className="mr-2 h-4 w-4" />Collect feedback</Button></Link>
+          <Link to="/testimonials"><Button className="h-10 rounded-full bg-[#202126] px-4 text-xs font-semibold text-white hover:bg-[#383b43]"><Plus className="mr-2 h-4 w-4" />Add testimonial</Button></Link>
+        </div>
       </div>
 
-      <section aria-label="Workspace overview" className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <Card className="rounded-[20px] border-[#e7e5e0] bg-white p-5 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-6 xl:col-span-3">
+      <section aria-label="Workspace overview" className="mb-4 grid grid-cols-1 gap-3.5 xl:grid-cols-12">
+        <Card className="min-w-0 rounded-[22px] border-[#e6e8ed] bg-white p-5 shadow-[0_3px_14px_rgba(36,40,50,0.035)] sm:p-6 xl:col-span-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-medium text-[#77756f]">Testimonial library</p>
-              <p className="mt-2 text-[32px] font-semibold leading-none tracking-tight text-[#242420] tabular-nums">{stats.total.toLocaleString()}</p>
-              <p className="mt-2 text-xs text-[#77756f]">Customer stories collected</p>
+              <p className="text-xs font-medium text-[#777c85]">Testimonial library</p>
+              <p className="mt-2 text-[34px] font-semibold leading-none tracking-tight text-[#202126] tabular-nums">{stats.total.toLocaleString()}</p>
+              <p className="mt-2 text-[11px] text-[#777c85]">Stories collected in your workspace</p>
             </div>
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0efeb] text-[#55534d]"><MessageSquareQuote className="h-[17px] w-[17px]" /></span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f0f2f5] text-[#454953]"><MessageSquareQuote className="h-[17px] w-[17px]" /></span>
           </div>
-          <div className="mt-5">
-            <div className="mb-2 flex items-center justify-between gap-2 text-[11px]">
-              <span className="font-medium text-[#55534d]">Customer approval progress</span>
-              <span className="font-semibold tabular-nums text-[#242420]">{stats.total ? Math.round((stats.approved / stats.total) * 100) : 0}%</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#eeede9]">
-              <div className="h-full rounded-full bg-[#e65a30] transition-all" style={{ width: (stats.total ? Math.round((stats.approved / stats.total) * 100) : 0) + "%" }} />
-            </div>
-            <div className="mt-3 flex items-center justify-between text-[11px] text-[#77756f]">
-              <span>{stats.approved} approved</span><span>{stats.total - stats.approved} not approved yet</span>
-            </div>
+          <div className="mt-5 rounded-2xl bg-[#f7f8f4] p-3.5">
+            <div className="mb-2 flex items-center justify-between gap-2"><span className="text-[11px] font-medium text-[#5f6456]">Customer approval progress</span><span className="text-xs font-semibold tabular-nums text-[#252820]">{stats.total ? Math.round((stats.approved / stats.total) * 100) : 0}%</span></div>
+            <div className="h-2 overflow-hidden rounded-full bg-[#e7e9e1]"><div className="h-full rounded-full bg-[#c8f34c] transition-all" style={{ width: (stats.total ? Math.round((stats.approved / stats.total) * 100) : 0) + "%" }} /></div>
+            <div className="mt-2 flex items-center justify-between text-[10px] text-[#777c70]"><span>{stats.approved} approved</span><span>{Math.max(0, stats.total - stats.approved)} remaining</span></div>
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            <Link to="/testimonials" className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-[#242420] px-3 text-xs font-semibold text-white transition hover:bg-[#3a3934]"><MessageSquareQuote className="h-3.5 w-3.5" />Manage stories</Link>
-            <Link to="/collect" className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full border border-[#e4e2dc] bg-white px-3 text-xs font-semibold text-[#484741] transition hover:bg-[#f5f4f1]"><Plus className="h-3.5 w-3.5" />New form</Link>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-xl border border-[#eaecf0] p-3"><span className="flex items-center gap-1.5 text-[10px] font-medium text-[#777c85]"><Clock className="h-3 w-3" />Needs attention</span><p className="mt-1.5 text-xl font-semibold tabular-nums text-[#202126]">{stats.pending.toLocaleString()}</p></div>
+            <div className="rounded-xl border border-[#eaecf0] p-3"><span className="flex items-center gap-1.5 text-[10px] font-medium text-[#777c85]"><Sparkles className="h-3 w-3" />AI rewritten</span><p className="mt-1.5 text-xl font-semibold tabular-nums text-[#202126]">{stats.rewritten.toLocaleString()}</p></div>
           </div>
+          <Link to="/testimonials" className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#333b20] underline decoration-[#c4e969] decoration-2 underline-offset-4 hover:text-[#11130e">Review testimonial library <ArrowRight className="h-3.5 w-3.5" /></Link>
         </Card>
 
-        <div className="grid grid-cols-2 gap-3 xl:col-span-4">
-          {statCards.map((stat) => (
-            <Card key={stat.label} className={"min-w-0 rounded-[18px] border-[#e7e5e0] p-4 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-5 " + stat.cardClass}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className={"text-[11px] font-medium leading-4 sm:text-xs " + stat.labelClass}>{stat.label}</p>
-                  <div className={"mt-2 text-[26px] font-semibold leading-none tracking-tight tabular-nums sm:text-[30px] " + stat.valueClass}>{stat.value.toLocaleString()}</div>
-                </div>
-                <div className={"flex h-8 w-8 shrink-0 items-center justify-center rounded-xl " + stat.iconClass}><stat.icon className="h-4 w-4" /></div>
-              </div>
-              <p className={"mt-2 text-[10px] leading-4 sm:text-[11px] " + stat.descriptionClass}>{stat.description}</p>
-            </Card>
-          ))}
-        </div>
-
-        <Card className="min-w-0 overflow-hidden rounded-[20px] border-[#e7e5e0] bg-white p-4 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-5 xl:col-span-5">
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h2 className="text-base font-semibold text-[#242420]">Collection activity</h2>
-              <p className="mt-1 text-[11px] text-[#77756f] sm:text-xs">Testimonials collected vs customer-approved</p>
+        <Card className="min-w-0 overflow-hidden rounded-[22px] border-[#e6e8ed] bg-white p-5 shadow-[0_3px_14px_rgba(36,40,50,0.035)] sm:p-6 xl:col-span-6">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-[#202126]">Collection activity</h2><p className="mt-1 text-[11px] leading-5 text-[#777c85] sm:text-xs">Compare customer stories collected with those approved over time.</p></div><span className="rounded-full border border-[#e7e9ed] bg-[#fafbfc] px-3 py-1.5 text-[10px] font-medium text-[#777c85]">Last 6 months</span></div>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-0 flex flex-col justify-between pb-7 pt-1" aria-hidden="true"><div className="border-t border-dashed border-[#eceef1]" /><div className="border-t border-dashed border-[#eceef1]" /><div className="border-t border-dashed border-[#eceef1]" /><div className="border-t border-[#e7e9ed]" /></div>
+            <div role="img" aria-label="Bar chart comparing testimonials collected and approved over the last six months" className="relative grid h-[170px] grid-cols-6 gap-2 px-1 sm:gap-4">
+              {monthlyActivity.map((month) => (
+                <div key={month.label} className="flex min-w-0 flex-col items-center justify-end"><div className="flex h-[138px] w-full max-w-[48px] items-end justify-center gap-1.5"><div title={month.collected + " collected"} className="w-[42%] rounded-t-md bg-[#26282e] transition-all" style={{ height: Math.max(3, (month.collected / chartMax) * 100) + "%" }} /><div title={month.approved + " approved"} className="w-[42%] rounded-t-md bg-[#c8f34c] transition-all" style={{ height: Math.max(3, (month.approved / chartMax) * 100) + "%" }} /></div><span className="mt-2 pb-1 text-[10px] text-[#777c85]">{month.label}</span></div>
+              ))}
             </div>
-            <span className="rounded-full border border-[#e7e5e0] bg-[#f8f7f4] px-3 py-1.5 text-[10px] font-medium text-[#68665f]">Last 6 months</span>
           </div>
-          <div role="img" aria-label="Bar chart comparing testimonials collected and approved over the last six months" className="grid h-[150px] grid-cols-6 gap-2 border-b border-[#eceae6] px-1 sm:gap-3">
-            {monthlyActivity.map((month) => (
-              <div key={month.label} className="flex min-w-0 flex-col items-center justify-end">
-                <div className="flex h-[118px] w-full max-w-[44px] items-end justify-center gap-1">
-                  <div title={month.collected + " collected"} className="w-[42%] rounded-t-md bg-[#292925] transition-all" style={{ height: Math.max(3, (month.collected / chartMax) * 100) + "%" }} />
-                  <div title={month.approved + " approved"} className="w-[42%] rounded-t-md bg-[#e65a30] transition-all" style={{ height: Math.max(3, (month.approved / chartMax) * 100) + "%" }} />
-                </div>
-                <span className="mt-2 pb-2 text-[10px] text-[#77756f]">{month.label}</span>
-              </div>
-            ))}
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#eff0f3] pt-3 text-[10px] text-[#686d77] sm:text-[11px]"><span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#26282e]" />Collected ({stats.total})</span><span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#c8f34c]" />Customer approved ({stats.approved})</span><span className="ml-auto inline-flex items-center gap-1.5 text-[#777c85]"><TrendingUp className="h-3 w-3" />From your account</span></div>
+        </Card>
+
+        <Card className="min-w-0 rounded-[22px] border-[#e6e8ed] bg-white p-5 shadow-[0_3px_14px_rgba(36,40,50,0.035)] sm:p-6 xl:col-span-3">
+          <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-[#202126]">Workflow progress</h2><p className="mt-1 text-[11px] text-[#777c85]">Your proof, at a glance</p></div><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#eaffae] text-[#29321a]"><CheckCircle2 className="h-4 w-4" /></span></div>
+          <div className="space-y-1">
+            <Link to="/testimonials" className="flex items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-[#f7f8f5]"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#fff5d6] text-[#78682a]"><Clock className="h-3.5 w-3.5" /></span><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-[#30333a]">Needs attention</span><span className="mt-1 block text-[10px] text-[#777c85]">Testimonials awaiting your next step</span></span><span className="text-sm font-semibold tabular-nums text-[#202126]">{stats.pending}</span></Link>
+            <div className="border-t border-[#eff0f3]" />
+            <Link to="/collect" className="flex items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-[#f7f8f5]"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eff6d7] text-[#3b4923]"><Inbox className="h-3.5 w-3.5" /></span><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-[#30333a]">Active forms</span><span className="mt-1 block text-[10px] text-[#777c85]">Links ready to share</span></span><span className="text-sm font-semibold tabular-nums text-[#202126]">{stats.activeForms}</span></Link>
+            <div className="border-t border-[#eff0f3]" />
+            <Link to="/widgets" className="flex items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-[#f7f8f5]"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef0f4] text-[#484c55]"><PanelsTopLeft className="h-3.5 w-3.5" /></span><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-[#30333a]">Published widgets</span><span className="mt-1 block text-[10px] text-[#777c85]">Website-ready social proof</span></span><span className="text-sm font-semibold tabular-nums text-[#202126]">{stats.publishedWidgets}</span></Link>
+            <div className="border-t border-[#eff0f3]" />
+            <Link to="/analytics" className="flex items-center gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-[#f7f8f5]"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eff6d7] text-[#3b4923]"><MousePointerClick className="h-3.5 w-3.5" /></span><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-[#30333a]">Widget interactions</span><span className="mt-1 block text-[10px] text-[#777c85]">Tracked views and clicks</span></span><span className="text-sm font-semibold tabular-nums text-[#202126]">{stats.widgetClicks.toLocaleString()}</span></Link>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-[#68665f] sm:text-[11px]">
-            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#292925]" />Collected ({stats.total})</span>
-            <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-sm bg-[#e65a30]" />Approved ({stats.approved})</span>
-            <span className="ml-auto inline-flex items-center gap-1 text-[#77756f]"><TrendingUp className="h-3 w-3" />Live account totals</span>
-          </div>
+          <Link to="/analytics" className="mt-3 flex h-9 items-center justify-center gap-2 rounded-full border border-[#e6e8ed] bg-[#fafbfc] text-xs font-semibold text-[#444851] transition-colors hover:bg-[#f1f2f4]">View analytics <ArrowRight className="h-3.5 w-3.5" /></Link>
         </Card>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <div className="space-y-4 xl:col-span-4">
-          <Card className="rounded-[20px] border-[#e7e5e0] bg-white p-5 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-6">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div><h2 className="text-base font-semibold text-[#242420]">Active collection form</h2><p className="mt-1 text-[11px] text-[#77756f]">Share a link to collect customer feedback</p></div>
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff0e9] text-[#a83a1c]"><Inbox className="h-4 w-4" /></span>
-            </div>
-            {activeForm ? (
-              <>
-                <div className="mb-3 flex items-center justify-between gap-3"><span className="truncate text-sm font-semibold text-[#34332f]">{activeForm.form_name || "Customer feedback form"}</span><span className="rounded-full bg-[#e8f4ed] px-2 py-1 text-[10px] font-semibold text-[#27724c]">Active</span></div>
-                {collectionUrl && <div className="mb-4 rounded-xl border border-[#e7e5e0] bg-[#f8f7f4] px-3 py-2.5 text-[11px] text-[#77756f] break-all">{collectionUrl.replace(/^https?:\/\//, "")}</div>}
-                <div className="flex gap-2"><Button size="sm" className="h-9 flex-1 rounded-full bg-[#242420] text-white hover:bg-[#3a3934]" onClick={copyCollectionUrl}><Copy className="mr-1 h-3.5 w-3.5" />Copy link</Button><Button size="sm" variant="outline" className="h-9 rounded-full border-[#e4e2dc]" asChild><a href={collectionUrl || "/collect"} target="_blank" rel="noreferrer"><ExternalLink className="mr-1 h-3.5 w-3.5" />Open</a></Button></div>
-              </>
-            ) : (
-              <div className="rounded-xl border border-dashed border-[#dedcd7] bg-[#faf9f7] px-4 py-5 text-center"><p className="text-sm font-medium text-[#34332f]">No collection form yet</p><p className="mt-1 text-xs leading-5 text-[#77756f]">Create a shareable form to start gathering feedback.</p><Link to="/collect"><Button size="sm" className="mt-4 rounded-full bg-[#242420] text-white hover:bg-[#3a3934]"><Plus className="mr-1 h-3.5 w-3.5" />Create form</Button></Link></div>
-            )}
-          </Card>
+      <section className="grid grid-cols-1 gap-3.5 xl:grid-cols-12">
+        <Card className="min-w-0 rounded-[22px] border-[#e6e8ed] bg-white p-5 shadow-[0_3px_14px_rgba(36,40,50,0.035)] sm:p-6 xl:col-span-4">
+          <div className="mb-4 flex items-start justify-between gap-3"><div><h2 className="text-base font-semibold text-[#202126]">Collection form</h2><p className="mt-1 text-[11px] leading-5 text-[#777c85]">A shareable link customers can use to send feedback.</p></div><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eaffae] text-[#2e391b]"><Heart className="h-4 w-4" /></span></div>
+          {activeForm ? (
+            <>
+              <div className="mb-3 flex items-center justify-between gap-3"><span className="truncate text-sm font-semibold text-[#30333a]">{activeForm.form_name || "Customer feedback form"}</span><span className="rounded-full bg-[#eaffae] px-2.5 py-1 text-[10px] font-semibold text-[#333d21]">Active</span></div>
+              {collectionUrl && <div className="mb-4 rounded-xl border border-[#e8eaed] bg-[#f7f8fa] px-3 py-2.5 text-[11px] text-[#696e78] break-all">{collectionUrl.replace(/^https?:\/\//, "")}</div>}
+              <div className="flex gap-2"><Button size="sm" className="h-9 flex-1 rounded-full bg-[#202126] text-white hover:bg-[#383b43]" onClick={copyCollectionUrl}><Copy className="mr-1.5 h-3.5 w-3.5" />Copy form link</Button><Button size="sm" variant="outline" className="h-9 rounded-full border-[#e1e4e9]" asChild><a href={collectionUrl || "/collect"} target="_blank" rel="noreferrer"><ExternalLink className="mr-1.5 h-3.5 w-3.5" />Open</a></Button></div>
+            </>
+          ) : (
+            <div className="rounded-xl border border-dashed border-[#dfe2e7] bg-[#fafbfc] px-4 py-6 text-center"><p className="text-sm font-medium text-[#30333a]">No collection form yet</p><p className="mt-1 text-xs leading-5 text-[#777c85]">Create a form to start gathering real customer stories.</p><Link to="/collect"><Button size="sm" className="mt-4 rounded-full bg-[#202126] text-white hover:bg-[#383b43]"><Plus className="mr-1.5 h-3.5 w-3.5" />Create form</Button></Link></div>
+          )}
+          <div className="mt-5 border-t border-[#eef0f3] pt-4"><div className="mb-3 flex items-center justify-between"><p className="text-xs font-semibold text-[#3b3e45]">Quick actions</p><ArrowUpRight className="h-4 w-4 text-[#7f848d]" /></div><div className="space-y-1">
+            {quickActions.map((action) => (<Link key={action.to} to={action.to} className="group flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-[#f5f6f3]"><span className={"flex h-8 w-8 shrink-0 items-center justify-center rounded-lg " + action.tint}><action.icon className="h-3.5 w-3.5" /></span><span className="min-w-0 flex-1"><span className="block text-[11px] font-semibold text-[#30333a]">{action.title}</span><span className="mt-0.5 block text-[10px] text-[#777c85]">{action.description}</span></span><ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#888d96] transition group-hover:translate-x-0.5" /></Link>))}
+          </div></div>
+        </Card>
 
-          <Card className="rounded-[20px] border-[#e7e5e0] bg-white p-5 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-6">
-            <div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-[#242420]">Quick actions</h2><p className="mt-1 text-[11px] text-[#77756f]">Keep customer proof moving</p></div><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0efeb] text-[#55534d]"><ArrowUpRight className="h-4 w-4" /></span></div>
-            <div className="space-y-1">
-              {quickActions.map((action) => (
-                <Link key={action.to} to={action.to} className="group flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-[#f6f5f2]">
-                  <span className={"flex h-9 w-9 shrink-0 items-center justify-center rounded-xl " + action.tint}><action.icon className="h-4 w-4" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-[#34332f]">{action.title}</span><span className="mt-0.5 block text-[10px] text-[#77756f]">{action.description}</span></span>
-                  <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#85827b] transition group-hover:translate-x-0.5" />
-                </Link>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="rounded-[20px] border-[#e7e5e0] bg-white p-5 shadow-[0_2px_8px_rgba(25,24,20,0.035)] sm:p-6">
-            <div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-[#242420]">Published social proof</h2><p className="mt-1 text-[11px] text-[#77756f]">Your stories in use</p></div><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff0e9] text-[#a83a1c]"><Heart className="h-4 w-4" /></span></div>
-            <div className="divide-y divide-[#eeece7]">
-              <Link to="/widgets" className="flex items-center justify-between gap-3 py-3 first:pt-0"><span className="flex items-center gap-2 text-xs text-[#68665f]"><PanelsTopLeft className="h-4 w-4" />Published widgets</span><span className="text-sm font-semibold tabular-nums text-[#242420]">{stats.publishedWidgets}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-[#85827b]" /></span></Link>
-              <Link to="/case-studies" className="flex items-center justify-between gap-3 py-3"><span className="flex items-center gap-2 text-xs text-[#68665f]"><FileText className="h-4 w-4" />Published case studies</span><span className="text-sm font-semibold tabular-nums text-[#242420]">{stats.publishedCaseStudies}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-[#85827b]" /></span></Link>
-              <Link to="/social-posts" className="flex items-center justify-between gap-3 py-3 last:pb-0"><span className="flex items-center gap-2 text-xs text-[#68665f]"><Share2 className="h-4 w-4" />Social posts created</span><span className="text-sm font-semibold tabular-nums text-[#242420]">{stats.socialPostCount}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-[#85827b]" /></span></Link>
-              <Link to="/analytics" className="flex items-center justify-between gap-3 py-3 last:pb-0"><span className="flex items-center gap-2 text-xs text-[#68665f]"><MousePointerClick className="h-4 w-4" />Widget views / clicks</span><span className="text-sm font-semibold tabular-nums text-[#242420]">{stats.widgetViews.toLocaleString()} / {stats.widgetClicks.toLocaleString()}<ArrowRight className="ml-1 inline h-3.5 w-3.5 text-[#85827b]" /></span></Link>
-            </div>
-          </Card>
-        </div>
-
-        <Card className="min-w-0 overflow-hidden rounded-[20px] border-[#e7e5e0] bg-white shadow-[0_2px_8px_rgba(25,24,20,0.035)] xl:col-span-8">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eceae6] px-5 py-4 sm:px-6">
-            <div><h2 className="text-base font-semibold text-[#242420] sm:text-lg">Recent testimonials</h2><p className="mt-1 text-[11px] text-[#77756f] sm:text-xs">Latest customer feedback and its approval status</p></div>
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-              <label className="flex h-9 min-w-[150px] flex-1 items-center gap-2 rounded-full border border-[#e7e5e0] bg-white px-3 text-[#85827b] sm:min-w-[175px] sm:flex-none">
-                <Search className="h-3.5 w-3.5 shrink-0" />
-                <input aria-label="Search recent testimonials" value={recentSearch} onChange={(event) => setRecentSearch(event.target.value)} placeholder="Search testimonials" className="min-w-0 w-full bg-transparent text-[11px] text-[#34332f] outline-none placeholder:text-[#96938c]" />
-              </label>
-              <label className="flex h-9 items-center gap-1.5 rounded-full border border-[#e7e5e0] bg-white pl-3 pr-2 text-[#77756f]">
-                <Filter className="h-3.5 w-3.5 shrink-0" />
-                <select aria-label="Filter testimonials by status" value={recentStatus} onChange={(event) => setRecentStatus(event.target.value)} className="max-w-[120px] bg-transparent py-1 text-[11px] font-medium text-[#484741] outline-none">
-                  <option value="all">All statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="ai_rewritten">AI rewritten</option>
-                  <option value="approved">Approved</option>
-                  <option value="published">Published</option>
-                  <option value="declined">Declined</option>
-                </select>
-              </label>
-              <Link to="/testimonials" className="inline-flex h-9 items-center gap-1 rounded-full border border-[#e7e5e0] bg-white px-3 text-[11px] font-semibold text-[#484741] transition hover:bg-[#f5f4f1]">View all <ArrowRight className="h-3.5 w-3.5" /></Link>
+        <Card className="min-w-0 overflow-hidden rounded-[22px] border-[#e6e8ed] bg-white shadow-[0_3px_14px_rgba(36,40,50,0.035)] xl:col-span-5">
+          <div className="flex flex-col gap-3 border-b border-[#eceef2] px-5 py-4 sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-[#202126] sm:text-lg">Recent testimonials</h2><p className="mt-1 text-[11px] text-[#777c85] sm:text-xs">Latest feedback from your workspace</p></div><Link to="/testimonials" className="inline-flex h-8 items-center gap-1 rounded-full border border-[#e7e9ed] bg-white px-3 text-[10px] font-semibold text-[#444851] transition hover:bg-[#f4f5f7]">View all <ArrowRight className="h-3.5 w-3.5" /></Link></div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex h-9 min-w-[145px] flex-1 items-center gap-2 rounded-full border border-[#e7e9ed] bg-[#fbfbfc] px-3 text-[#858a94] sm:min-w-[170px]"><Search className="h-3.5 w-3.5 shrink-0" /><input aria-label="Search recent testimonials" value={recentSearch} onChange={(event) => setRecentSearch(event.target.value)} placeholder="Search stories" className="min-w-0 w-full bg-transparent text-[11px] text-[#343740] outline-none placeholder:text-[#969ba4]" /></label>
+              <label className="flex h-9 items-center gap-1.5 rounded-full border border-[#e7e9ed] bg-white pl-3 pr-2 text-[#777c85]"><Filter className="h-3.5 w-3.5 shrink-0" /><select aria-label="Filter testimonials by status" value={recentStatus} onChange={(event) => setRecentStatus(event.target.value)} className="max-w-[120px] bg-transparent py-1 text-[11px] font-medium text-[#484c55] outline-none"><option value="all">All statuses</option><option value="pending">Pending</option><option value="ai_rewritten">AI rewritten</option><option value="approved">Approved</option><option value="published">Published</option><option value="declined">Declined</option></select></label>
             </div>
           </div>
           {testimonials.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff0e9] text-[#a83a1c]"><MessageSquareQuote className="h-5 w-5" /></div>
-              <p className="font-medium text-[#34332f]">Your first customer story starts here.</p>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-[#77756f]">Add a testimonial or create a collection form to start building your social proof library.</p>
-              <div className="mt-5 flex flex-wrap justify-center gap-2"><Link to="/testimonials"><Button size="sm" className="rounded-full bg-[#242420] text-white hover:bg-[#3a3934]"><Plus className="mr-1 h-3.5 w-3.5" />Add testimonial</Button></Link><Link to="/collect"><Button size="sm" variant="outline" className="rounded-full border-[#e4e2dc]">Create a form</Button></Link></div>
-            </div>
+            <div className="px-6 py-12 text-center"><div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaffae] text-[#29321a]"><MessageSquareQuote className="h-5 w-5" /></div><p className="font-medium text-[#30333a]">Your first customer story starts here.</p><p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-[#777c85]">Add a testimonial or create a collection form to start building your social-proof library.</p><div className="mt-5 flex flex-wrap justify-center gap-2"><Link to="/testimonials"><Button size="sm" className="rounded-full bg-[#202126] text-white hover:bg-[#383b43]"><Plus className="mr-1.5 h-3.5 w-3.5" />Add testimonial</Button></Link><Link to="/collect"><Button size="sm" variant="outline" className="rounded-full border-[#e1e4e9]">Create a form</Button></Link></div></div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[580px] border-collapse text-left">
-                <thead><tr className="bg-[#f7f6f3] text-[10px] font-medium uppercase tracking-[0.1em] text-[#77756f]"><th className="px-5 py-3 sm:px-6">Customer</th><th className="px-4 py-3">Feedback</th><th className="px-4 py-3">Added</th><th className="px-5 py-3 sm:px-6">Status</th></tr></thead>
-                <tbody>
-                  {recentRows.length === 0 ? <tr><td colSpan={4} className="px-5 py-10 text-center text-xs text-[#77756f]">{recentSearch || recentStatus !== "all" ? "No testimonials match these filters." : "No testimonials yet."}</td></tr> : recentRows.map((item) => (
-                    <tr key={item.id} className="border-t border-[#eeece7] align-middle transition hover:bg-[#faf9f7]">
-                      <td className="px-5 py-3 sm:px-6"><div className="flex items-center gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#fff0e9] text-xs font-semibold text-[#a83a1c]">{item.customer_name?.trim()?.[0]?.toUpperCase() || "?"}</span><div className="min-w-0"><div className="max-w-[150px] truncate text-xs font-semibold text-[#34332f]">{item.customer_name || "Customer"}</div><div className="max-w-[150px] truncate text-[10px] text-[#77756f]">{[item.customer_role, item.customer_company].filter(Boolean).join(" · ") || "Customer"}</div></div></div></td>
-                      <td className="max-w-[260px] px-4 py-3"><p className="line-clamp-2 text-xs leading-5 text-[#68665f]">{item.approved_text || item.ai_rewritten_text || item.original_text}</p></td>
-                      <td className="whitespace-nowrap px-4 py-3 text-[10px] text-[#77756f]">{new Date(item.created_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</td>
-                      <td className="px-5 py-3 sm:px-6"><StatusBadge status={item.status} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <div className="overflow-x-auto"><table className="w-full min-w-[490px] border-collapse text-left">
+              <thead><tr className="bg-[#f7f8fa] text-[10px] font-medium uppercase tracking-[0.1em] text-[#777c85]"><th className="px-4 py-3 sm:px-5">Customer</th><th className="px-3 py-3">Feedback</th><th className="px-3 py-3">Added</th><th className="px-4 py-3 sm:px-5">Status</th></tr></thead>
+              <tbody>
+                {recentRows.length === 0 ? <tr><td colSpan={4} className="px-5 py-10 text-center text-xs text-[#777c85]">{recentSearch || recentStatus !== "all" ? "No testimonials match these filters." : "No testimonials yet."}</td></tr> : recentRows.slice(0, 8).map((item) => (
+                  <tr key={item.id} className="border-t border-[#eff0f3] align-middle transition hover:bg-[#fafbfc]">
+                    <td className="px-4 py-3 sm:px-5"><div className="flex items-center gap-2"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef0f3] text-xs font-semibold text-[#383b43]">{item.customer_name?.trim()?.[0]?.toUpperCase() || "?"}</span><div className="min-w-0"><div className="max-w-[120px] truncate text-[11px] font-semibold text-[#30333a]">{item.customer_name || "Customer"}</div><div className="max-w-[120px] truncate text-[10px] text-[#858a94]">{[item.customer_role, item.customer_company].filter(Boolean).join(" · ") || "Customer"}</div></div></div></td>
+                    <td className="max-w-[190px] px-3 py-3"><p className="line-clamp-2 text-[11px] leading-5 text-[#696e78]">{item.approved_text || item.ai_rewritten_text || item.original_text}</p></td>
+                    <td className="whitespace-nowrap px-3 py-3 text-[10px] text-[#858a94]">{new Date(item.created_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</td>
+                    <td className="px-4 py-3 sm:px-5"><StatusBadge status={item.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
           )}
+        </Card>
+
+        <Card className="min-w-0 rounded-[22px] border-[#e6e8ed] bg-white p-5 shadow-[0_3px_14px_rgba(36,40,50,0.035)] sm:p-6 xl:col-span-3">
+          <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-[#202126]">Published proof</h2><p className="mt-1 text-[11px] text-[#777c85]">Content ready to showcase</p></div><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eaffae] text-[#29321a]"><Heart className="h-4 w-4" /></span></div>
+          <div className="space-y-3">
+            <Link to="/widgets" className="flex items-center gap-3 rounded-xl border border-[#eaecf0] p-3 transition-colors hover:bg-[#fafbfc]"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f0f2f5] text-[#454953]"><PanelsTopLeft className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-[11px] font-semibold text-[#30333a]">Widgets published</span><span className="mt-1 block text-[10px] text-[#777c85]">Website embeds</span></span><span className="text-lg font-semibold tabular-nums text-[#202126]">{stats.publishedWidgets}</span></Link>
+            <Link to="/case-studies" className="flex items-center gap-3 rounded-xl border border-[#eaecf0] p-3 transition-colors hover:bg-[#fafbfc]"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f0f2f5] text-[#454953]"><FileText className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-[11px] font-semibold text-[#30333a]">Case studies</span><span className="mt-1 block text-[10px] text-[#777c85]">Customer success stories</span></span><span className="text-lg font-semibold tabular-nums text-[#202126]">{stats.publishedCaseStudies}</span></Link>
+            <Link to="/social-posts" className="flex items-center gap-3 rounded-xl border border-[#eaecf0] p-3 transition-colors hover:bg-[#fafbfc]"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f0f7d8] text-[#3c481e]"><Share2 className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-[11px] font-semibold text-[#30333a]">Social posts</span><span className="mt-1 block text-[10px] text-[#777c85]">Content created</span></span><span className="text-lg font-semibold tabular-nums text-[#202126]">{stats.socialPostCount}</span></Link>
+          </div>
+          <div className="mt-4 rounded-xl bg-[#f7f8f4] p-3.5"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#777c70]">Widget activity</p><div className="mt-2 flex items-end justify-between gap-2"><div><p className="text-2xl font-semibold leading-none tabular-nums text-[#202126]">{stats.widgetViews.toLocaleString()}</p><p className="mt-1.5 text-[10px] text-[#777c85]">Total views</p></div><div className="text-right"><p className="text-lg font-semibold leading-none tabular-nums text-[#202126]">{stats.widgetClicks.toLocaleString()}</p><p className="mt-1.5 text-[10px] text-[#777c85]">Clicks</p></div></div></div>
+          <Link to="/analytics" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#3d4825] underline decoration-[#c8f34c] decoration-2 underline-offset-4">See performance <ArrowRight className="h-3.5 w-3.5" /></Link>
         </Card>
       </section>
     </AppShell>
   );
 };
 
+};
+
 const StatusBadge = ({ status }: { status: string }) => {
   const map: Record<string, { label: string; className: string }> = {
-    pending: { label: "Pending", className: "border-amber-200 bg-amber-50 text-amber-800" },
-    ai_rewritten: { label: "AI rewritten", className: "border-stone-200 bg-stone-100 text-stone-800" },
-    approved: { label: "Approved", className: "border-emerald-200 bg-emerald-50 text-emerald-800" },
-    published: { label: "Published", className: "border-emerald-200 bg-emerald-50 text-emerald-800" },
-    rejected: { label: "Rejected", className: "border-rose-200 bg-rose-50 text-rose-800" },
-    declined: { label: "Declined", className: "border-rose-200 bg-rose-50 text-rose-800" },
+    pending: { label: "Pending", className: "border-[#f0e3a5] bg-[#fff8d8] text-[#695b21]" },
+    ai_rewritten: { label: "AI rewritten", className: "border-[#e6e8ed] bg-[#f1f2f5] text-[#50545e]" },
+    approved: { label: "Approved", className: "border-[#d6e8aa] bg-[#f0f8d9] text-[#3d4b22]" },
+    published: { label: "Published", className: "border-[#d6e8aa] bg-[#f0f8d9] text-[#3d4b22]" },
+    rejected: { label: "Rejected", className: "border-[#f0d4d8] bg-[#fff0f2] text-[#9f3343]" },
+    declined: { label: "Declined", className: "border-[#f0d4d8] bg-[#fff0f2] text-[#9f3343]" },
   };
   const badge = map[status] || map.pending;
   return <span className={`inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-semibold ${badge.className}`}>{badge.label}</span>;
