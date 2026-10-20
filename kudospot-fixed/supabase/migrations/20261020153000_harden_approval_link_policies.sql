@@ -65,3 +65,7 @@ WHERE EXISTS (
 );
 
 GRANT SELECT ON public.public_business_profiles TO anon, authenticated;
+
+-- Public submission notifications must be tied to a real testimonial and sent at most once.
+ALTER TABLE public.testimonials
+  ADD COLUMN IF NOT EXISTS owner_notification_sent_at timestamptz;
