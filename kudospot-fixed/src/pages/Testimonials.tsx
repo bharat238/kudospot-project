@@ -171,11 +171,13 @@ const Testimonials = () => {
       // Send via email when the customer has an address and an AI-assisted draft is ready.
       if (t.customer_email) {
         const { data: emailData, error: emailError } = await supabase.functions.invoke("send-approval-email", {
-          body: { testimonial_id: t.id },
+          body: { testimonial_id: t.id, resend: Boolean(opts?.resend) },
         });
 
         if (!emailError) {
-          trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
+          if (emailData?.email_sent !== false) {
+            trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
+          }
           if (!opts?.silent) {
             if (emailData?.email_sent === false) {
               if (emailData?.approval_url) await tryCopyText(emailData.approval_url);
