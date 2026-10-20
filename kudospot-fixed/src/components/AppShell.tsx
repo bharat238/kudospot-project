@@ -1,7 +1,7 @@
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, MessageSquareQuote, LogOut, Settings, Inbox, LayoutGrid,
-  FileText, Share2, BarChart3, Menu, Zap, LifeBuoy, PanelLeft
+  FileText, Share2, BarChart3, Menu, Zap, LifeBuoy
 } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
