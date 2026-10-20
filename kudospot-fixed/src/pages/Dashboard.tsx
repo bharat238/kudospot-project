@@ -13,6 +13,13 @@ import {
 import { OnboardingWizard } from "@/components/OnboardingWizard";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { toast } from "sonner";
+import type { Tables } from "@/integrations/supabase/types";
+
+type DashboardForm = Pick<Tables<"collection_forms">, "id" | "form_name" | "public_slug" | "is_active" | "created_at">;
+type DashboardWidget = Pick<Tables<"widgets">, "id" | "widget_name" | "is_published" | "views" | "clicks">;
+type DashboardCaseStudy = Pick<Tables<"case_studies">, "id" | "title" | "is_published" | "views">;
+type DashboardSocialPost = Pick<Tables<"social_posts">, "id" | "status" | "created_at">;
+type DashboardProfile = Pick<Tables<"profiles">, "full_name" | "business_name" | "onboarding_completed">;
 
 type Testimonial = {
   id: string;
@@ -32,11 +39,11 @@ type Testimonial = {
 const Dashboard = () => {
   const { user } = useAuth();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [forms, setForms] = useState<any[]>([]);
-  const [widgets, setWidgets] = useState<any[]>([]);
-  const [caseStudies, setCaseStudies] = useState<any[]>([]);
-  const [socialPosts, setSocialPosts] = useState<any[]>([]);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [forms, setForms] = useState<DashboardForm[]>([]);
+  const [widgets, setWidgets] = useState<DashboardWidget[]>([]);
+  const [caseStudies, setCaseStudies] = useState<DashboardCaseStudy[]>([]);
+  const [socialPosts, setSocialPosts] = useState<DashboardSocialPost[]>([]);
+  const [profile, setProfile] = useState<DashboardProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
