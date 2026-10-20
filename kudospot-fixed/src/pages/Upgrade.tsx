@@ -8,8 +8,31 @@ import { toast } from "sonner";
 import { Check, Zap, Loader2, Star } from "lucide-react";
 import { PLAN_CATALOG } from "@/config/planCatalog";
 
+type RazorpayPaymentResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayCheckoutOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill: { email?: string | null };
+  theme: { color: string };
+  handler: (response: RazorpayPaymentResponse) => void | Promise<void>;
+  modal: { ondismiss: () => void };
+};
+
+type RazorpayCheckoutInstance = { open: () => void };
+
 declare global {
-  interface Window { Razorpay: any; }
+  interface Window {
+    Razorpay?: new (options: RazorpayCheckoutOptions) => RazorpayCheckoutInstance;
+  }
 }
 
 const PLANS = PLAN_CATALOG;
@@ -107,7 +130,7 @@ export default function Upgrade() {
         order_id: data.order_id,
         prefill: { email: user.email },
         theme: { color: "#C94320" },
-        handler: async (response: any) => {
+        handler: async (response: RazorpayPaymentResponse) => {
           const { error: verifyError, data: verifyData } = await supabase.functions.invoke("verify-razorpay-payment", {
             body: {
               razorpay_order_id: response.razorpay_order_id,
@@ -136,8 +159,8 @@ export default function Upgrade() {
 
       const rzp = new window.Razorpay(options);
       rzp.open();
-    } catch (e: any) {
-      toast.error(e.message || "Unexpected error");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Unexpected error");
       setLoadingPlan(null);
     }
   };
