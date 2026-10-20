@@ -36,20 +36,20 @@ const Approve = () => {
 
   return (
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center", 
-    justifyContent:"center",background:"#faf5ff"}}>
+    justifyContent:"center",background:"#f4f4f3"}}>
       <div style={{textAlign:"center",padding:"48px 32px",background:"white", 
       borderRadius:"16px",boxShadow:"0 4px 24px rgba(124,58,237,0.08)", 
       maxWidth:"480px",width:"100%"}}>
         {state === "loading" && (
           <>
             <div style={{fontSize:"48px",marginBottom:"16px"}}>⏳</div>
-            <h2 style={{color:"#7C3AED"}}>Processing your approval...</h2>
+            <h2 style={{color:"#C94320"}}>Processing your approval...</h2>
           </>
         )}
         {state === "success" && (
           <>
             <div style={{fontSize:"64px",marginBottom:"16px"}}>✅</div>
-            <h2 style={{color:"#7C3AED",marginBottom:"12px"}}>
+            <h2 style={{color:"#C94320",marginBottom:"12px"}}>
             Thank you, {name}!</h2>
             <p style={{color:"#666",lineHeight:"1.6"}}>
             Your testimonial has been approved and will be published soon. 
@@ -59,7 +59,7 @@ const Approve = () => {
         {state === "already" && (
           <>
             <div style={{fontSize:"64px",marginBottom:"16px"}}>👍</div>
-            <h2 style={{color:"#7C3AED",marginBottom:"12px"}}>
+            <h2 style={{color:"#C94320",marginBottom:"12px"}}>
             Already approved!</h2>
             <p style={{color:"#666"}}>
             You already approved this testimonial. Thank you, {name}!</p>
