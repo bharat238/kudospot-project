@@ -50,13 +50,13 @@ export const QRCodeModal = ({
     ctx.fillStyle = "#FFFFFF"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height); 
  
-    ctx.fillStyle = "#C94320"; 
+    ctx.fillStyle = "#C8F34C"; 
     ctx.fillRect(0, 0, canvas.width, 6); 
  
     const qrSize = size - 60; 
     ctx.drawImage(sourceCanvas, 30, 20, qrSize, qrSize); 
  
-    ctx.fillStyle = "#C94320"; 
+    ctx.fillStyle = "#202126"; 
     ctx.font = "bold 20px sans-serif"; 
     ctx.textAlign = "center"; 
     ctx.fillText(formName, size / 2, size + 30); 
@@ -65,7 +65,7 @@ export const QRCodeModal = ({
     ctx.font = "14px sans-serif"; 
     ctx.fillText("Scan to share your experience", size / 2, size + 55); 
  
-    ctx.fillStyle = "#C94320"; 
+    ctx.fillStyle = "#202126"; 
     ctx.font = "bold 12px sans-serif"; 
     ctx.fillText("Powered by KudoSpot", size / 2, size + 80); 
  
@@ -113,7 +113,7 @@ export const QRCodeModal = ({
             <QRCodeCanvas 
               value={formUrl} 
               size={240} 
-              fgColor="#C94320" 
+              fgColor="#202126" 
               bgColor="#FFFFFF" 
               level="H" 
               includeMargin={true} 
