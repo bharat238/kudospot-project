@@ -12,17 +12,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
-  Plus, Copy, ExternalLink, Trash2, Upload, X, GripVertical,
-  Mail, Send, Clock, CheckCircle2, AlertCircle, Users, ToggleLeft, QrCode
+  Plus, Copy, ExternalLink, Trash2, Upload, X, GripVertical, Inbox,
+  Mail, Send, Clock, CheckCircle2, AlertCircle, Users, ToggleLeft, QrCode, RefreshCw
 } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
+import type { Json, Tables } from "@/integrations/supabase/types";
 
 // ─── blank form template ────────────────────────────────────────────────────
 const blank = {
   form_name: "",
   headline: "Share your experience",
   subheadline: "We'd love to hear how it went.",
-  brand_color: "#7C3AED",
+  brand_color: "#C8F34C",
   thank_you_message: "Thank you! Your feedback means a lot.",
   collect_rating: true,
   collect_video: false,
@@ -56,17 +57,86 @@ const DEFAULT_SEQ_EMAILS = [
 
 // ─── helper to parse a simple CSV ──────────────────────────────────────────
 const parseCSV = (text: string): { name: string; email: string }[] => {
-  const lines = text.trim().split("\n");
-  if (lines.length < 2) return [];
-  const header = lines[0].toLowerCase().split(",").map((h) => h.trim());
-  const nameIdx = header.findIndex((h) => h.includes("name"));
-  const emailIdx = header.findIndex((h) => h.includes("email"));
+  // Handle quoted values (including commas and escaped quotes), BOMs and CRLF files.
+  const source = text.replace(/^\uFEFF/, "");
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (quoted) {
+      if (char === '"' && source[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"' && field.length === 0) {
+      quoted = true;
+    } else if (char === ",") {
+      row.push(field.trim());
+      field = "";
+    } else if (char === "\n") {
+      row.push(field.trim());
+      if (row.some((value) => value.length > 0)) rows.push(row);
+      row = [];
+      field = "";
+    } else if (char !== "\r") {
+      field += char;
+    }
+  }
+
+  row.push(field.trim());
+  if (row.some((value) => value.length > 0)) rows.push(row);
+  if (rows.length < 2) return [];
+
+  const header = rows[0].map((value) => value.toLowerCase().trim());
+  const nameIdx = header.findIndex((value) => value === "name" || value === "customer name");
+  const emailIdx = header.findIndex((value) => value === "email" || value === "customer email");
   if (emailIdx === -1) return [];
-  return lines.slice(1).flatMap((line) => {
-    const cols = line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-    const email = cols[emailIdx] || "";
-    const name = nameIdx !== -1 ? cols[nameIdx] || "" : "";
-    return email.includes("@") ? [{ name, email }] : [];
+
+  return rows.slice(1).flatMap((cols) => {
+    const email = (cols[emailIdx] || "").trim();
+    const name = nameIdx !== -1 ? (cols[nameIdx] || "").trim() : "";
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? [{ name, email }] : [];
+  });
+};
+
+type CollectionFormRow = Tables<"collection_forms">;
+type EmailSequenceRow = Tables<"email_sequences">;
+type EmailSendRow = Tables<"email_sends">;
+type SequenceEmail = { delay_days: number; subject: string; body: string };
+type CollectionFormDraft = {
+  form_name: string;
+  headline: string;
+  subheadline: string;
+  brand_color: string;
+  thank_you_message: string;
+  collect_rating: boolean;
+  collect_video: boolean;
+  logo_url: string | null;
+  campaign: string;
+  questions: string[];
+};
+
+const normalizeSequenceEmails = (value: Json | null | undefined): SequenceEmail[] => {
+  if (!Array.isArray(value)) return DEFAULT_SEQ_EMAILS;
+  return (value as unknown[]).flatMap((item): SequenceEmail[] => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const record = item as Record<string, unknown>;
+    return [{
+      delay_days: typeof record.delay_days === "number" ? record.delay_days : 0,
+      subject: typeof record.subject === "string" ? record.subject : "",
+      body: typeof record.body === "string" ? record.body : "",
+    }];
   });
 };
 
@@ -75,10 +145,12 @@ const Collect = () => {
   const { user } = useAuth();
 
   // Forms tab
-  const [forms, setForms] = useState<any[]>([]);
+  const [forms, setForms] = useState<CollectionFormRow[]>([]);
+  const [formsLoading, setFormsLoading] = useState(true);
+  const [formsError, setFormsError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState<any>(blank);
+  const [editing, setEditing] = useState<CollectionFormRow | null>(null);
+  const [form, setForm] = useState<CollectionFormDraft>(blank);
   const [uploading, setUploading] = useState(false);
   const [qrModal, setQrModal] = useState<{ 
     open: boolean; 
@@ -87,42 +159,77 @@ const Collect = () => {
   }>({ open: false, formUrl: "", formName: "" });
 
   // Sequences tab
-  const [sequences, setSequences] = useState<any[]>([]);
+  const [sequences, setSequences] = useState<EmailSequenceRow[]>([]);
+  const [sequencesLoading, setSequencesLoading] = useState(true);
+  const [sequencesError, setSequencesError] = useState<string | null>(null);
   const [seqOpen, setSeqOpen] = useState(false);
-  const [editingSeq, setEditingSeq] = useState<any | null>(null);
-  const [seqForm, setSeqForm] = useState({ sequence_name: "Standard 3-step ask", emails: DEFAULT_SEQ_EMAILS });
+  const [editingSeq, setEditingSeq] = useState<EmailSequenceRow | null>(null);
+  const [seqForm, setSeqForm] = useState<{ sequence_name: string; emails: SequenceEmail[] }>({ sequence_name: "Standard 3-step ask", emails: DEFAULT_SEQ_EMAILS });
   const [savingSeq, setSavingSeq] = useState(false);
+  const [updatingSeqId, setUpdatingSeqId] = useState<string | null>(null);
 
   // Send Requests tab
   const [sendForm, setSendForm] = useState({ customer_name: "", customer_email: "", form_id: "" });
   const [csvRows, setCsvRows] = useState<{ name: string; email: string }[]>([]);
-  const [sends, setSends] = useState<any[]>([]);
+  const [sends, setSends] = useState<EmailSendRow[]>([]);
+  const [sendsLoading, setSendsLoading] = useState(true);
+  const [sendsError, setSendsError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   // ── loaders ────────────────────────────────────────────────────────────
   const loadForms = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("collection_forms").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setForms(data || []);
+    if (!user) { setFormsLoading(false); return; }
+    setFormsLoading(true);
+    setFormsError(null);
+    try {
+      const { data, error } = await supabase.from("collection_forms").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      if (error) throw error;
+      setForms(data || []);
+    } catch (error) {
+      console.error("Failed to load collection forms:", error);
+      setFormsError("We couldn't load your collection forms. Check your connection and try again.");
+    } finally {
+      setFormsLoading(false);
+    }
   };
 
   const loadSequences = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("email_sequences").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setSequences(data || []);
+    if (!user) { setSequencesLoading(false); return; }
+    setSequencesLoading(true);
+    setSequencesError(null);
+    try {
+      const { data, error } = await supabase.from("email_sequences").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      if (error) throw error;
+      setSequences(data || []);
+    } catch (error) {
+      console.error("Failed to load email sequences:", error);
+      setSequencesError("We couldn't load your email sequences. Check your connection and try again.");
+    } finally {
+      setSequencesLoading(false);
+    }
   };
 
   const loadSends = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("email_sends").select("*").eq("user_id", user.id).order("sent_at", { ascending: false }).limit(30);
-    setSends(data || []);
+    if (!user) { setSendsLoading(false); return; }
+    setSendsLoading(true);
+    setSendsError(null);
+    try {
+      const { data, error } = await supabase.from("email_sends").select("*").eq("user_id", user.id).order("sent_at", { ascending: false }).limit(30);
+      if (error) throw error;
+      setSends(data || []);
+    } catch (error) {
+      console.error("Failed to load request history:", error);
+      setSendsError("We couldn't load the request history. Check your connection and try again.");
+    } finally {
+      setSendsLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadForms();
-    loadSequences();
-    loadSends();
+    void loadForms();
+    void loadSequences();
+    void loadSends();
   }, [user]);
   
   // Auto-select the first form when there's only one
@@ -138,7 +245,7 @@ const Collect = () => {
     if (!user) return;
     const payload = { ...form, questions: form.questions?.filter((q: string) => q.trim()) || [] };
     if (editing) {
-      const { error } = await supabase.from("collection_forms").update(payload).eq("id", editing.id);
+      const { error } = await supabase.from("collection_forms").update(payload).eq("id", editing.id).eq("user_id", user.id);
       if (error) return toast.error(error.message);
       toast.success("Form updated");
     } else {
@@ -150,14 +257,27 @@ const Collect = () => {
   };
 
   const removeForm = async (id: string) => {
-    if (!confirm("Delete this form?")) return;
-    await supabase.from("collection_forms").delete().eq("id", id);
-    toast.success("Deleted"); loadForms();
+    if (!user || !window.confirm("Delete this collection form? Its public collection link will stop working.")) return;
+    const { error } = await supabase.from("collection_forms").delete().eq("id", id).eq("user_id", user.id);
+    if (error) return toast.error(error.message || "The collection form could not be deleted.");
+    toast.success("Collection form deleted");
+    void loadForms();
   };
 
-  const startEdit = (f: any) => {
+  const startEdit = (f: CollectionFormRow) => {
     setEditing(f);
-    setForm({ ...blank, ...f, questions: Array.isArray(f.questions) ? f.questions : blank.questions });
+    setForm({
+      form_name: f.form_name || blank.form_name,
+      headline: f.headline || blank.headline,
+      subheadline: f.subheadline || blank.subheadline,
+      brand_color: f.brand_color || blank.brand_color,
+      thank_you_message: f.thank_you_message || blank.thank_you_message,
+      collect_rating: f.collect_rating ?? blank.collect_rating,
+      collect_video: f.collect_video ?? blank.collect_video,
+      logo_url: f.logo_url,
+      campaign: f.campaign || "",
+      questions: Array.isArray(f.questions) ? f.questions.filter((question): question is string => typeof question === "string") : blank.questions,
+    });
     setOpen(true);
   };
 
@@ -170,20 +290,20 @@ const Collect = () => {
       const { error } = await supabase.storage.from("form-assets").upload(path, file, { upsert: true });
       if (error) throw error;
       const { data } = supabase.storage.from("form-assets").getPublicUrl(path);
-      setForm((f: any) => ({ ...f, logo_url: data.publicUrl }));
+      setForm((current) => ({ ...current, logo_url: data.publicUrl }));
       toast.success("Logo uploaded");
-    } catch (e: any) {
-      toast.error(e.message || "Upload failed");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
     }
   };
 
   const updateQ = (i: number, v: string) => {
-    const qs = [...(form.questions || [])]; qs[i] = v; setForm((f: any) => ({ ...f, questions: qs }));
+    const qs = [...(form.questions || [])]; qs[i] = v; setForm((current) => ({ ...current, questions: qs }));
   };
-  const addQ = () => setForm((f: any) => ({ ...f, questions: [...(f.questions || []), ""] }));
-  const removeQ = (i: number) => setForm((f: any) => ({ ...f, questions: f.questions.filter((_: any, j: number) => j !== i) }));
+  const addQ = () => setForm((current) => ({ ...current, questions: [...current.questions, ""] }));
+  const removeQ = (i: number) => setForm((current) => ({ ...current, questions: current.questions.filter((_, j) => j !== i) }));
 
   const publicUrl = (slug: string) => `${window.location.origin}/collect/${slug}`;
   const wallUrl = (slug: string) => `${window.location.origin}/wall/${slug}`;
@@ -194,9 +314,9 @@ const Collect = () => {
     setSeqForm({ sequence_name: "Standard 3-step ask", emails: DEFAULT_SEQ_EMAILS });
     setSeqOpen(true);
   };
-  const startEditSeq = (s: any) => {
+  const startEditSeq = (s: EmailSequenceRow) => {
     setEditingSeq(s);
-    setSeqForm({ sequence_name: s.sequence_name, emails: Array.isArray(s.emails) ? s.emails : DEFAULT_SEQ_EMAILS });
+    setSeqForm({ sequence_name: s.sequence_name, emails: normalizeSequenceEmails(s.emails) });
     setSeqOpen(true);
   };
 
@@ -206,7 +326,7 @@ const Collect = () => {
     setSavingSeq(true);
     const payload = { sequence_name: seqForm.sequence_name, emails: seqForm.emails, user_id: user.id };
     if (editingSeq) {
-      const { error } = await supabase.from("email_sequences").update(payload).eq("id", editingSeq.id);
+      const { error } = await supabase.from("email_sequences").update(payload).eq("id", editingSeq.id).eq("user_id", user.id);
       if (error) { toast.error(error.message); setSavingSeq(false); return; }
       toast.success("Sequence updated");
     } else {
@@ -218,19 +338,31 @@ const Collect = () => {
   };
 
   const removeSeq = async (id: string) => {
-    if (!confirm("Delete this sequence?")) return;
-    await supabase.from("email_sequences").delete().eq("id", id);
-    toast.success("Deleted"); loadSequences();
+    if (!user || !window.confirm("Delete this email template sequence?")) return;
+    const { error } = await supabase.from("email_sequences").delete().eq("id", id).eq("user_id", user.id);
+    if (error) return toast.error(error.message || "The sequence could not be deleted.");
+    toast.success("Email sequence deleted");
+    void loadSequences();
   };
 
-  const toggleSeq = async (seq: any) => {
-    await supabase.from("email_sequences").update({ is_active: !seq.is_active }).eq("id", seq.id);
-    loadSequences();
+  const toggleSeq = async (seq: EmailSequenceRow) => {
+    if (!user || updatingSeqId === seq.id) return;
+    setUpdatingSeqId(seq.id);
+    const next = !seq.is_active;
+    const { error } = await supabase.from("email_sequences").update({ is_active: next }).eq("id", seq.id).eq("user_id", user.id);
+    setUpdatingSeqId(null);
+    if (error) return toast.error(error.message || "The sequence status could not be changed.");
+    toast.success(next ? "Sequence activated" : "Sequence deactivated");
+    void loadSequences();
   };
 
-  const updateSeqEmail = (emailIdx: number, field: string, value: string) => {
-    const emails = seqForm.emails.map((e, i) => i === emailIdx ? { ...e, [field]: value } : e);
-    setSeqForm((s) => ({ ...s, emails }));
+  const updateSeqEmail = (emailIdx: number, field: keyof SequenceEmail, value: string) => {
+    const emails = seqForm.emails.map((email, index) => {
+      if (index !== emailIdx) return email;
+      if (field === "delay_days") return { ...email, delay_days: Number(value) };
+      return { ...email, [field]: value };
+    });
+    setSeqForm((current) => ({ ...current, emails }));
   };
 
   // ── send requests ─────────────────────────────────────────────────────
@@ -247,51 +379,85 @@ const Collect = () => {
 
   const getFirstForm = () => forms[0];
 
+  const copyToClipboard = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const copyLink = async (value: string, label = "Link") => {
+    const copied = await copyToClipboard(value);
+    if (copied) toast.success(`${label} copied to clipboard`);
+    else toast.error("Your browser blocked clipboard access. You can still copy the link from the form list.");
+    return copied;
+  };
+
   const sendSingleRequest = async () => {
     if (!user || !sendForm.customer_email) return toast.error("Customer email is required");
-    if (!sendForm.customer_email.includes("@")) return toast.error("Enter a valid email address");
+    const email = sendForm.customer_email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast.error("Enter a valid email address");
+    if (sending) return;
     setSending(true);
-    const targetForm = forms.find((f) => f.id === sendForm.form_id) || getFirstForm();
-    const { error } = await supabase.from("email_sends").insert({
-      user_id: user.id,
-      customer_email: sendForm.customer_email,
-      customer_name: sendForm.customer_name || null,
-      status: "pending",
-    });
-    if (error) { toast.error(error.message); setSending(false); return; }
-    if (targetForm) {
-      const link = publicUrl(targetForm.public_slug);
-      await navigator.clipboard.writeText(link);
-      toast.success(`Logged! Form link for ${sendForm.customer_email} copied to clipboard — paste it in your email.`);
-    } else {
-      toast.success("Request logged. Create a collection form first to get a shareable link.");
+    try {
+      const targetForm = forms.find((formItem) => formItem.id === sendForm.form_id) || getFirstForm();
+      const { error } = await supabase.from("email_sends").insert({
+        user_id: user.id,
+        customer_email: email,
+        customer_name: sendForm.customer_name.trim() || null,
+        status: "pending",
+      });
+      if (error) throw error;
+
+      if (targetForm) {
+        const copied = await copyToClipboard(publicUrl(targetForm.public_slug));
+        toast.success(copied
+          ? `Contact logged. The collection link is copied; paste it into your email to send the invitation to ${email}.`
+          : `Contact logged for ${email}. Copy the collection link from the form list and send it manually.`);
+      } else {
+        toast.success("Contact logged. Create a collection form to generate an invitation link.");
+      }
+      setSendForm({ customer_name: "", customer_email: "", form_id: "" });
+      void loadSends();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "The contact could not be logged. Please try again.");
+    } finally {
+      setSending(false);
     }
-    setSendForm({ customer_name: "", customer_email: "", form_id: "" });
-    setSending(false);
-    loadSends();
   };
 
   const sendAllCSV = async () => {
-    if (!user || csvRows.length === 0) return;
+    if (!user || csvRows.length === 0 || sending) return;
     setSending(true);
-    const inserts = csvRows.map((r) => ({
-      user_id: user.id,
-      customer_email: r.email,
-      customer_name: r.name || null,
-      status: "pending",
-    }));
-    const { error } = await supabase.from("email_sends").insert(inserts);
-    if (error) { toast.error(error.message); setSending(false); return; }
-    const targetForm = getFirstForm();
-    if (targetForm) {
-      await navigator.clipboard.writeText(publicUrl(targetForm.public_slug));
-      toast.success(`${csvRows.length} contacts logged! Form link copied — paste it in your bulk email.`);
-    } else {
-      toast.success(`${csvRows.length} contacts logged.`);
+    try {
+      const inserts = csvRows.map((row) => ({
+        user_id: user.id,
+        customer_email: row.email.trim(),
+        customer_name: row.name.trim() || null,
+        status: "pending",
+      }));
+      const { error } = await supabase.from("email_sends").insert(inserts);
+      if (error) throw error;
+      const total = inserts.length;
+      const targetForm = getFirstForm();
+      if (targetForm) {
+        const copied = await copyToClipboard(publicUrl(targetForm.public_slug));
+        toast.success(copied
+          ? `${total} contacts logged. The collection link is copied; paste it into your bulk email to send the invitations.`
+          : `${total} contacts logged. Copy the collection link from the form list and include it in your bulk email.`);
+      } else {
+        toast.success(`${total} contacts logged. Create a collection form to generate an invitation link.`);
+      }
+      setCsvRows([]);
+      if (csvInputRef.current) csvInputRef.current.value = "";
+      void loadSends();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "The contacts could not be logged. Please try again.");
+    } finally {
+      setSending(false);
     }
-    setCsvRows([]);
-    setSending(false);
-    loadSends();
   };
 
   const statusIcon = (status: string) => {
@@ -305,19 +471,19 @@ const Collect = () => {
     <AppShell>
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-1">Collect</h1>
-        <p className="text-muted-foreground">Forms, email sequences, and outreach — all in one place.</p>
+        <p className="text-muted-foreground">Create collection forms, prepare outreach links, and organize reusable email templates.</p>
       </div>
 
       <Tabs defaultValue="forms">
-        <TabsList className="mb-6">
+        <div className="mb-6 max-w-full overflow-x-auto"><TabsList className="min-w-max">
           <TabsTrigger value="forms">Collection Forms</TabsTrigger>
           <TabsTrigger value="sequences">Email Sequences</TabsTrigger>
-          <TabsTrigger value="send">Send Requests</TabsTrigger>
-        </TabsList>
+          <TabsTrigger value="send">Request links</TabsTrigger>
+        </TabsList></div>
 
         {/* ═══════════════════ FORMS TAB ═══════════════════ */}
         <TabsContent value="forms">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">Share these links with customers to collect testimonials.</p>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm(blank); } }}>
               <DialogTrigger asChild>
@@ -325,7 +491,7 @@ const Collect = () => {
                   <Plus className="h-4 w-4 mr-1" /> New form
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90dvh] overflow-y-auto rounded-2xl sm:w-full">
                 <DialogHeader>
                   <DialogTitle>{editing ? "Edit form" : "New collection form"}</DialogTitle>
                   <DialogDescription>{editing ? "Update your collection form settings." : "Create a new collection form to gather testimonials."}</DialogDescription>
@@ -360,12 +526,12 @@ const Collect = () => {
                         <Label>Brand color</Label>
                         <div className="flex gap-2 mt-1">
                           <Input type="color" value={form.brand_color} onChange={(e) => setForm({ ...form, brand_color: e.target.value })} className="w-14 h-10 p-1" />
-                          <Input value={form.brand_color} onChange={(e) => setForm({ ...form, brand_color: e.target.value })} placeholder="#7C3AED" />
+                          <Input value={form.brand_color} onChange={(e) => setForm({ ...form, brand_color: e.target.value })} placeholder="#C8F34C" />
                         </div>
                       </div>
-                      <div className="flex items-end gap-4 pb-2">
-                        <div className="flex items-center gap-2"><Switch checked={form.collect_rating} onCheckedChange={(v) => setForm({ ...form, collect_rating: v })} /><span className="text-sm">Rating</span></div>
-                        <div className="flex items-center gap-2 opacity-50"><Switch disabled /><span className="text-sm">Video (soon)</span></div>
+                      <div className="flex flex-col justify-end gap-2 pb-2">
+                        <div className="flex items-center gap-2"><Switch checked={form.collect_rating} onCheckedChange={(v) => setForm({ ...form, collect_rating: v })} /><span className="text-sm font-medium">Collect a rating</span></div>
+                        <p className="text-[11px] leading-4 text-muted-foreground">Ask customers to rate their experience from 1 to 5 stars.</p>
                       </div>
                     </div>
                   </div>
@@ -380,10 +546,10 @@ const Collect = () => {
                     </div>
                     <div className="space-y-2">
                       {(form.questions || []).map((q: string, i: number) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <GripVertical className="h-4 w-4 text-muted-foreground" />
-                          <Input value={q} onChange={(e) => updateQ(i, e.target.value)} placeholder={`Question ${i + 1}`} />
-                          <Button type="button" size="icon" variant="ghost" onClick={() => removeQ(i)}><X className="h-4 w-4" /></Button>
+                        <div key={i} className="flex min-w-0 items-center gap-2">
+                          <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <Input className="min-w-0 flex-1" value={q} onChange={(e) => updateQ(i, e.target.value)} placeholder={`Question ${i + 1}`} />
+                          <Button type="button" size="icon" variant="ghost" className="shrink-0" aria-label={`Remove question ${i + 1}`} onClick={() => removeQ(i)}><X className="h-4 w-4" /></Button>
                         </div>
                       ))}
                       {(form.questions || []).length === 0 && <p className="text-xs text-muted-foreground">No prompts — customer sees a blank textarea.</p>}
@@ -397,13 +563,27 @@ const Collect = () => {
             </Dialog>
           </div>
 
-          {forms.length === 0 ? (
-            <Card className="p-16 text-center text-muted-foreground">No forms yet. Create one to start collecting.</Card>
+          {formsError ? (
+            <Card className="rounded-[22px] border-[#e6e8ed] bg-white px-6 py-10 text-center sm:px-10">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f1f2f5] text-[#515661]"><AlertCircle className="h-5 w-5" /></div>
+              <h2 className="font-semibold text-[#202126]">Collection forms couldn't be loaded</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">{formsError}</p>
+              <Button variant="outline" className="mt-5 rounded-full border-[#e1e4e9]" onClick={() => void loadForms()}><RefreshCw className="mr-2 h-4 w-4" />Try again</Button>
+            </Card>
+          ) : formsLoading ? (
+            <div className="grid gap-4">{[0, 1].map((key) => <Card key={key} className="animate-pulse rounded-[20px] border-[#e6e8ed] bg-white p-5"><div className="mb-4 h-4 w-1/3 rounded bg-[#eff0f3]" /><div className="mb-3 h-3 w-full rounded bg-[#eff0f3]" /><div className="h-3 w-4/5 rounded bg-[#eff0f3]" /></Card>)}</div>
+          ) : forms.length === 0 ? (
+            <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center sm:px-10 sm:py-16">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><Inbox className="h-6 w-6" /></div>
+              <h2 className="text-lg font-semibold text-[#202126]">Create your first collection form</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">Customize the headline, prompts and brand color, then share a link or QR code with customers.</p>
+              <Button className="mt-5 rounded-full bg-[#202126] text-white hover:bg-[#383b43]" onClick={() => { setEditing(null); setForm(blank); setOpen(true); }}><Plus className="mr-2 h-4 w-4" />New collection form</Button>
+            </Card>
           ) : (
             <div className="grid gap-4">
               {forms.map((form) => (
                 <Card key={form.id} className="p-5">
-                  <div className="flex items-center justify-between mb-3 gap-3">
+                  <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                       {form.logo_url && <img src={form.logo_url} alt="" className="h-8 w-8 object-contain rounded border bg-white p-0.5" />}
                       <div className="min-w-0">
@@ -415,14 +595,14 @@ const Collect = () => {
                       </div>
                       <span className="h-3 w-3 rounded-full border shrink-0" style={{ background: form.brand_color }} />
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() =>
                           setQrModal({
                             open: true,
-                            formUrl: `https://kudospot.pages.dev/collect/${form.public_slug}`,
+                            formUrl: publicUrl(form.public_slug),
                             formName: form.form_name,
                           })
                         }
@@ -434,17 +614,17 @@ const Collect = () => {
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeForm(form.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-secondary/50 p-2 rounded-lg mb-2">
+                  <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-[#e8eaed] bg-[#f7f8fa] p-2">
                     <div className="text-xs font-semibold uppercase text-muted-foreground px-1 min-w-[60px]">Form</div>
-                    <code className="text-xs flex-1 truncate">{publicUrl(form.public_slug)}</code>
-                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(publicUrl(form.public_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" onClick={() => window.open(publicUrl(form.public_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>
+                    <code className="min-w-0 flex-1 break-all text-xs sm:truncate">{publicUrl(form.public_slug)}</code>
+                    <Button size="sm" variant="ghost" onClick={() => void copyLink(publicUrl(form.public_slug), "Collection link")}><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => window.open(publicUrl(form.public_slug), "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5" /></Button>
                   </div>
-                  <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-lg">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-[#dfe7cc] bg-[#f7faef] p-2">
                     <div className="text-xs font-semibold uppercase text-primary px-1 min-w-[60px]">Wall</div>
-                    <code className="text-xs flex-1 truncate">{wallUrl(form.public_slug)}</code>
-                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => { navigator.clipboard.writeText(wallUrl(form.public_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => window.open(wallUrl(form.public_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5" /></Button>
+                    <code className="min-w-0 flex-1 break-all text-xs sm:truncate">{wallUrl(form.public_slug)}</code>
+                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => void copyLink(wallUrl(form.public_slug), "Wall of Love link")}><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="text-primary" onClick={() => window.open(wallUrl(form.public_slug), "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5" /></Button>
                   </div>
                 </Card>
               ))}
@@ -454,13 +634,13 @@ const Collect = () => {
 
         {/* ═══════════════════ SEQUENCES TAB ═══════════════════ */}
         <TabsContent value="sequences">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-muted-foreground">3-step email templates you can reuse when requesting testimonials.</p>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">Reusable email copy for manual outreach. These templates do not send emails automatically.</p>
             <Dialog open={seqOpen} onOpenChange={setSeqOpen}>
               <DialogTrigger asChild>
                 <Button onClick={startNewSeq}><Plus className="h-4 w-4 mr-1" /> New sequence</Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90dvh] overflow-y-auto rounded-2xl sm:w-full">
                 <DialogHeader>
                   <DialogTitle>{editingSeq ? "Edit sequence" : "New email sequence"}</DialogTitle>
                   <DialogDescription>{editingSeq ? "Update your email sequence settings." : "Create a new email sequence to request testimonials."}</DialogDescription>
@@ -504,30 +684,41 @@ const Collect = () => {
             </Dialog>
           </div>
 
-          {sequences.length === 0 ? (
-            <Card className="p-16 text-center text-muted-foreground">
-              <Mail className="h-8 w-8 mx-auto mb-3 opacity-30" />
-              No sequences yet. Create your first 3-step email template.
+          {sequencesError ? (
+            <Card className="rounded-[22px] border-[#e6e8ed] bg-white px-6 py-10 text-center sm:px-10">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f1f2f5] text-[#515661]"><AlertCircle className="h-5 w-5" /></div>
+              <h2 className="font-semibold text-[#202126]">Email sequences couldn't be loaded</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">{sequencesError}</p>
+              <Button variant="outline" className="mt-5 rounded-full border-[#e1e4e9]" onClick={() => void loadSequences()}><RefreshCw className="mr-2 h-4 w-4" />Try again</Button>
+            </Card>
+          ) : sequencesLoading ? (
+            <div className="grid gap-4">{[0, 1].map((key) => <Card key={key} className="animate-pulse rounded-[20px] border-[#e6e8ed] bg-white p-5"><div className="mb-4 h-4 w-1/3 rounded bg-[#eff0f3]" /><div className="mb-3 h-3 w-full rounded bg-[#eff0f3]" /><div className="h-3 w-4/5 rounded bg-[#eff0f3]" /></Card>)}</div>
+          ) : sequences.length === 0 ? (
+            <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center sm:px-10 sm:py-16">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><Mail className="h-6 w-6" /></div>
+              <h2 className="text-lg font-semibold text-[#202126]">Prepare your first outreach sequence</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">Save reusable email templates for requesting testimonials. You send each invitation from your own email app.</p>
+              <Button className="mt-5 rounded-full bg-[#202126] text-white hover:bg-[#383b43]" onClick={startNewSeq}><Plus className="mr-2 h-4 w-4" />New email sequence</Button>
             </Card>
           ) : (
             <div className="grid gap-4">
               {sequences.map((seq) => (
                 <Card key={seq.id} className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold flex items-center gap-2">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 font-semibold">
                         {seq.sequence_name}
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${seq.is_active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
                           {seq.is_active ? "Active" : "Inactive"}
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {Array.isArray(seq.emails) ? seq.emails.length : 0} emails
-                        {Array.isArray(seq.emails) && seq.emails.length > 0 && ` · Day 0, ${seq.emails.slice(1).map((e: any) => `Day ${e.delay_days}`).join(", ")}`}
+                        {normalizeSequenceEmails(seq.emails).length} emails
+                        {normalizeSequenceEmails(seq.emails).length > 0 && ` · Day 0, ${normalizeSequenceEmails(seq.emails).slice(1).map((email) => `Day ${email.delay_days}`).join(", ")}`}
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => toggleSeq(seq)} title={seq.is_active ? "Deactivate" : "Activate"}>
+                      <Button size="sm" variant="ghost" disabled={updatingSeqId === seq.id} onClick={() => toggleSeq(seq)} title={seq.is_active ? "Deactivate" : "Activate"}>
                         <ToggleLeft className="h-4 w-4" />
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => startEditSeq(seq)}>Edit</Button>
@@ -547,7 +738,7 @@ const Collect = () => {
             <div className="space-y-4">
               <div>
                 <h2 className="font-semibold mb-1">Send to one person</h2>
-                <p className="text-sm text-muted-foreground">Logs the contact and copies your form link to clipboard.</p>
+                <p className="text-sm text-muted-foreground">Logs the contact and prepares a form link. You send the invitation from your email app.</p>
               </div>
               <Card className="p-5 space-y-4">
                 <div>
@@ -574,7 +765,7 @@ const Collect = () => {
                 <Button className="w-full" onClick={sendSingleRequest} disabled={sending || !sendForm.customer_name || !sendForm.customer_email}>
                   <Send className="h-4 w-4 mr-1" /> Log & copy link
                 </Button>
-                {forms.length === 0 && (
+                {!formsLoading && !formsError && forms.length === 0 && (
                   <p className="text-xs text-warning text-center">Create a collection form first to get a shareable link.</p>
                 )}
               </Card>
@@ -584,7 +775,7 @@ const Collect = () => {
             <div className="space-y-4">
               <div>
                 <h2 className="font-semibold mb-1">Send to many people</h2>
-                <p className="text-sm text-muted-foreground">Upload a CSV with <code className="text-xs bg-muted px-1 py-0.5 rounded">name</code> and <code className="text-xs bg-muted px-1 py-0.5 rounded">email</code> columns.</p>
+                <p className="text-sm text-muted-foreground">Upload a CSV with <code className="text-xs bg-muted px-1 py-0.5 rounded">name</code> and <code className="text-xs bg-muted px-1 py-0.5 rounded">email</code> columns, then add the copied link to your bulk email.</p>
               </div>
               <Card className="p-5 space-y-4">
                 <div>
@@ -625,27 +816,38 @@ const Collect = () => {
           </div>
 
           {/* Send history */}
-          {sends.length > 0 && (
-            <div className="mt-8">
-              <h2 className="font-semibold mb-3">Recent requests</h2>
-              <Card className="overflow-hidden">
+          <div className="mt-8">
+            <h2 className="font-semibold mb-3">Recently prepared requests</h2>
+            {sendsError ? (
+              <Card className="rounded-[22px] border-[#e6e8ed] bg-white px-6 py-8 text-center">
+                <p className="font-semibold text-[#202126]">Request history couldn't be loaded</p>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">{sendsError}</p>
+                <Button variant="outline" size="sm" className="mt-4 rounded-full border-[#e1e4e9]" onClick={() => void loadSends()}><RefreshCw className="mr-2 h-3.5 w-3.5" />Try again</Button>
+              </Card>
+            ) : sendsLoading ? (
+              <div className="rounded-xl border border-[#e6e8ed] bg-white px-5 py-6 text-sm text-[#777c85]">Loading request history…</div>
+            ) : sends.length > 0 ? (
+              <Card className="overflow-hidden rounded-[20px] border-[#e6e8ed] bg-white">
                 <div className="divide-y text-sm">
                   {sends.map((s) => (
-                    <div key={s.id} className="px-5 py-3 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2 min-w-0">
+                    <div key={s.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5">
+                      <div className="flex min-w-0 items-center gap-2">
                         {statusIcon(s.status)}
-                        <span className="font-medium truncate">{s.customer_name || "—"}</span>
-                        <span className="text-muted-foreground truncate">{s.customer_email}</span>
+                        <span className="max-w-[35%] truncate font-medium">{s.customer_name || "—"}</span>
+                        <span className="min-w-0 truncate text-muted-foreground">{s.customer_email}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground shrink-0">
-                        {new Date(s.sent_at).toLocaleDateString()}
-                      </div>
+                      <div className="shrink-0 text-xs text-muted-foreground">{new Date(s.sent_at).toLocaleDateString()}</div>
                     </div>
                   ))}
                 </div>
               </Card>
-            </div>
-          )}
+            ) : (
+              <Card className="rounded-[20px] border-dashed border-[#dfe2e7] bg-white px-5 py-8 text-center">
+                <p className="text-sm font-medium text-[#30333a]">No requests prepared yet</p>
+                <p className="mt-1 text-xs leading-5 text-[#777c85]">Single and bulk requests you log here will appear in this history.</p>
+              </Card>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 

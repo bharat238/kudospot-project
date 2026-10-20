@@ -50,13 +50,13 @@ export const QRCodeModal = ({
     ctx.fillStyle = "#FFFFFF"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height); 
  
-    ctx.fillStyle = "#7C3AED"; 
+    ctx.fillStyle = "#C8F34C"; 
     ctx.fillRect(0, 0, canvas.width, 6); 
  
     const qrSize = size - 60; 
     ctx.drawImage(sourceCanvas, 30, 20, qrSize, qrSize); 
  
-    ctx.fillStyle = "#7C3AED"; 
+    ctx.fillStyle = "#202126"; 
     ctx.font = "bold 20px sans-serif"; 
     ctx.textAlign = "center"; 
     ctx.fillText(formName, size / 2, size + 30); 
@@ -65,7 +65,7 @@ export const QRCodeModal = ({
     ctx.font = "14px sans-serif"; 
     ctx.fillText("Scan to share your experience", size / 2, size + 55); 
  
-    ctx.fillStyle = "#7C3AED"; 
+    ctx.fillStyle = "#202126"; 
     ctx.font = "bold 12px sans-serif"; 
     ctx.fillText("Powered by KudoSpot", size / 2, size + 80); 
  
@@ -108,12 +108,12 @@ export const QRCodeModal = ({
         <div className="flex flex-col items-center gap-4 py-2"> 
           <div 
             ref={qrRef} 
-            className="rounded-2xl border-2 border-purple-100 p-4 bg-white shadow-sm" 
+            className="rounded-2xl border border-border/70 p-4 bg-white shadow-sm" 
           > 
             <QRCodeCanvas 
               value={formUrl} 
               size={240} 
-              fgColor="#7C3AED" 
+              fgColor="#202126" 
               bgColor="#FFFFFF" 
               level="H" 
               includeMargin={true} 
@@ -150,7 +150,7 @@ export const QRCodeModal = ({
               Copy link 
             </Button> 
             <Button size="sm" onClick={shareLink} 
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white"> 
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"> 
               <Share2 className="h-3.5 w-3.5 mr-1" /> 
               Share 
             </Button> 

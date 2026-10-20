@@ -6,48 +6,87 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Check, Zap, Loader2, Star } from "lucide-react";
+import { PLAN_CATALOG } from "@/config/planCatalog";
+
+type RazorpayPaymentResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayCheckoutOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill: { email?: string | null };
+  theme: { color: string };
+  handler: (response: RazorpayPaymentResponse) => void | Promise<void>;
+  modal: { ondismiss: () => void };
+};
+
+type RazorpayCheckoutInstance = { open: () => void };
 
 declare global {
-  interface Window { Razorpay: any; }
+  interface Window {
+    Razorpay?: new (options: RazorpayCheckoutOptions) => RazorpayCheckoutInstance;
+  }
 }
 
-const PLANS = [
-  {
-    id: "free",
-    name: "Free",
-    price: "₹0",
-    period: "forever",
-    highlight: false,
-    features: ["10 testimonials", "5 AI rewrites", "1 widget", "0 case studies"],
-  },
-  {
-    id: "starter",
-    name: "Starter",
-    price: "₹499",
-    period: "/month",
-    highlight: true,
-    features: ["Unlimited testimonials", "Unlimited AI rewrites", "5 widgets", "3 case studies", "Social post generator", "Email approval flow"],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "₹1,299",
-    period: "/month",
-    highlight: false,
-    features: ["Everything in Starter", "Unlimited widgets", "Unlimited case studies", "PNG social graphics", "Priority support"],
-  },
-];
+const PLANS = PLAN_CATALOG;
 
 export default function Upgrade() {
   const { user } = useAuth();
   const [currentPlan, setCurrentPlan] = useState("free");
+  const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    supabase.from("profiles").select("plan").eq("id", user.id).maybeSingle().then(({ data }) => {
-      if (data?.plan) setCurrentPlan(data.plan);
-    });
+    let current = true;
+    const loadPlan = async () => {
+      if (!user) {
+        if (current) {
+          setCurrentPlan("free");
+          setPlanExpiresAt(null);
+        }
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("plan,plan_expires_at")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Could not load plan details:", error.message);
+        toast.error("Your plan details couldn't be loaded. Try refreshing this page.");
+        return;
+      }
+
+      let nextPlan = data?.plan || "free";
+      let nextExpiry = data?.plan_expires_at || null;
+      const expiryTime = nextExpiry ? new Date(nextExpiry).getTime() : NaN;
+      if (nextPlan !== "free" && (!Number.isFinite(expiryTime) || expiryTime <= Date.now())) {
+        const { error: resetError } = await supabase
+          .from("profiles")
+          .update({ plan: "free", plan_expires_at: null })
+          .eq("id", user.id);
+        if (resetError) console.error("Could not reset expired plan:", resetError.message);
+        nextPlan = "free";
+        nextExpiry = null;
+      }
+
+      if (current) {
+        setCurrentPlan(nextPlan);
+        setPlanExpiresAt(nextExpiry);
+      }
+    };
+
+    void loadPlan();
+    return () => { current = false; };
   }, [user]);
 
   const loadRazorpay = (): Promise<boolean> =>
@@ -87,11 +126,11 @@ export default function Upgrade() {
         amount: data.amount,
         currency: data.currency,
         name: "KudoSpot",
-        description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan – Monthly`,
+        description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan – 30-day access`,
         order_id: data.order_id,
         prefill: { email: user.email },
-        theme: { color: "#7C3AED" },
-        handler: async (response: any) => {
+        theme: { color: "#202126" },
+        handler: async (response: RazorpayPaymentResponse) => {
           const { error: verifyError, data: verifyData } = await supabase.functions.invoke("verify-razorpay-payment", {
             body: {
               razorpay_order_id: response.razorpay_order_id,
@@ -105,7 +144,8 @@ export default function Upgrade() {
             toast.error("Payment verification failed. Contact support.");
           } else {
             setCurrentPlan(planId);
-            toast.success(`🎉 Upgraded to ${planId}! Enjoy your new features.`);
+            setPlanExpiresAt(typeof verifyData.expires_at === "string" ? verifyData.expires_at : null);
+            toast.success(`Upgraded to ${planId}. Access is active until ${verifyData.expires_at ? new Date(verifyData.expires_at).toLocaleDateString() : "your renewal date"}.`);
           }
           setLoadingPlan(null);
         },
@@ -119,8 +159,8 @@ export default function Upgrade() {
 
       const rzp = new window.Razorpay(options);
       rzp.open();
-    } catch (e: any) {
-      toast.error(e.message || "Unexpected error");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Unexpected error");
       setLoadingPlan(null);
     }
   };
@@ -129,10 +169,11 @@ export default function Upgrade() {
     <AppShell>
       <div className="mb-8 text-center max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">Choose your plan</h1>
-        <p className="text-muted-foreground">Upgrade to unlock unlimited testimonials, AI rewrites, and powerful features.</p>
+        <p className="text-muted-foreground">Choose the capacity you need. Each successful paid checkout grants 30 days of access and must be renewed manually.</p>
+        {currentPlan !== "free" && planExpiresAt && <p className="mt-3 inline-flex rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">Current access ends {new Date(planExpiresAt).toLocaleDateString()} · no automatic renewal</p>}
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5 max-w-5xl mx-auto">
         {PLANS.map((plan) => {
           const isCurrent = currentPlan === plan.id;
           const isLoading = loadingPlan === plan.id;
@@ -171,9 +212,13 @@ export default function Upgrade() {
               </ul>
 
               {plan.id === "free" ? (
-                <Button variant="outline" disabled={isCurrent}>
-                  {isCurrent ? "Current plan" : "Downgrade"}
-                </Button>
+                isCurrent ? (
+                  <Button variant="outline" disabled>Current plan</Button>
+                ) : (
+                  <Button variant="outline" asChild>
+                    <a href="mailto:hello@kudospot.io?subject=KudoSpot%20plan%20downgrade">Request downgrade</a>
+                  </Button>
+                )
               ) : (
                 <Button
                   variant={plan.highlight ? "default" : "outline"}
@@ -194,8 +239,8 @@ export default function Upgrade() {
         })}
       </div>
 
-      <p className="text-center text-xs text-muted-foreground mt-8">
-        Payments powered by Razorpay. Secure & encrypted. Cancel anytime.
+      <p className="mx-auto mt-8 max-w-2xl text-center text-xs leading-5 text-muted-foreground">
+        Payments are processed by Razorpay. Paid plans do not auto-renew; renew manually before your access period ends. Contact support if you need help with your plan.
       </p>
     </AppShell>
   );

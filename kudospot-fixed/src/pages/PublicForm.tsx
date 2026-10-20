@@ -11,10 +11,20 @@ import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/track";
 import { Helmet } from "react-helmet";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import type { Tables } from "@/integrations/supabase/types";
+
+const contrastTextFor = (hex: string) => {
+  const normalized = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex.slice(1) : "C8F34C";
+  const channels = [0, 2, 4].map((offset) => parseInt(normalized.slice(offset, offset + 2), 16) / 255);
+  const linear = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  const luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  return luminance > 0.179 ? "#202126" : "#ffffff";
+};
 
 const PublicForm = () => {
   const { slug } = useParams();
-  const [form, setForm] = useState<any | null>(null);
+  const [form, setForm] = useState<Tables<"collection_forms"> | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -62,6 +72,7 @@ const PublicForm = () => {
       const { data: responseData, error } = await supabase.functions.invoke("submit-testimonial", {
         body: {
           user_id: form.user_id,
+          form_id: form.id,
           customer_name: data.customer_name,
           customer_role: data.customer_role || null,
           customer_company: data.customer_company || null,
@@ -72,7 +83,7 @@ const PublicForm = () => {
         },
       });
       if (error) {
-        const status = (error as any)?.status;
+        const status = error instanceof FunctionsHttpError ? error.context.status : undefined;
         if (status === 429) {
           toast.error("Too many submissions — please wait a minute and try again.");
         } else {
@@ -80,14 +91,11 @@ const PublicForm = () => {
         }
         return;
       }
-      trackEvent({ user_id: form.user_id, event_type: "form_submit", entity_id: form.id, entity_type: "form", campaign: form.campaign });
       try {
         await supabase.functions.invoke("notify-owner", {
           body: {
-            user_id: form.user_id,
-            customer_name: data.customer_name,
-            testimonial_snippet: data.original_text,
-            form_name: form.form_name || "KudoSpot form",
+            form_id: form.id,
+            testimonial_id: responseData?.id,
           },
         });
       } catch {
@@ -103,7 +111,8 @@ const PublicForm = () => {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
   if (!form) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Form not found.</div>;
 
-  const accent = form.brand_color || "#7C3AED";
+  const accent = form.brand_color || "#C8F34C";
+  const accentText = contrastTextFor(accent);
   const questions: string[] = Array.isArray(form.questions) ? form.questions : [];
   const pageTitle = form.form_name || form.headline || "Share your experience";
   const pageDesc = form.subheadline || `Share your experience with ${pageTitle}.`;
@@ -120,7 +129,7 @@ const PublicForm = () => {
         </Helmet>
         <Card className="max-w-md w-full p-10 text-center">
           {form.logo_url && <img src={form.logo_url} alt="Logo" className="h-12 mx-auto mb-4 object-contain" />}
-          <div className="h-14 w-14 rounded-full mx-auto mb-4 flex items-center justify-center text-white" style={{ background: accent }}>
+          <div className="h-14 w-14 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: accent, color: accentText }}>
             <Check className="h-7 w-7" />
           </div>
           <h1 className="text-2xl font-bold mb-2">{form.thank_you_message}</h1>
@@ -130,7 +139,7 @@ const PublicForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/30 py-10 px-4">
+    <div className="min-h-dvh bg-[#eaebef] px-3 py-6 sm:px-4 sm:py-10">
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDesc} />
@@ -138,7 +147,7 @@ const PublicForm = () => {
         <meta property="og:description" content={pageDesc} />
         <meta name="robots" content="noindex" />
       </Helmet>
-      <Card className="max-w-xl mx-auto p-8">
+      <Card className="mx-auto w-full max-w-xl rounded-[22px] border-[#e6e8ed] p-5 shadow-[0_6px_24px_rgba(30,34,42,0.06)] sm:p-8">
         {form.logo_url ? (
           <img src={form.logo_url} alt="Logo" className="h-12 mb-5 object-contain" />
         ) : (
@@ -193,19 +202,19 @@ const PublicForm = () => {
               color: data.original_text.length >= MAX_CHARS 
                 ? '#ef4444' 
                 : data.original_text.length >= MAX_CHARS * 0.9 
-                ? '#f59e0b' 
+                ? 'hsl(var(--warning))' 
                 : '#9ca3af', 
             }}>
               {data.original_text.length} / {MAX_CHARS}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div><Label>Name *</Label><Input required value={data.customer_name} onChange={(e) => setData({ ...data, customer_name: e.target.value })} /></div>
             <div><Label>Email</Label><Input type="email" value={data.customer_email} onChange={(e) => setData({ ...data, customer_email: e.target.value })} /></div>
             <div><Label>Role</Label><Input value={data.customer_role} onChange={(e) => setData({ ...data, customer_role: e.target.value })} /></div>
             <div><Label>Company</Label><Input value={data.customer_company} onChange={(e) => setData({ ...data, customer_company: e.target.value })} /></div>
           </div>
-          <Button type="submit" disabled={submitting} className="w-full text-white" style={{ background: accent }}>
+          <Button type="submit" disabled={submitting} className="w-full font-semibold" style={{ background: accent, color: accentText }}>
             {submitting ? "Sending…" : "Submit testimonial"}
           </Button>
         </form>

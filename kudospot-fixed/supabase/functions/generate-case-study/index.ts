@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
   try {
     const { testimonial_ids, client_name, context, campaign } = await req.json();
-    if (!Array.isArray(testimonial_ids) || testimonial_ids.length === 0) {
+    if (!Array.isArray(testimonial_ids) || testimonial_ids.length === 0 || testimonial_ids.length > 20 || testimonial_ids.some((id) => typeof id !== "string")) {
       return new Response(JSON.stringify({ error: "Pick at least one testimonial." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -55,16 +55,24 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: profile } = await supabase.from("profiles").select("business_name, brand_voice").eq("id", user.id).maybeSingle();
+    const { data: profile } = await supabase.from("profiles").select("business_name, brand_voice, plan, plan_expires_at").eq("id", user.id).maybeSingle();
+    const paidPlanActive =
+      (profile?.plan === "starter" || profile?.plan === "pro") &&
+      typeof profile.plan_expires_at === "string" &&
+      Date.parse(profile.plan_expires_at) > Date.now();
+    if (!paidPlanActive) {
+      return new Response(JSON.stringify({ error: "Case study generation requires an active paid plan." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     // Security fix: always filter by user_id
     const { data: testimonials } = await supabase
       .from("testimonials")
-      .select("customer_name, customer_role, customer_company, original_text, ai_rewritten_text, approved_text, rating")
-      .in("id", testimonial_ids)
-      .eq("user_id", user.id);
+      .select("id,customer_name,customer_role,customer_company,original_text,ai_rewritten_text,approved_text,rating,approval_status")
+      .in("id", [...new Set(testimonial_ids)])
+      .eq("user_id", user.id)
+      .eq("approval_status", "approved");
 
-    if (!testimonials || testimonials.length === 0) {
-      return new Response(JSON.stringify({ error: "No testimonials found. Make sure they belong to your account." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!testimonials || testimonials.length !== new Set(testimonial_ids).size) {
+      return new Response(JSON.stringify({ error: "Every selected testimonial must belong to your account and have customer approval." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const testimonialBlock = testimonials.map((t, i) =>
@@ -111,10 +119,13 @@ Generate the case study as JSON only.`;
     const aiData = await aiResp.json();
     const rawText = aiData.choices?.[0]?.message?.content?.trim() ?? "";
 
-    let parsed: any;
+    type GeneratedCaseStudy = { title?: string; challenge?: string; solution?: string; results?: string; key_stats?: string[]; pull_quote?: string; about_client?: string };
+    let parsed: GeneratedCaseStudy;
     try {
       const clean = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-      parsed = JSON.parse(clean);
+      const decoded: unknown = JSON.parse(clean);
+      if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) throw new Error("Expected an object from the AI response.");
+      parsed = decoded as GeneratedCaseStudy;
     } catch {
       console.error("JSON parse failed, raw:", rawText);
       return new Response(JSON.stringify({ error: "AI returned invalid JSON. Try again." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -3,65 +3,189 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
 };
+
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: corsHeaders });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
+    const body = await req.json();
+    const token = typeof body?.token === "string" ? body.token.trim() : "";
+    const action = typeof body?.action === "string" ? body.action : "";
+    const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 1000) : null;
+
+    if (!token || token.length > 200) return json({ error: "A valid approval token is required." }, 400);
+    if (action !== "preview" && action !== "approve" && action !== "decline" && action !== "reject") {
+      return json({ error: "Unsupported approval action." }, 400);
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
     );
 
-    const { token, action, text, reason } = await req.json();
+    const now = new Date().toISOString();
 
-    // 1. Find testimonial by token
-    const { data: t, error: tErr } = await supabaseAdmin
-      .from("testimonials")
-      .select("*")
-      .eq("approval_token", token)
+    // New links use approval_tokens, which supports revocation and one-time use.
+    const { data: approvalToken, error: tokenError } = await supabaseAdmin
+      .from("approval_tokens")
+      .select("token,testimonial_id,user_id,used_at,campaign,approval_text")
+      .eq("token", token)
       .maybeSingle();
 
-    if (tErr || !t) {
-      return new Response(JSON.stringify({ error: "Invalid token or testimonial not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (tokenError) {
+      console.error("Approval token lookup failed:", tokenError.message);
+      return json({ error: "The approval link could not be checked. Please try again." }, 500);
     }
 
-    // 2. Update status
-    const now = new Date().toISOString();
-    if (action === "approve") {
-      await supabaseAdmin
+    if (approvalToken) {
+      const { data: testimonial, error: testimonialError } = await supabaseAdmin
         .from("testimonials")
-        .update({ approved_text: text || t.ai_rewritten_text, status: "approved", approved_at: now })
-        .eq("id", t.id);
+        .select("id,user_id,customer_name,original_text,ai_rewritten_text,status,approval_status,approved_text,campaign")
+        .eq("id", approvalToken.testimonial_id)
+        .eq("user_id", approvalToken.user_id)
+        .maybeSingle();
 
-      // Log analytics event
-      await supabaseAdmin.from("analytics_events").insert({
-        user_id: t.user_id,
-        event_type: "approval_approved",
-        entity_id: t.id,
+      if (testimonialError || !testimonial) {
+        return json({ error: "This approval link is invalid or no longer available." }, 404);
+      }
+
+      const recordedAction = testimonial.approval_status === "approved" || testimonial.status === "published"
+        ? "approve"
+        : testimonial.approval_status === "declined" || testimonial.status === "declined" || testimonial.status === "rejected"
+          ? "decline"
+          : null;
+
+      if (action === "preview") {
+        if (recordedAction) {
+          return json({ success: true, already: true, action: recordedAction, customer_name: testimonial.customer_name });
+        }
+        if (approvalToken.used_at) {
+          return json({ error: "This approval link has expired or was replaced. Ask the business for a fresh link." }, 410);
+        }
+        return json({
+          success: true,
+          already: false,
+          action: "preview",
+          customer_name: testimonial.customer_name,
+          testimonial_text: approvalToken.approval_text || testimonial.ai_rewritten_text || testimonial.original_text,
+        });
+      }
+
+      const isApprove = action === "approve";
+
+      if (approvalToken.used_at) {
+        if (recordedAction) {
+          return json({
+            success: true,
+            already: true,
+            action: recordedAction,
+            customer_name: testimonial.customer_name,
+          });
+        }
+        return json({ error: "This approval link has expired or was replaced. Ask the business for a fresh link." }, 410);
+      }
+
+      if (recordedAction) {
+        return json({
+          success: true,
+          already: true,
+          action: recordedAction,
+          customer_name: testimonial.customer_name,
+        });
+      }
+
+      // Compare-and-set makes a link one-time-use even if it is opened twice.
+      const { data: claimedToken, error: claimError } = await supabaseAdmin
+        .from("approval_tokens")
+        .update({ used_at: now })
+        .eq("token", token)
+        .is("used_at", null)
+        .select("token")
+        .maybeSingle();
+
+      if (claimError) {
+        console.error("Approval token claim failed:", claimError.message);
+        return json({ error: "Your response could not be processed. Please try again." }, 500);
+      }
+
+      if (!claimedToken) {
+        const { data: latest, error: latestError } = await supabaseAdmin
+          .from("testimonials")
+          .select("status,approval_status,customer_name")
+          .eq("id", testimonial.id)
+          .eq("user_id", approvalToken.user_id)
+          .maybeSingle();
+        if (latestError) return json({ error: "The approval status could not be checked. Please try again." }, 500);
+        const finalAction = latest?.approval_status === "approved" || latest?.status === "published"
+          ? "approve"
+          : latest?.approval_status === "declined" || latest?.status === "declined"
+            ? "decline"
+            : null;
+        if (finalAction) {
+          return json({ success: true, already: true, action: finalAction, customer_name: latest?.customer_name || testimonial.customer_name });
+        }
+        return json({ error: "This approval link has already been used or expired. Ask the business for a fresh link." }, 410);
+      }
+
+      const changes = isApprove
+        ? {
+            status: "approved",
+            approval_status: "approved",
+            approved_at: now,
+            approved_text: approvalToken.approval_text || testimonial.ai_rewritten_text || testimonial.original_text,
+          }
+        : {
+            status: "declined",
+            approval_status: "declined",
+            rejection_reason: reason || null,
+            rejected_at: now,
+          };
+
+      const { error: updateError } = await supabaseAdmin
+        .from("testimonials")
+        .update(changes)
+        .eq("id", testimonial.id)
+        .eq("user_id", approvalToken.user_id);
+
+      if (updateError) {
+        // Release the claimed token if the testimonial update failed, allowing a retry.
+        await supabaseAdmin.from("approval_tokens").update({ used_at: null }).eq("token", token);
+        console.error("Testimonial approval update failed:", updateError.message);
+        return json({ error: "Your response could not be saved. Please try again." }, 500);
+      }
+
+      const eventType = isApprove ? "approval_approved" : "approval_rejected";
+      const { error: eventError } = await supabaseAdmin.from("analytics_events").insert({
+        user_id: testimonial.user_id,
+        event_type: eventType,
+        entity_id: testimonial.id,
         entity_type: "approval",
-        campaign: t.campaign,
+        campaign: testimonial.campaign || approvalToken.campaign || null,
+        metadata: action === "approve" ? {} : { reason },
       });
-    } else if (action === "reject" || action === "decline") {
-      await supabaseAdmin
-        .from("testimonials")
-        .update({ status: "declined", rejection_reason: reason, rejected_at: now })
-        .eq("id", t.id);
+      if (eventError) console.warn("Approval analytics event could not be recorded:", eventError.message);
 
-      await supabaseAdmin.from("analytics_events").insert({
-        user_id: t.user_id,
-        event_type: "approval_rejected",
-        entity_id: t.id,
-        entity_type: "approval",
-        campaign: t.campaign,
-        metadata: { reason },
+      return json({
+        success: true,
+        already: false,
+        action: isApprove ? "approve" : "decline",
+        customer_name: testimonial.customer_name,
       });
     }
 
-    return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (e) {
-    console.error("handle-approval error", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Old links do not prove which exact wording the customer received.
+    // They are invalidated by migration and must be resent through the snapshot flow.
+    return json({ error: "This approval link is outdated. Ask the business to send a fresh request." }, 410);
+  } catch (error) {
+    console.error("handle-approval failed:", error instanceof Error ? error.message : String(error));
+    return json({ error: "The approval link could not be processed. Please try again." }, 500);
   }
 });

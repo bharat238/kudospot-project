@@ -59,7 +59,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    const events: any[] = [];
+    type BackfillEvent = {
+      user_id: string;
+      event_type: "widget_view" | "widget_click" | "case_study_view" | "approval_approved" | "approval_rejected" | "approval_sent";
+      entity_id: string;
+      entity_type: "widget" | "case_study" | "approval";
+      source: "backfill";
+      campaign: string | null;
+      created_at: string;
+    };
+    const events: BackfillEvent[] = [];
 
     // 1. Widgets — synthesize widget_view + widget_click between created_at and now
     const { data: widgets } = await admin

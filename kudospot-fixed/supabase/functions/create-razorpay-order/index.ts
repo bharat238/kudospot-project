@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const { plan } = await req.json();
     const amount = PLAN_AMOUNTS[plan];
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
         "Authorization": `Basic ${credentials}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ amount, currency: "INR", receipt }),
+      body: JSON.stringify({ amount, currency: "INR", receipt, notes: { user_id: user.id, plan, purpose: "kudospot-plan-upgrade" } }),
     });
 
     if (!rzResp.ok) {

@@ -14,48 +14,44 @@ Before you begin, make sure you have created accounts on the following platforms
 ---
 
 ## Step 1: Database Setup (Supabase)
-1. Go to the [Supabase Dashboard](https://supabase.com/dashboard) and click **New Project**.
-2. Give your project a name (e.g., `kudospot-production`), select a strong database password, and choose a region close to your target audience.
-3. Once the project is provisioned, navigate to the **SQL Editor** from the left-hand sidebar.
-4. Click **New Query** and run the SQL migration files located in `supabase/migrations/` in chronological order:
-   - Run `20260421154612_*.sql`
-   - Run `20260421164051_*.sql`
-   - Run `20260421165706_*.sql`
-   - Run `20260421165732_*.sql`
-   - Run `20260421170714_*.sql`
-   - Run `20260422033752_*.sql`
-   - Run `20260423000000_final_fixes.sql`
-5. Go to **Storage** in the Supabase Sidebar, ensure that a bucket named `form-assets` exists and that its accessibility is set to **Public**. If not, create it manually.
 
----
+Run all commands from the application directory, `kudospot-fixed/`.
 
-## Step 2: Supabase Edge Functions Deployment
-The AI-powered tools and backend services are handled via Supabase Edge Functions. You need to deploy these functions to your production Supabase project.
+**Use migration history; do not manually run the old seven-file list.** The repository now contains additional migrations for approval security, publication consent, plan limits and billing.
 
-1. Install the Supabase CLI on your local machine:
-   ```bash
-   npm install -g supabase
-   ```
-2. Log in to your Supabase account via CLI:
+1. Back up the target database and validate the change on a separate staging project first.
+2. Sign in and link the intended project:
    ```bash
    supabase login
-   ```
-3. Link your project by copying your Project Reference ID (found in project settings):
-   ```bash
    supabase link --project-ref your-project-ref-id
    ```
-4. Deploy the functions:
+3. Compare local and remote migration history, then preview the SQL changes:
    ```bash
-   supabase functions deploy backfill-analytics
-   supabase functions deploy create-razorpay-order
-   supabase functions deploy generate-case-study
-   supabase functions deploy generate-social-post
-   supabase functions deploy rewrite-testimonial
-   supabase functions deploy send-approval-email
-   supabase functions deploy verify-razorpay-payment
+   supabase migration list --linked
+   supabase db push --dry-run
    ```
+4. Inspect the dry-run output and verify every pending migration before applying it. For a new, empty project, apply the full migration set with `supabase db push`.
+5. For an existing project, **stop if history is missing, unexpected or out of sync**. Do not blindly push every file or reset the linked database. Reconcile migration history only after independently verifying which SQL changes already exist in the actual schema; use `supabase migration repair --status applied <version>` only for a migration proven to have already been applied.
 
----
+Migrations are applied in timestamp order from `supabase/migrations/`. The five migrations dated 2026-10-20 add billing/payment records and constraints, harden approval-link policies, enforce plan resource limits, require publication consent and guard approval-token mutations. These need staging validation before production use.
+
+## Step 2: Supabase Edge Functions Deployment
+
+Deploy the functions from `kudospot-fixed/` after configuring the required secrets in Step 3:
+
+```bash
+supabase functions deploy approve-testimonial
+supabase functions deploy backfill-analytics
+supabase functions deploy create-razorpay-order
+supabase functions deploy generate-case-study
+supabase functions deploy generate-social-post
+supabase functions deploy handle-approval
+supabase functions deploy notify-owner
+supabase functions deploy rewrite-testimonial
+supabase functions deploy send-approval-email
+supabase functions deploy submit-testimonial
+supabase functions deploy verify-razorpay-payment
+```
 
 ## Step 3: Add Edge Function Secrets (Supabase)
 In the Supabase Dashboard, go to **Edge Functions** -> **Secrets** and add the following keys. This is critical; without these, AI rewrites, emails, and payments will fail.

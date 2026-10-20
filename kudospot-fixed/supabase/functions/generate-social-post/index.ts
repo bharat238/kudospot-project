@@ -72,16 +72,24 @@ Deno.serve(async (req) => {
 
     console.log("Fetching profile and testimonial...");
     const [profileRes, testimonialRes] = await Promise.all([
-      supabase.from("profiles").select("business_name, brand_voice").eq("id", user.id).maybeSingle(),
-      supabase.from("testimonials").select("*").eq("id", testimonial_id).eq("user_id", user.id).maybeSingle()
+      supabase.from("profiles").select("business_name, brand_voice, plan, plan_expires_at").eq("id", user.id).maybeSingle(),
+      supabase.from("testimonials").select("id,user_id,customer_name,customer_role,customer_company,approved_text,ai_rewritten_text,original_text,approval_status").eq("id", testimonial_id).eq("user_id", user.id).eq("approval_status", "approved").maybeSingle()
     ]);
 
     const { data: profile } = profileRes;
     const { data: t } = testimonialRes;
 
+    const paidPlanActive =
+      (profile?.plan === "starter" || profile?.plan === "pro") &&
+      typeof profile.plan_expires_at === "string" &&
+      Date.parse(profile.plan_expires_at) > Date.now();
+    if (!paidPlanActive) {
+      return new Response(JSON.stringify({ error: "Social post generation requires an active paid plan." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (!t) {
       console.error("Testimonial not found");
-      return new Response(JSON.stringify({ error: "Testimonial not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Only customer-approved testimonials can be used for social posts." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const text = t.approved_text || t.ai_rewritten_text || t.original_text;

@@ -3,10 +3,11 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { trackEvent } from "@/lib/track";
+import type { Tables } from "@/integrations/supabase/types";
 
 const PublicCaseStudy = () => {
   const { slug } = useParams();
-  const [cs, setCs] = useState<any | null>(null);
+  const [cs, setCs] = useState<Tables<"case_studies"> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

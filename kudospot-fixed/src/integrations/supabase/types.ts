@@ -58,6 +58,7 @@ export type Database = {
       }
       approval_tokens: {
         Row: {
+          approval_text: string | null
           campaign: string | null
           created_at: string | null
           testimonial_id: string
@@ -66,6 +67,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approval_text?: string | null
           campaign?: string | null
           created_at?: string | null
           testimonial_id: string
@@ -74,6 +76,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approval_text?: string | null
           campaign?: string | null
           created_at?: string | null
           testimonial_id?: string
@@ -366,6 +369,7 @@ export type Database = {
           customer_role: string | null
           id: string
           original_text: string
+          owner_notification_sent_at: string | null
           rating: number | null
           rejected_at: string | null
           rejection_reason: string | null
@@ -389,6 +393,7 @@ export type Database = {
           customer_role?: string | null
           id?: string
           original_text: string
+          owner_notification_sent_at?: string | null
           rating?: number | null
           rejected_at?: string | null
           rejection_reason?: string | null
@@ -412,6 +417,7 @@ export type Database = {
           customer_role?: string | null
           id?: string
           original_text?: string
+          owner_notification_sent_at?: string | null
           rating?: number | null
           rejected_at?: string | null
           rejection_reason?: string | null
@@ -465,7 +471,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_business_profiles: {
+        Row: {
+          business_logo_url: string | null
+          business_name: string | null
+          user_id: string
+        }
+        Relationships: []
+      }
     }
     Functions: {
       increment_widget_clicks: {

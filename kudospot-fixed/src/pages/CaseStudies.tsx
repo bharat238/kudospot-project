@@ -12,17 +12,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, ExternalLink, Trash2, Loader2, Copy, X } from "lucide-react";
+import { Plus, ExternalLink, Trash2, Loader2, Copy, X, AlertCircle, RefreshCw } from "lucide-react";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 
 import type { Database } from "@/integrations/supabase/types";
 type CaseStudy = Database["public"]["Tables"]["case_studies"]["Row"];
 
+const tryCopyText = async (value: string) => {
+  try { await navigator.clipboard.writeText(value); return true; }
+  catch { return false; }
+};
+
 const CaseStudies = () => {
   const { user } = useAuth();
   const { canAddCaseStudy, showUpgradeToast } = usePlanLimits();
   const [items, setItems] = useState<Tables<"case_studies">[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   type TestimonialPickerItem = Pick<
     Tables<"testimonials">,
     "id" | "customer_name" | "approved_text" | "ai_rewritten_text" | "original_text"
@@ -34,14 +41,29 @@ const CaseStudies = () => {
   const [form, setForm] = useState({ client_name: "", context: "", campaign: "", testimonial_ids: [] as string[] });
 
   const load = async () => {
-    if (!user) return;
-    const [{ data: cs }, { data: t }] = await Promise.all([
-      supabase.from("case_studies").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("testimonials").select("id, customer_name, approved_text, ai_rewritten_text, original_text").eq("user_id", user.id).eq("status", "approved"),
-    ]);
-    setItems(cs || []); setTestimonials(t || []);
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [caseStudyResult, testimonialResult] = await Promise.all([
+        supabase.from("case_studies").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("testimonials").select("id, customer_name, approved_text, ai_rewritten_text, original_text").eq("user_id", user.id).eq("approval_status", "approved"),
+      ]);
+      if (caseStudyResult.error) throw caseStudyResult.error;
+      if (testimonialResult.error) throw testimonialResult.error;
+      setItems(caseStudyResult.data || []);
+      setTestimonials(testimonialResult.data || []);
+    } catch (error) {
+      console.error("Failed to load case studies:", error);
+      setLoadError("We couldn't load your case studies. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { void load(); }, [user]);
 
   const generate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,26 +78,36 @@ const CaseStudies = () => {
       toast.success("Case study generated!");
       setOpen(false); setForm({ client_name: "", context: "", campaign: "", testimonial_ids: [] });
       setActive(data.case_study);
-      load();
-    } catch (e: any) {
-      toast.error(e.message || "Generation failed");
+      void load();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally { setGenerating(false); }
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this case study?")) return;
-    await supabase.from("case_studies").delete().eq("id", id);
-    toast.success("Deleted"); setActive(null); load();
+    if (!user || !window.confirm("Delete this case study? This cannot be undone.")) return;
+    const { error } = await supabase.from("case_studies").delete().eq("id", id).eq("user_id", user.id);
+    if (error) return toast.error(error.message || "The case study could not be deleted.");
+    toast.success("Case study deleted");
+    setActive(null);
+    void load();
   };
 
-  const togglePublish = async (cs: any) => {
-    await supabase.from("case_studies").update({ is_published: !cs.is_published }).eq("id", cs.id);
-    toast.success(cs.is_published ? "Unpublished" : "Published");
-    setActive({ ...cs, is_published: !cs.is_published });
-    load();
+  const togglePublish = async (cs: CaseStudy) => {
+    if (!user) return;
+    const next = !cs.is_published;
+    if (next && !canAddCaseStudy(items.length)) {
+      showUpgradeToast("case studies");
+      return;
+    }
+    const { error } = await supabase.from("case_studies").update({ is_published: next }).eq("id", cs.id).eq("user_id", user.id);
+    if (error) return toast.error(error.message || "Publish status couldn't be changed.");
+    toast.success(next ? "Case study published" : "Case study unpublished");
+    setActive({ ...cs, is_published: next });
+    void load();
   };
 
-  const update = async (field: string, value: any) => {
+  const update = (field: "title" | "challenge" | "solution" | "results" | "pull_quote" | "campaign", value: string) => {
     if (!active) return;
     setActive({ ...active, [field]: value });
   };
@@ -86,7 +118,7 @@ const CaseStudies = () => {
       title: active.title, challenge: active.challenge, solution: active.solution, results: active.results, pull_quote: active.pull_quote, campaign: active.campaign || null, key_stats: cleanedStats,
     }).eq("id", active.id);
     if (error) return toast.error(error.message);
-    toast.success("Saved"); load();
+    toast.success("Saved"); void load();
   };
 
   const updateStat = (i: number, v: string) => {
@@ -111,21 +143,21 @@ const CaseStudies = () => {
 
   return (
     <AppShell>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-1">Case studies</h1>
           <p className="text-muted-foreground">Turn approved testimonials into shareable stories.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Generate</Button></DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogTrigger asChild><Button onClick={(event) => { if (!canAddCaseStudy(items.length)) { event.preventDefault(); showUpgradeToast("case studies"); } }}><Plus className="h-4 w-4 mr-1" /> Generate</Button></DialogTrigger>
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[85dvh] overflow-y-auto rounded-2xl sm:w-full">
             <DialogHeader>
               <DialogTitle>Generate case study</DialogTitle>
               <DialogDescription>Generate a new case study from your approved testimonials.</DialogDescription>
             </DialogHeader>
             <form onSubmit={generate} className="space-y-4">
               <div><Label>Client name</Label><Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} placeholder="Acme Inc." /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div><Label>One-line context (optional)</Label><Input value={form.context} onChange={(e) => setForm({ ...form, context: e.target.value })} placeholder="B2B SaaS, used us for onboarding" /></div>
                 <div><Label>Campaign tag</Label><Input value={form.campaign} onChange={(e) => setForm({ ...form, campaign: e.target.value })} placeholder="e.g. q4-enterprise" /></div>
               </div>
@@ -161,29 +193,49 @@ const CaseStudies = () => {
         </Dialog>
       </div>
 
-      {items.length === 0 ? (
-        <Card className="p-16 text-center text-muted-foreground">
-          <KudoSpotIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
-          No case studies yet.
+      {loadError ? (
+        <Card className="rounded-[22px] border-[#e6e8ed] bg-white px-6 py-10 text-center sm:px-10">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f1f2f5] text-[#515661]"><AlertCircle className="h-5 w-5" /></div>
+          <h2 className="font-semibold text-[#202126]">Case studies couldn't be loaded</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">{loadError}</p>
+          <Button variant="outline" className="mt-5 rounded-full border-[#e1e4e9]" onClick={() => void load()}><RefreshCw className="mr-2 h-4 w-4" />Try again</Button>
+        </Card>
+      ) : loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+          {[0, 1, 2].map((key) => <Card key={key} className="animate-pulse rounded-[20px] border-[#e6e8ed] bg-white p-5"><div className="mb-4 h-4 w-2/3 rounded bg-[#eff0f3]" /><div className="mb-3 h-3 w-full rounded bg-[#eff0f3]" /><div className="mb-2 h-3 w-5/6 rounded bg-[#eff0f3]" /><div className="mt-6 h-8 w-1/3 rounded bg-[#eff0f3]" /></Card>)}
+        </div>
+      ) : items.length === 0 ? (
+        <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center text-muted-foreground sm:px-10 sm:py-16">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><KudoSpotIcon className="h-6 w-6" /></div>
+          <h2 className="text-lg font-semibold text-[#202126]">Turn an approved customer story into a case study.</h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#777c85]">Choose approved testimonials and let AI draft the challenge, solution and results. You can edit the content before publishing a shareable page.</p>
+          <Button className="mt-5 rounded-full bg-[#202126] text-white hover:bg-[#383b43]" onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Generate first case study</Button>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
           {items.map((cs) => (
-            <Card key={cs.id} className="p-5 cursor-pointer hover:shadow-card transition" onClick={() => setActive(cs)}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="font-semibold">{cs.title}</div>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${cs.is_published ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+            <Card key={cs.id} role="button" tabIndex={0} aria-label={`Edit case study ${cs.title}`} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActive(cs); } }} className="group h-full cursor-pointer rounded-[20px] border-[#e6e8ed] bg-white p-5 shadow-[0_2px_10px_rgba(35,38,48,0.025)] transition-all hover:-translate-y-0.5 hover:border-[#c8f34c] hover:shadow-[0_8px_24px_rgba(35,38,48,0.07)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a5cd32]" onClick={() => setActive(cs)}>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eaffae] text-[#303a1b]"><KudoSpotIcon className="h-4 w-4" /></span>
+                  <div className="min-w-0"><p className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-[#777c85]">{cs.client_name || "Customer story"}</p><h2 className="mt-1 line-clamp-2 font-semibold leading-5 text-[#202126] group-hover:text-[#343c21]">{cs.title}</h2></div>
+                </div>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ${cs.is_published ? "border border-[#dcebb8] bg-[#f1f8dd] text-[#405022]" : "border border-[#e6e8ed] bg-[#f5f6f8] text-[#626671]"}`}>
                   {cs.is_published ? "Published" : "Draft"}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground line-clamp-2">{cs.pull_quote}</p>
+              <p className="line-clamp-3 text-sm leading-6 text-[#686d77]">{cs.pull_quote || "Open this story to add the customer quote, challenge, solution and results."}</p>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#eff0f3] pt-3 text-[10px] text-[#777c85]">
+                <span>{cs.campaign ? `Campaign · ${cs.campaign}` : "AI-generated from approved testimonials"}</span>
+                <span className="inline-flex items-center gap-1 font-semibold text-[#424750]">Edit story <ExternalLink className="h-3 w-3" /></span>
+              </div>
             </Card>
           ))}
         </div>
       )}
 
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl max-h-[90dvh] overflow-y-auto rounded-2xl sm:w-full">
           {active && (
             <>
               <DialogHeader>
@@ -191,7 +243,7 @@ const CaseStudies = () => {
                 <DialogDescription>View and manage this case study.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div><Label>Title</Label><Input value={active.title || ""} onChange={(e) => update("title", e.target.value)} /></div>
                   <div><Label>Campaign tag</Label><Input value={active.campaign || ""} onChange={(e) => update("campaign", e.target.value)} placeholder="Override or leave blank" /></div>
                 </div>
@@ -213,19 +265,19 @@ const CaseStudies = () => {
                     ))}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 pt-2 border-t">
+                <div className="flex flex-col gap-3 border-t pt-3 sm:flex-row sm:flex-wrap sm:items-center">
                   <Switch checked={active.is_published} onCheckedChange={() => togglePublish(active)} />
                   <span className="text-sm">{active.is_published ? "Public" : "Private"}</span>
                   {active.is_published && (
-                    <div className="flex items-center gap-1 ml-auto">
-                      <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(publicUrl(active.published_slug)); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5 mr-1" /> Copy link</Button>
-                      <Button size="sm" variant="outline" onClick={() => window.open(publicUrl(active.published_slug), "_blank")}><ExternalLink className="h-3.5 w-3.5 mr-1" /> Open</Button>
+                    <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                      <Button size="sm" variant="outline" onClick={async () => { const copied = await tryCopyText(publicUrl(active.published_slug)); if (copied) { toast.success("Case study link copied"); } else { toast.error("Clipboard access was blocked. Copy the URL from your browser."); } }}><Copy className="h-3.5 w-3.5 mr-1" /> Copy link</Button>
+                      <Button size="sm" variant="outline" onClick={() => window.open(publicUrl(active.published_slug), "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5 mr-1" /> Open</Button>
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   <Button onClick={saveActive}>Save changes</Button>
-                  <Button variant="ghost" className="text-destructive ml-auto" onClick={() => remove(active.id)}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>
+                  <Button variant="ghost" className="text-destructive sm:ml-auto" onClick={() => remove(active.id)}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>
                 </div>
               </div>
             </>

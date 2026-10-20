@@ -80,7 +80,26 @@ serve(async (req) => {
     const { data: t, error: tErr } = await supabase.from("testimonials").select("*").eq("id", testimonial_id).eq("user_id", user.id).single();
     if (tErr || !t) return new Response(JSON.stringify({ error: "Testimonial not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: profile } = await supabase.from("profiles").select("business_name, brand_voice").eq("id", user.id).maybeSingle();
+    const { data: profile } = await supabase.from("profiles").select("business_name, brand_voice, plan, plan_expires_at").eq("id", user.id).maybeSingle();
+
+    const paidPlanActive =
+      (profile?.plan === "starter" || profile?.plan === "pro") &&
+      typeof profile.plan_expires_at === "string" &&
+      Date.parse(profile.plan_expires_at) > Date.now();
+    if (!paidPlanActive) {
+      const { count, error: rewriteCountError } = await supabase
+        .from("testimonials")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .not("ai_rewritten_text", "is", null);
+      if (rewriteCountError) {
+        console.error("Could not check AI rewrite usage:", rewriteCountError.message);
+        return new Response(JSON.stringify({ error: "Your AI rewrite usage could not be checked." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if ((count || 0) >= 5) {
+        return new Response(JSON.stringify({ error: "Free plan limit reached: up to 5 AI rewrites. Upgrade to continue." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
 
     const userPrompt = `CUSTOMER NAME: ${t.customer_name}
 CUSTOMER ROLE: ${t.customer_role || "(unspecified)"}
@@ -122,7 +141,49 @@ Rewrite this testimonial following all rules.`;
     const rewritten = aiData.choices?.[0]?.message?.content?.trim();
     if (!rewritten) return new Response(JSON.stringify({ error: "Empty AI response" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    await supabase.from("testimonials").update({ ai_rewritten_text: rewritten, status: "ai_rewritten" }).eq("id", testimonial_id);
+    // A changed rewrite invalidates customer consent and every still-open link.
+    const now = new Date().toISOString();
+    const { error: tokenError } = await supabase
+      .from("approval_tokens")
+      .update({ used_at: now })
+      .eq("testimonial_id", testimonial_id)
+      .eq("user_id", user.id)
+      .is("used_at", null);
+    if (tokenError) {
+      console.error("Could not expire approval links before rewriting:", tokenError.message);
+      return new Response(JSON.stringify({ error: "The approval links could not be reset. Please try again before rewriting." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const { error: caseStudyError } = await supabase
+      .from("case_studies")
+      .update({ is_published: false })
+      .eq("user_id", user.id)
+      .contains("testimonial_ids", [testimonial_id])
+      .eq("is_published", true);
+    if (caseStudyError) {
+      console.error("Could not unpublish linked case studies before rewrite:", caseStudyError.message);
+      return new Response(JSON.stringify({ error: "A linked case study could not be taken offline safely. Please try again before rewriting." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const { error: updateError } = await supabaseAdmin.from("testimonials").update({
+      ai_rewritten_text: rewritten,
+      status: "ai_rewritten",
+      approved_text: null,
+      approved_at: null,
+      approval_status: "not_sent",
+      approval_sent_at: null,
+      rejection_reason: null,
+      rejected_at: null,
+    }).eq("id", testimonial_id).eq("user_id", user.id);
+    if (updateError) {
+      console.error("Could not save new testimonial rewrite:", updateError.message);
+      return new Response(JSON.stringify({ error: "The new rewrite could not be saved. Please try again." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     return new Response(JSON.stringify({ rewritten }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

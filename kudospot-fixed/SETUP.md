@@ -35,18 +35,20 @@ Add these one by one:
 
 ## Step 4: Run the database migrations
 
-Go to: **Supabase Dashboard → SQL Editor**
+Run these commands from the `kudospot-fixed/` directory. Supabase applies migration files in timestamp order and records which versions have run.
 
-Run each migration file in order:
-1. `supabase/migrations/20260421154612_*.sql`
-2. `supabase/migrations/20260421164051_*.sql`
-3. `supabase/migrations/20260421165706_*.sql`
-4. `supabase/migrations/20260421165732_*.sql`
-5. `supabase/migrations/20260421170714_*.sql`
-6. `supabase/migrations/20260422033752_*.sql`
-7. `supabase/migrations/20260423000000_final_fixes.sql`
+```bash
+supabase login
+supabase link --project-ref <your-project-ref>
+supabase migration list --linked
+supabase db push --dry-run
+```
 
----
+Review the dry-run output before applying anything.
+
+- For a **new, empty** database, run `supabase db push` to apply the complete migration history.
+- For an **existing** database, take a backup and compare local/remote migration history first. If entries are missing or out of sync, stop and reconcile the history against the actual schema before pushing. Do not blindly rerun the old SQL snippets in the Dashboard, mark versions as applied without verifying them, or run `supabase db reset --linked` against production.
+- The current migration set includes additional 2026-10-20 migrations for billing, approval-link policies, plan limits, publication consent and approval-token mutation guards. Test them in staging before production rollout.
 
 ## Step 5: Run locally
 

@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, X, GripVertical, Zap, Copy, ChevronRight, HelpCircle, Mail, FileText, Shield } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
-import { PLAN_LIMITS, type PlanName } from "@/hooks/usePlanLimits";
+import { PLAN_LIMITS, usePlanLimits } from "@/hooks/usePlanLimits";
+import type { Tables } from "@/integrations/supabase/types";
+
+type SettingsProfile = Pick<Tables<"profiles">, "business_name" | "full_name" | "brand_voice" | "plan"> & { rejection_templates: string[] };
 
 const DEFAULT_TEMPLATES = [
   "Too short — needs more detail",
@@ -28,7 +30,8 @@ const DEFAULT_TEMPLATES = [
 
 const Settings = () => {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<any>({ business_name: "", full_name: "", brand_voice: "friendly", rejection_templates: DEFAULT_TEMPLATES, plan: "free" });
+  const { plan: activePlan, expiresAt, loading: planLoading } = usePlanLimits();
+  const [profile, setProfile] = useState<SettingsProfile>({ business_name: "", full_name: "", brand_voice: "friendly", rejection_templates: DEFAULT_TEMPLATES, plan: "free" });
   const [saving, setSaving] = useState(false);
   const [usage, setUsage] = useState({ testimonials: 0, ai_rewrites: 0, widgets: 0, case_studies: 0 });
 
@@ -38,7 +41,7 @@ const Settings = () => {
       if (data) {
         setProfile({
           ...data,
-          rejection_templates: Array.isArray(data.rejection_templates) ? data.rejection_templates : DEFAULT_TEMPLATES,
+          rejection_templates: Array.isArray(data.rejection_templates) ? data.rejection_templates.filter((item): item is string => typeof item === "string") : DEFAULT_TEMPLATES,
         });
       }
     });
@@ -76,10 +79,10 @@ const Settings = () => {
     setProfile({ ...profile, rejection_templates: next });
   };
   const addTpl = () => setProfile({ ...profile, rejection_templates: [...(profile.rejection_templates || []), ""] });
-  const removeTpl = (i: number) => setProfile({ ...profile, rejection_templates: profile.rejection_templates.filter((_: any, j: number) => j !== i) });
+  const removeTpl = (i: number) => setProfile({ ...profile, rejection_templates: profile.rejection_templates.filter((_, j) => j !== i) });
   const resetTpl = () => setProfile({ ...profile, rejection_templates: DEFAULT_TEMPLATES });
 
-  const plan = (profile.plan as PlanName) || "free";
+  const plan = activePlan;
   const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
   const fmt = (count: number, max: number) => max === -1 ? "Unlimited" : `${count} / ${max}`;
   const planBadgeCls = plan === "pro" ? "bg-primary-light text-primary" : plan === "starter" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground";
@@ -91,11 +94,12 @@ const Settings = () => {
         <p className="text-muted-foreground">Profile, branding, and billing.</p>
       </div>
 
-      <div className="max-w-2xl space-y-6">
+      <div className="grid max-w-6xl grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="min-w-0 space-y-6">
         {/* Profile Section */}
         <div>
           <h2 className="text-lg font-semibold mb-3">Profile</h2>
-          <Card className="p-6">
+          <Card className="rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] sm:p-6">
             <form onSubmit={save} className="space-y-5">
               <div><Label>Your name</Label><Input value={profile.full_name || ""} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} /></div>
               <div><Label>Business name</Label><Input value={profile.business_name || ""} onChange={(e) => setProfile({ ...profile, business_name: e.target.value })} /></div>
@@ -114,7 +118,7 @@ const Settings = () => {
               </div>
 
               <div className="border-t pt-5">
-                <div className="flex items-center justify-between mb-2">
+                <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <Label>Rejection reason templates</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">Quick-pick options shown to customers when they decline an approval.</p>
@@ -126,10 +130,10 @@ const Settings = () => {
                 </div>
                 <div className="space-y-2 mt-3">
                   {(profile.rejection_templates || []).map((t: string, i: number) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <GripVertical className="h-4 w-4 text-muted-foreground" />
-                      <Input value={t} onChange={(e) => updateTpl(i, e.target.value)} placeholder={`Reason ${i + 1}`} />
-                      <Button type="button" size="icon" variant="ghost" onClick={() => removeTpl(i)}><X className="h-4 w-4" /></Button>
+                    <div key={i} className="flex min-w-0 items-center gap-2">
+                      <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <Input className="min-w-0 flex-1" value={t} onChange={(e) => updateTpl(i, e.target.value)} placeholder={`Reason ${i + 1}`} />
+                      <Button type="button" size="icon" variant="ghost" className="shrink-0" aria-label={`Remove rejection template ${i + 1}`} onClick={() => removeTpl(i)}><X className="h-4 w-4" /></Button>
                     </div>
                   ))}
                 </div>
@@ -140,10 +144,12 @@ const Settings = () => {
           </Card>
         </div>
 
+        </div>
+        <div className="min-w-0 space-y-6">
         {/* Support & Legal Section */}
         <div>
           <h2 className="text-lg font-semibold mb-3">Support & Legal</h2>
-          <Card className="p-6">
+          <Card className="rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] sm:p-6">
             <p className="text-xs text-muted-foreground mb-6">Get help, share feedback, or review our policies.</p>
             <div className="space-y-2">
               <Link to="/help">
@@ -190,63 +196,38 @@ const Settings = () => {
         <div>
           <h2 className="text-lg font-semibold mb-3">Billing</h2>
           <div className="space-y-4">
-            <Card className="p-6">
-              <div className="flex items-start justify-between mb-3">
+            <Card className="rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] sm:p-6">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-semibold text-lg mb-1">Current plan</h2>
                   <span className={`inline-block text-xs uppercase tracking-wide font-semibold px-2 py-1 rounded ${planBadgeCls}`}>
-                    {plan}
+                    {planLoading ? "Checking plan…" : plan}
                   </span>
                 </div>
                 {plan !== "pro" && (
-                  <Button onClick={() => { window.location.href = "/upgrade"; }}>
-                    <Zap className="h-4 w-4 mr-1" /> Upgrade
-                  </Button>
+                  <Button asChild><Link to="/upgrade"><Zap className="mr-1 h-4 w-4" />Upgrade</Link></Button>
                 )}
               </div>
               {plan === "free" ? (
                 <p className="text-sm text-muted-foreground mt-2">Upgrade to unlock unlimited testimonials, AI rewrites, and more.</p>
               ) : (
                 <div className="mt-3">
-                  <p className="text-sm text-muted-foreground">Your plan is active. Thank you for being a KudoSpot customer.</p>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <button className="mt-3 text-xs text-destructive hover:underline cursor-pointer bg-transparent border-none p-0">
-                        Cancel subscription
-                      </button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Your plan will remain active until the end of the billing period.
-                          <br /><br />
-                          <strong>Note:</strong> Please also cancel your payment mandate in your bank or UPI app to stop future charges.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Keep my plan</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          onClick={async () => {
-                            const { error } = await supabase.from("profiles").update({ plan: "free", plan_expires_at: null }).eq("id", user?.id);
-                            if (error) { toast.error("Cancellation failed: " + error.message); return; }
-                            toast.success("Subscription cancelled. You will retain access until your billing period ends.");
-                            window.location.reload();
-                          }}
-                        >
-                          Confirm cancellation
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <p className="text-sm text-muted-foreground">Your paid access is active. It does not renew automatically.</p>
+                  {expiresAt && <p className="mt-2 text-sm font-medium text-foreground">Access ends {new Date(expiresAt).toLocaleDateString()}.</p>}
+                  <div className="mt-4 rounded-xl border border-border/70 bg-muted/40 p-4">
+                    <p className="text-sm font-medium">Need to change your paid plan?</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">Paid plans grant 30 days of access per payment and do not auto-renew. Renew from Upgrade when you need another period, or contact support for billing help.</p>
+                    <Button asChild variant="outline" size="sm" className="mt-3">
+                      <a href="mailto:hello@kudospot.io?subject=KudoSpot%20billing%20support">Contact billing support</a>
+                    </Button>
+                  </div>
                 </div>
               )}
             </Card>
 
-            <Card className="p-6">
+            <Card className="rounded-[20px] border-[#e6e8ed] bg-white p-4 shadow-[0_2px_10px_rgba(35,38,48,0.025)] sm:p-6">
               <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                <KudoSpotIcon className="h-4 w-4 text-primary" /> Usage this period
+                <KudoSpotIcon className="h-4 w-4 text-primary" /> Usage
               </h2>
               <div className="divide-y">
                 {[
@@ -255,7 +236,7 @@ const Settings = () => {
                   { label: "Widgets", value: usage.widgets, max: limits.widgets },
                   { label: "Case studies", value: usage.case_studies, max: limits.case_studies },
                 ].map((row) => (
-                  <div key={row.label} className="py-3 flex items-center justify-between">
+                  <div key={row.label} className="flex items-center justify-between gap-3 py-3">
                     <span className="text-sm">{row.label}</span>
                     <span className="text-sm font-medium">{fmt(row.value, row.max)}</span>
                   </div>
@@ -263,6 +244,7 @@ const Settings = () => {
               </div>
             </Card>
           </div>
+        </div>
         </div>
       </div>
     </AppShell>

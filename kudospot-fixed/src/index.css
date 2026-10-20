@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,99 +6,93 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 222 47% 11%;
-
+    --background: 220 18% 97%;
+    --foreground: 228 10% 13%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-
+    --card-foreground: 228 10% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-
-    --primary: 262 83% 58%;
+    --popover-foreground: 228 10% 13%;
+    --primary: 0 0% 9%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 262 90% 95%;
-    --primary-glow: 262 83% 70%;
-
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
-
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-
-    --accent: 262 90% 95%;
-    --accent-foreground: 262 83% 40%;
-
-    --destructive: 0 84% 60%;
+    --primary-light: 78 100% 91%;
+    --primary-glow: 78 100% 69%;
+    --secondary: 220 15% 96%;
+    --secondary-foreground: 228 10% 13%;
+    --muted: 220 15% 96%;
+    --muted-foreground: 225 7% 38%;
+    --accent: 78 100% 85%;
+    --accent-foreground: 228 10% 13%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-
-    --success: 158 64% 42%;
+    --success: 158 64% 35%;
     --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 262 83% 58%;
-
-    --radius: 0.625rem;
-
-    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(262 83% 70%));
-    --gradient-soft: linear-gradient(180deg, hsl(262 90% 98%), hsl(0 0% 100%));
-    --shadow-sm: 0 1px 2px hsl(222 47% 11% / 0.05);
-    --shadow-md: 0 4px 12px hsl(222 47% 11% / 0.06);
-    --shadow-lg: 0 12px 32px hsl(262 83% 58% / 0.12);
-    --shadow-glow: 0 8px 40px hsl(262 83% 58% / 0.25);
-
+    --warning: 72 78% 42%;
+    --warning-foreground: 228 10% 13%;
+    --border: 220 12% 91%;
+    --input: 220 12% 89%;
+    --ring: 76 70% 40%;
+    --link: 228 10% 13%;
+    --radius: 0.875rem;
+    --gradient-primary: linear-gradient(115deg, #d9ff68, #c8f34b);
+    --gradient-soft: linear-gradient(180deg, #ffffff, #f7f8fa);
+    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.04);
+    --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.05);
+    --shadow-lg: 0 16px 44px hsl(0 0% 0% / 0.08);
+    --shadow-glow: 0 10px 36px hsl(78 95% 70% / 0.18);
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 262 83% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 262 90% 96%;
-    --sidebar-accent-foreground: 262 83% 40%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 262 83% 58%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 0 0% 9%;
+    --sidebar-primary-foreground: 228 10% 13%;
+    --sidebar-accent: 78 100% 85%;
+    --sidebar-accent-foreground: 228 10% 13%;
+    --sidebar-border: 0 0% 91%;
+    --sidebar-ring: 76 70% 40%;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 0 0% 98%;
-    --card: 222 47% 9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 222 47% 9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 262 83% 65%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 222 47% 14%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 222 47% 14%;
-    --muted-foreground: 220 9% 65%;
-    --accent: 222 47% 14%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62% 50%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 97%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 97%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 97%;
+    --primary: 0 0% 97%;
+    --primary-foreground: 0 0% 7%;
+    --primary-light: 78 35% 18%;
+    --primary-glow: 78 92% 66%;
+    --secondary: 0 0% 13%;
+    --secondary-foreground: 0 0% 97%;
+    --muted: 0 0% 13%;
+    --muted-foreground: 0 0% 68%;
+    --accent: 78 30% 17%;
+    --accent-foreground: 78 95% 82%;
+    --destructive: 0 62% 48%;
     --destructive-foreground: 0 0% 98%;
-    --border: 222 47% 18%;
-    --input: 222 47% 18%;
-    --ring: 262 83% 65%;
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 262 83% 65%;
+    --success: 158 64% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 76 78% 55%;
+    --warning-foreground: 228 10% 13%;
+    --border: 0 0% 20%;
+    --input: 0 0% 22%;
+    --ring: 78 90% 62%;
+    --link: 78 90% 68%;
+    --sidebar-background: 0 0% 9%;
+    --sidebar-foreground: 0 0% 97%;
+    --sidebar-primary: 78 92% 66%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 14%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 222 47% 18%;
-    --sidebar-ring: 262 83% 65%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 78 95% 82%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 78 90% 62%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Geist', 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground;
@@ -106,6 +100,30 @@
   }
   h1, h2, h3, h4 {
     @apply tracking-tight;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.035em;
+  }
+  ::selection {
+    background: hsl(78 100% 84%);
+    color: hsl(228 10% 13%);
+  }
+}
+
+@keyframes kudospot-page-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.kudospot-page-enter {
+  animation: kudospot-page-enter 180ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
