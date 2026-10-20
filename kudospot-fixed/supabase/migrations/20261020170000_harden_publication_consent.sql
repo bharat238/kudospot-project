@@ -122,6 +122,42 @@ BEGIN
 END;
 $$;
 
+-- Take any legacy public content with missing or unapproved source rows offline
+-- before installing the new publication guard.
+UPDATE public.widgets AS w
+SET is_published = false
+WHERE w.is_published = true
+  AND (
+    coalesce(cardinality(w.testimonial_ids), 0) = 0
+    OR EXISTS (
+      SELECT 1
+      FROM unnest(w.testimonial_ids) AS selected(testimonial_id)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM public.testimonials AS t
+        WHERE t.id = selected.testimonial_id
+          AND t.user_id = w.user_id
+          AND t.approval_status = 'approved'
+      )
+    )
+  );
+
+UPDATE public.case_studies AS c
+SET is_published = false
+WHERE c.is_published = true
+  AND (
+    coalesce(cardinality(c.testimonial_ids), 0) = 0
+    OR EXISTS (
+      SELECT 1
+      FROM unnest(c.testimonial_ids) AS selected(testimonial_id)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM public.testimonials AS t
+        WHERE t.id = selected.testimonial_id
+          AND t.user_id = c.user_id
+          AND t.approval_status = 'approved'
+      )
+    )
+  );
+
 DROP TRIGGER IF EXISTS widgets_require_approved_sources ON public.widgets;
 CREATE TRIGGER widgets_require_approved_sources
   BEFORE INSERT OR UPDATE OF is_published, testimonial_ids, user_id
