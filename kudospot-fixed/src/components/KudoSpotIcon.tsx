@@ -1,6 +1,6 @@
 /**
- * KudoSpot brand icon — v3 version
- * (Stacked white cards on purple gradient background).
+ * KudoSpot brand icon — warm orange version
+ * (Stacked white cards on a coral gradient background).
  */
 const KudoSpotIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg
@@ -11,8 +11,8 @@ const KudoSpotIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   >
     <defs>
       <linearGradient id="kudospot-bg-v3" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor="#7C3AED" />
-        <stop offset="1" stopColor="#5B21B6" />
+        <stop offset="0" stopColor="#EC5329" />
+        <stop offset="1" stopColor="#B93817" />
       </linearGradient>
     </defs>
     <rect width="256" height="256" rx="56.32" fill="url(#kudospot-bg-v3)" />
@@ -22,7 +22,7 @@ const KudoSpotIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
       <rect x="4" y="22" width="28" height="18" rx="6" fill="#FFFFFF" />
       <polygon
         points="18.00,26.00 19.32,29.18 22.76,29.45 20.14,31.70 20.94,35.05 18.00,33.25 15.06,35.05 15.86,31.70 13.24,29.45 16.68,29.18"
-        fill="#7C3AED"
+        fill="#EC5329"
       />
     </g>
   </svg>

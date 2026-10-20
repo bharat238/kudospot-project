@@ -108,7 +108,7 @@ export const QRCodeModal = ({
         <div className="flex flex-col items-center gap-4 py-2"> 
           <div 
             ref={qrRef} 
-            className="rounded-2xl border-2 border-purple-100 p-4 bg-white shadow-sm" 
+            className="rounded-2xl border border-border/70 p-4 bg-white shadow-sm" 
           > 
             <QRCodeCanvas 
               value={formUrl} 
@@ -150,7 +150,7 @@ export const QRCodeModal = ({
               Copy link 
             </Button> 
             <Button size="sm" onClick={shareLink} 
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white"> 
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"> 
               <Share2 className="h-3.5 w-3.5 mr-1" /> 
               Share 
             </Button> 
