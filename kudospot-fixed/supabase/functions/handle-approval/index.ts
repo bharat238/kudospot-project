@@ -58,15 +58,29 @@ Deno.serve(async (req) => {
       }
 
       const isApprove = action === "approve";
-      const alreadyDone = isApprove
-        ? testimonial.status === "approved" || testimonial.approval_status === "approved"
-        : testimonial.status === "declined" || testimonial.approval_status === "declined";
+      const recordedAction = testimonial.approval_status === "approved" || testimonial.status === "published"
+        ? "approve"
+        : testimonial.approval_status === "declined" || testimonial.status === "declined"
+          ? "decline"
+          : null;
 
-      if (approvalToken.used_at || alreadyDone) {
+      if (approvalToken.used_at) {
+        if (recordedAction) {
+          return json({
+            success: true,
+            already: true,
+            action: recordedAction,
+            customer_name: testimonial.customer_name,
+          });
+        }
+        return json({ error: "This approval link has expired or was replaced. Ask the business for a fresh link." }, 410);
+      }
+
+      if (recordedAction) {
         return json({
           success: true,
           already: true,
-          action: isApprove ? "approve" : "decline",
+          action: recordedAction,
           customer_name: testimonial.customer_name,
         });
       }
@@ -80,13 +94,28 @@ Deno.serve(async (req) => {
         .select("token")
         .maybeSingle();
 
-      if (claimError || !claimedToken) {
-        return json({
-          success: true,
-          already: true,
-          action: isApprove ? "approve" : "decline",
-          customer_name: testimonial.customer_name,
-        });
+      if (claimError) {
+        console.error("Approval token claim failed:", claimError.message);
+        return json({ error: "Your response could not be processed. Please try again." }, 500);
+      }
+
+      if (!claimedToken) {
+        const { data: latest, error: latestError } = await supabaseAdmin
+          .from("testimonials")
+          .select("status,approval_status,customer_name")
+          .eq("id", testimonial.id)
+          .eq("user_id", approvalToken.user_id)
+          .maybeSingle();
+        if (latestError) return json({ error: "The approval status could not be checked. Please try again." }, 500);
+        const finalAction = latest?.approval_status === "approved" || latest?.status === "published"
+          ? "approve"
+          : latest?.approval_status === "declined" || latest?.status === "declined"
+            ? "decline"
+            : null;
+        if (finalAction) {
+          return json({ success: true, already: true, action: finalAction, customer_name: latest?.customer_name || testimonial.customer_name });
+        }
+        return json({ error: "This approval link has already been used or expired. Ask the business for a fresh link." }, 410);
       }
 
       const changes = isApprove
@@ -147,26 +176,32 @@ Deno.serve(async (req) => {
     }
 
     const isApprove = action === "approve";
-    const alreadyDone = isApprove
-      ? legacy.status === "approved" || legacy.approval_status === "approved"
-      : legacy.status === "declined" || legacy.approval_status === "declined";
+    const recordedAction = legacy.approval_status === "approved" || legacy.status === "published"
+      ? "approve"
+      : legacy.approval_status === "declined" || legacy.status === "declined"
+        ? "decline"
+        : null;
 
-    if (alreadyDone) {
-      return json({ success: true, already: true, action: isApprove ? "approve" : "decline", customer_name: legacy.customer_name });
+    if (recordedAction) {
+      return json({ success: true, already: true, action: recordedAction, customer_name: legacy.customer_name });
     }
 
+    // Rotate legacy UUID tokens after every response so a second action cannot override it.
+    const rotatedToken = crypto.randomUUID();
     const legacyChanges = isApprove
       ? {
           status: "approved",
           approval_status: "approved",
           approved_at: now,
           approved_text: legacy.ai_rewritten_text || legacy.original_text,
+          approval_token: rotatedToken,
         }
       : {
           status: "declined",
           approval_status: "declined",
           rejection_reason: reason || null,
           rejected_at: now,
+          approval_token: rotatedToken,
         };
 
     const { error: legacyUpdateError } = await supabaseAdmin
