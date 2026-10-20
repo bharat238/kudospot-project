@@ -23,7 +23,7 @@ const VsSenja = () => {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-50">
-        <div className="container mx-auto flex h-16 items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-bold text-lg">
             <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-8 w-8" />
             KudoSpot
@@ -41,7 +41,7 @@ const VsSenja = () => {
 
       {/* Header */}
       <section className="bg-gradient-soft">
-        <div className="container mx-auto py-20 md:py-28 text-center">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             KudoSpot vs Senja
           </h1>
@@ -52,7 +52,7 @@ const VsSenja = () => {
       </section>
 
       {/* Comparison table */}
-      <section className="container mx-auto py-20">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="max-w-4xl mx-auto">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -137,7 +137,7 @@ const VsSenja = () => {
 
       {/* Footer */}
       <footer className="border-t border-border/60 py-10 text-sm text-muted-foreground">
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-medium text-foreground">
             <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-5 w-5" />
             KudoSpot
