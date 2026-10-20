@@ -9,10 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, CheckSquare, Search, Send, Mail, Download, AlertCircle } from "lucide-react";
+import { Plus, Check, Star, Trash2, Loader2, Link2, Clock, X, RotateCw, Copy, Search, Mail, Download, AlertCircle, MessageSquareQuote } from "lucide-react";
 import { trackEvent } from "@/lib/track";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
@@ -174,7 +173,7 @@ const Testimonials = () => {
           body: { testimonial_id: t.id, resend: Boolean(opts?.resend) },
         });
 
-        if (!emailError) {
+        if (!emailError && emailData?.success) {
           if (emailData?.email_sent !== false) {
             trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
           }
