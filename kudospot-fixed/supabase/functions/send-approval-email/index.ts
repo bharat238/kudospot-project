@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
         <blockquote style="margin:0 0 22px;padding:16px 18px;background:#fff5ef;border-left:3px solid #c94320;border-radius:0 10px 10px 0;font-size:14px;line-height:1.7;color:#333">“${safeText}”</blockquote>
         <p style="font-size:13px;line-height:1.6;color:#4d4d4d;margin:0 0 16px">Your testimonial will only be marked approved after you choose to approve it.</p>
         <p style="margin:0 0 12px"><a href="${approvalUrl}" style="display:inline-block;background:#c94320;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9px;font-size:14px;font-weight:600">Approve testimonial</a></p>
-        <p style="margin:0"><a href="${declineUrl}" style="color:#555;font-size:13px;text-decoration:underline">Decline or request changes</a></p>
+        <p style="margin:0"><a href="${declineUrl}" style="color:#555;font-size:13px;text-decoration:underline">Decline testimonial</a></p>
       </div>
       <footer style="padding:16px 28px;background:#fafafa;border-top:1px solid #ebebeb;color:#777;font-size:11px;line-height:1.6">Sent via KudoSpot. If you did not expect this message, you can ignore it.</footer>
     </section>
