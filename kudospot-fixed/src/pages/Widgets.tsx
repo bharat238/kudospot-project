@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Copy, Trash2, Star, ExternalLink, LayoutGrid, Eye, MousePointerClick, Loader2, RefreshCw, Code2, Check, AlertCircle, MessageSquareQuote } from "lucide-react";
+import { Plus, Copy, Trash2, Star, ExternalLink, LayoutGrid, Eye, MousePointerClick, Loader2, RefreshCw, Code2, Check, AlertCircle, MessageSquareQuote, Pencil } from "lucide-react";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 
 const TYPES = [
@@ -50,6 +50,7 @@ const Widgets = () => {
   const [widgets, setWidgets] = useState<WidgetRow[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialPickerItem[]>([]);
   const [open, setOpen] = useState(false);
+  const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [form, setForm] = useState<WidgetForm>(makeBlank());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -92,31 +93,65 @@ const Widgets = () => {
 
   useEffect(() => { void load(); }, [load]);
 
-  const create = async (event: React.FormEvent) => {
+  const resetEditor = () => {
+    setForm(makeBlank());
+    setEditingWidgetId(null);
+  };
+
+  const startEdit = (widget: WidgetRow) => {
+    const storedSettings = widget.settings && typeof widget.settings === "object" && !Array.isArray(widget.settings)
+      ? widget.settings as Record<string, unknown>
+      : {};
+    const storedColor = storedSettings.primary_color;
+    const storedRadius = storedSettings.radius;
+    setEditingWidgetId(widget.id);
+    setForm({
+      widget_name: widget.widget_name || "",
+      widget_type: widget.widget_type || "wall",
+      testimonial_ids: Array.isArray(widget.testimonial_ids) ? widget.testimonial_ids : [],
+      campaign: widget.campaign || "",
+      settings: {
+        primary_color: typeof storedColor === "string" && /^#[0-9a-fA-F]{6}$/.test(storedColor) ? storedColor : DEFAULT_ACCENT,
+        radius: typeof storedRadius === "number" && Number.isFinite(storedRadius) ? storedRadius : 12,
+      },
+    });
+    setOpen(true);
+  };
+
+  const saveWidget = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!user || creating) return;
     const name = String(form.widget_name || "").trim();
     if (!name) return toast.error("Give your widget a name.");
-    if (!canAddWidget(widgets.length)) return showUpgradeToast("more widgets");
+    if (!editingWidgetId && !canAddWidget(widgets.length)) return showUpgradeToast("more widgets");
     if (form.testimonial_ids.length === 0) return toast.error("Choose at least one approved testimonial.");
 
     setCreating(true);
     try {
-      const { error } = await supabase.from("widgets").insert({
+      const payload = {
         widget_name: name,
         widget_type: form.widget_type,
         testimonial_ids: form.testimonial_ids,
         campaign: String(form.campaign || "").trim() || null,
         settings: form.settings,
-        user_id: user.id,
-      });
-      if (error) throw error;
-      toast.success("Widget created");
+      };
+
+      if (editingWidgetId) {
+        const { error } = await supabase.from("widgets").update(payload)
+          .eq("id", editingWidgetId).eq("user_id", user.id);
+        if (error) throw error;
+        toast.success("Widget updated");
+      } else {
+        const { error } = await supabase.from("widgets").insert({ ...payload, user_id: user.id });
+        if (error) throw error;
+        toast.success("Widget created");
+      }
+
       setOpen(false);
-      setForm(makeBlank());
+      resetEditor();
       await load();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Widget creation failed. Please try again.";
+      const message = error instanceof Error ? error.message : "Widget could not be saved. Please try again.";
       toast.error(message);
     } finally {
       setCreating(false);
@@ -160,6 +195,10 @@ const Widgets = () => {
   };
 
   const selectedType = TYPES.find((type) => type.value === form.widget_type) || TYPES[0];
+  const selectedPreview = testimonials.find((testimonial) => form.testimonial_ids.includes(testimonial.id));
+  const previewText = selectedPreview?.approved_text || selectedPreview?.ai_rewritten_text || selectedPreview?.original_text;
+  const previewName = selectedPreview?.customer_name?.trim() || "Selected customer";
+  const previewRole = [selectedPreview?.customer_role, selectedPreview?.customer_company].filter(Boolean).join(" · ");
 
   return (
     <AppShell>
@@ -169,14 +208,14 @@ const Widgets = () => {
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Widgets</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Turn approved customer stories into website-ready social proof. Preview, publish and copy your embed from one place.</p>
         </div>
-        <Dialog open={open} onOpenChange={(nextOpen) => { setOpen(nextOpen); if (!nextOpen) setForm(makeBlank()); }}>
-          <DialogTrigger asChild><Button className="h-10 rounded-xl px-4"><Plus className="mr-2 h-4 w-4" /> Create widget</Button></DialogTrigger>
+        <Dialog open={open} onOpenChange={(nextOpen) => { setOpen(nextOpen); if (!nextOpen) resetEditor(); }}>
+          <DialogTrigger asChild><Button className="h-10 rounded-xl px-4" onClick={() => { resetEditor(); }}><Plus className="mr-2 h-4 w-4" /> Create widget</Button></DialogTrigger>
           <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create a testimonial widget</DialogTitle>
+              <DialogTitle>{editingWidgetId ? "Edit testimonial widget" : "Create a testimonial widget"}</DialogTitle>
               <DialogDescription>Choose approved testimonials and style the embed to match your brand.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={create} className="space-y-5">
+            <form onSubmit={saveWidget} className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2"><Label htmlFor="widget-name">Widget name</Label><Input id="widget-name" required maxLength={80} value={form.widget_name} onChange={(event) => setForm({ ...form, widget_name: event.target.value })} placeholder="Homepage customer stories" /></div>
                 <div className="space-y-2"><Label htmlFor="widget-type">Layout</Label><Select value={form.widget_type} onValueChange={(value) => setForm({ ...form, widget_type: value })}><SelectTrigger id="widget-type"><SelectValue /></SelectTrigger><SelectContent>{TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent></Select><p className="text-xs text-muted-foreground">{selectedType.description}</p></div>
@@ -217,16 +256,25 @@ const Widgets = () => {
                 <div className="space-y-2"><Label htmlFor="widget-radius">Corners</Label><Select value={String(form.settings.radius)} onValueChange={(value) => setForm({ ...form, settings: { ...form.settings, radius: Number(value) } })}><SelectTrigger id="widget-radius"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="0">Square</SelectItem><SelectItem value="6">Subtle</SelectItem><SelectItem value="12">Rounded</SelectItem><SelectItem value="20">Extra rounded</SelectItem><SelectItem value="9999">Pill</SelectItem></SelectContent></Select></div>
               </div>
 
-              <div className="rounded-2xl border border-border/80 bg-[#f4f4f3] p-4">
-                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground"><Eye className="h-3.5 w-3.5" /> Style preview</div>
-                <div className="max-w-md rounded-xl border border-white bg-white p-4 shadow-sm" style={{ borderRadius: form.settings.radius }}>
-                  <div className="mb-2 flex gap-0.5">{[1,2,3,4,5].map((number) => <Star key={number} className="h-3.5 w-3.5 fill-current" style={{ color: form.settings.primary_color }} />)}</div>
-                  <p className="text-sm leading-6 text-[#333]">“The whole process made it much easier to share the customer feedback we’re proud of.”</p>
-                  <div className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-3"><span className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white" style={{ background: form.settings.primary_color }}>JD</span><span><span className="block text-xs font-semibold">Jordan Davis</span><span className="block text-[10px] text-gray-500">Example customer</span></span></div>
+              <div className="rounded-2xl border border-border/80 bg-muted/50 p-4">
+                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground"><Eye className="h-3.5 w-3.5" /> Live style preview</div>
+                <div className="max-w-md rounded-xl border border-border/70 bg-white p-4 shadow-sm" style={{ borderRadius: form.settings.radius }}>
+                  {selectedPreview?.rating ? (
+                    <div className="mb-2 flex gap-0.5" aria-label={`Rated ${selectedPreview.rating} out of 5`}>
+                      {[1, 2, 3, 4, 5].map((number) => <Star key={number} className={`h-3.5 w-3.5 ${number <= selectedPreview.rating! ? "fill-current" : ""}`} style={{ color: form.settings.primary_color, opacity: number <= selectedPreview.rating! ? 1 : 0.22 }} />)}
+                    </div>
+                  ) : null}
+                  <p className="break-words text-sm leading-6 text-[#333]">{previewText ? `“${previewText}”` : "Select an approved testimonial above to preview its actual content here."}</p>
+                  <div className="mt-4 flex min-w-0 items-center gap-2 border-t border-gray-100 pt-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white" style={{ background: form.settings.primary_color }}>{previewName[0]?.toUpperCase() || "C"}</span>
+                    <span className="min-w-0"><span className="block truncate text-xs font-semibold">{previewName}</span><span className="block truncate text-[10px] text-gray-500">{previewRole || (selectedPreview ? "Customer" : "Select a testimonial")}</span></span>
+                  </div>
                 </div>
+                {selectedType.value === "carousel" && <p className="mt-2 text-[11px] text-muted-foreground">Carousel style preview — the published carousel rotates through your selected testimonials.</p>}
+                {selectedType.value === "wall" && <p className="mt-2 text-[11px] text-muted-foreground">Wall of Love preview — the published embed displays all selected testimonials in a responsive grid.</p>}
               </div>
 
-              <Button type="submit" disabled={creating || testimonials.length === 0} className="h-11 w-full rounded-xl">{creating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating widget…</> : "Create widget"}</Button>
+              <Button type="submit" disabled={creating || testimonials.length === 0} className="h-11 w-full rounded-xl">{creating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving widget…</> : editingWidgetId ? "Save changes" : "Create widget"}</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -261,7 +309,10 @@ const Widgets = () => {
                   <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${accent}15`, color: accent }}><LayoutGrid className="h-5 w-5" /></div>
                   <div className="min-w-0"><h2 className="truncate font-semibold">{widget.widget_name}</h2><p className="mt-1 text-xs capitalize text-muted-foreground">{TYPES.find((type) => type.value === widget.widget_type)?.label || widget.widget_type} · {widget.testimonial_ids?.length || 0} testimonials</p><div className="mt-2 flex flex-wrap items-center gap-2"><Badge variant={widget.is_published ? "default" : "secondary"} className={widget.is_published ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-50" : ""}>{widget.is_published ? "Published" : "Unpublished"}</Badge>{widget.campaign && <Badge variant="outline">{widget.campaign}</Badge>}</div></div>
                 </div>
-                <Button variant="ghost" size="icon" aria-label={`Delete ${widget.widget_name}`} title="Delete widget" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => void remove(widget)}><Trash2 className="h-4 w-4" /></Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button variant="ghost" size="icon" aria-label={`Edit ${widget.widget_name}`} title="Edit widget" className="text-muted-foreground" onClick={() => startEdit(widget)}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" aria-label={`Delete ${widget.widget_name}`} title="Delete widget" className="text-muted-foreground hover:text-destructive" onClick={() => void remove(widget)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
               </div>
 
               <div className="mx-5 overflow-hidden rounded-xl border border-border/70 bg-[#f7f7f6]">
