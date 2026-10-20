@@ -162,53 +162,6 @@ const Testimonials = () => {
     }
   };
 
-  const approve = async (t: Testimonial) => {
-    try {
-      const text = t.ai_rewritten_text || t.original_text;
-      const { error } = await supabase.from("testimonials").update({ approved_text: text, status: "approved", approved_at: new Date().toISOString() }).eq("id", t.id);
-      if (error) throw error;
-      toast.success("Testimonial approved!");
-      trackEvent({
-        user_id: user!.id,
-        event_type: "approval_approved",
-        entity_id: t.id,
-        entity_type: "approval",
-        campaign: t.campaign ?? undefined,
-      });
-      
-      // Feature 9: Trigger approval email
-      if (t.customer_email && t.ai_rewritten_text) {
-        supabase.functions.invoke("send-approval-email", { body: { testimonial_id: t.id } });
-        toast.info("Approval email sent to customer.");
-      }
-
-      setActive(null); load();
-    } catch (e: any) {
-      toast.error(e.message || "Approval failed");
-    }
-  };
-
-  const sendApproval = async (testimonialId: string) => {
-    if (sendingIds.has(testimonialId)) return;
-    setSendingIds(prev => new Set(prev).add(testimonialId));
-    try {
-      const { error } = await supabase.functions.invoke("send-approval-email", {
-        body: { testimonial_id: testimonialId }
-      });
-      if (error) throw error;
-      toast.success("Approval email sent to customer!");
-      load();
-    } catch (e: any) {
-      toast.error("Failed to send approval email");
-    } finally {
-      setSendingIds(prev => {
-        const next = new Set(prev);
-        next.delete(testimonialId);
-        return next;
-      });
-    }
-  };
-
   const createApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }) => {
     if (!user || sendingIds.has(t.id)) return null;
     setSendingIds((current) => new Set(current).add(t.id));
@@ -246,6 +199,7 @@ const Testimonials = () => {
           .from("approval_tokens")
           .update({ used_at: new Date().toISOString() })
           .eq("testimonial_id", t.id)
+          .eq("user_id", user.id)
           .is("used_at", null);
         if (expireError) throw expireError;
       }
@@ -285,12 +239,12 @@ const Testimonials = () => {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this testimonial?")) return;
-    const { error } = await supabase.from("testimonials").delete().eq("id", id);
+    if (!user || !confirm("Delete this testimonial?")) return;
+    const { error } = await supabase.from("testimonials").delete().eq("id", id).eq("user_id", user.id);
     if (error) return toast.error(error.message);
-    toast.success("Deleted");
+    toast.success("Testimonial deleted");
     setActive(null);
-    load();
+    await load();
   };
 
   const toggleSelect = (id: string) => {
