@@ -92,6 +92,7 @@ const Collect = () => {
   const [editingSeq, setEditingSeq] = useState<any | null>(null);
   const [seqForm, setSeqForm] = useState({ sequence_name: "Standard 3-step ask", emails: DEFAULT_SEQ_EMAILS });
   const [savingSeq, setSavingSeq] = useState(false);
+  const [updatingSeqId, setUpdatingSeqId] = useState<string | null>(null);
 
   // Send Requests tab
   const [sendForm, setSendForm] = useState({ customer_name: "", customer_email: "", form_id: "" });
@@ -138,7 +139,7 @@ const Collect = () => {
     if (!user) return;
     const payload = { ...form, questions: form.questions?.filter((q: string) => q.trim()) || [] };
     if (editing) {
-      const { error } = await supabase.from("collection_forms").update(payload).eq("id", editing.id);
+      const { error } = await supabase.from("collection_forms").update(payload).eq("id", editing.id).eq("user_id", user.id);
       if (error) return toast.error(error.message);
       toast.success("Form updated");
     } else {
@@ -150,9 +151,11 @@ const Collect = () => {
   };
 
   const removeForm = async (id: string) => {
-    if (!confirm("Delete this form?")) return;
-    await supabase.from("collection_forms").delete().eq("id", id);
-    toast.success("Deleted"); loadForms();
+    if (!user || !window.confirm("Delete this collection form? Its public collection link will stop working.")) return;
+    const { error } = await supabase.from("collection_forms").delete().eq("id", id).eq("user_id", user.id);
+    if (error) return toast.error(error.message || "The collection form could not be deleted.");
+    toast.success("Collection form deleted");
+    void loadForms();
   };
 
   const startEdit = (f: any) => {
@@ -206,7 +209,7 @@ const Collect = () => {
     setSavingSeq(true);
     const payload = { sequence_name: seqForm.sequence_name, emails: seqForm.emails, user_id: user.id };
     if (editingSeq) {
-      const { error } = await supabase.from("email_sequences").update(payload).eq("id", editingSeq.id);
+      const { error } = await supabase.from("email_sequences").update(payload).eq("id", editingSeq.id).eq("user_id", user.id);
       if (error) { toast.error(error.message); setSavingSeq(false); return; }
       toast.success("Sequence updated");
     } else {
@@ -218,14 +221,22 @@ const Collect = () => {
   };
 
   const removeSeq = async (id: string) => {
-    if (!confirm("Delete this sequence?")) return;
-    await supabase.from("email_sequences").delete().eq("id", id);
-    toast.success("Deleted"); loadSequences();
+    if (!user || !window.confirm("Delete this email template sequence?")) return;
+    const { error } = await supabase.from("email_sequences").delete().eq("id", id).eq("user_id", user.id);
+    if (error) return toast.error(error.message || "The sequence could not be deleted.");
+    toast.success("Email sequence deleted");
+    void loadSequences();
   };
 
   const toggleSeq = async (seq: any) => {
-    await supabase.from("email_sequences").update({ is_active: !seq.is_active }).eq("id", seq.id);
-    loadSequences();
+    if (!user || updatingSeqId === seq.id) return;
+    setUpdatingSeqId(seq.id);
+    const next = !seq.is_active;
+    const { error } = await supabase.from("email_sequences").update({ is_active: next }).eq("id", seq.id).eq("user_id", user.id);
+    setUpdatingSeqId(null);
+    if (error) return toast.error(error.message || "The sequence status could not be changed.");
+    toast.success(next ? "Sequence activated" : "Sequence deactivated");
+    void loadSequences();
   };
 
   const updateSeqEmail = (emailIdx: number, field: string, value: string) => {
@@ -265,53 +276,67 @@ const Collect = () => {
 
   const sendSingleRequest = async () => {
     if (!user || !sendForm.customer_email) return toast.error("Customer email is required");
-    if (!sendForm.customer_email.includes("@")) return toast.error("Enter a valid email address");
+    const email = sendForm.customer_email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast.error("Enter a valid email address");
+    if (sending) return;
     setSending(true);
-    const targetForm = forms.find((f) => f.id === sendForm.form_id) || getFirstForm();
-    const { error } = await supabase.from("email_sends").insert({
-      user_id: user.id,
-      customer_email: sendForm.customer_email,
-      customer_name: sendForm.customer_name || null,
-      status: "pending",
-    });
-    if (error) { toast.error(error.message); setSending(false); return; }
-    if (targetForm) {
-      const link = publicUrl(targetForm.public_slug);
-      const copied = await copyToClipboard(link);
-      toast.success(copied
-        ? `Request logged. Form link for ${sendForm.customer_email} is copied — paste it into your email.`
-        : `Request logged for ${sendForm.customer_email}. Copy the form link from the form list to send it manually.`);
-    } else {
-      toast.success("Request logged. Create a collection form first to get a shareable link.");
+    try {
+      const targetForm = forms.find((formItem) => formItem.id === sendForm.form_id) || getFirstForm();
+      const { error } = await supabase.from("email_sends").insert({
+        user_id: user.id,
+        customer_email: email,
+        customer_name: sendForm.customer_name.trim() || null,
+        status: "pending",
+      });
+      if (error) throw error;
+
+      if (targetForm) {
+        const copied = await copyToClipboard(publicUrl(targetForm.public_slug));
+        toast.success(copied
+          ? `Contact logged. The collection link is copied; paste it into your email to send the invitation to ${email}.`
+          : `Contact logged for ${email}. Copy the collection link from the form list and send it manually.`);
+      } else {
+        toast.success("Contact logged. Create a collection form to generate an invitation link.");
+      }
+      setSendForm({ customer_name: "", customer_email: "", form_id: "" });
+      void loadSends();
+    } catch (error: any) {
+      toast.error(error?.message || "The contact could not be logged. Please try again.");
+    } finally {
+      setSending(false);
     }
-    setSendForm({ customer_name: "", customer_email: "", form_id: "" });
-    setSending(false);
-    loadSends();
   };
 
   const sendAllCSV = async () => {
-    if (!user || csvRows.length === 0) return;
+    if (!user || csvRows.length === 0 || sending) return;
     setSending(true);
-    const inserts = csvRows.map((r) => ({
-      user_id: user.id,
-      customer_email: r.email,
-      customer_name: r.name || null,
-      status: "pending",
-    }));
-    const { error } = await supabase.from("email_sends").insert(inserts);
-    if (error) { toast.error(error.message); setSending(false); return; }
-    const targetForm = getFirstForm();
-    if (targetForm) {
-      const copied = await copyToClipboard(publicUrl(targetForm.public_slug));
-      toast.success(copied
-        ? `${csvRows.length} contacts logged. Form link copied — paste it into your bulk email.`
-        : `${csvRows.length} contacts logged. Copy the form link from the form list to use in your bulk email.`);
-    } else {
-      toast.success(`${csvRows.length} contacts logged.`);
+    try {
+      const inserts = csvRows.map((row) => ({
+        user_id: user.id,
+        customer_email: row.email.trim(),
+        customer_name: row.name.trim() || null,
+        status: "pending",
+      }));
+      const { error } = await supabase.from("email_sends").insert(inserts);
+      if (error) throw error;
+      const total = inserts.length;
+      const targetForm = getFirstForm();
+      if (targetForm) {
+        const copied = await copyToClipboard(publicUrl(targetForm.public_slug));
+        toast.success(copied
+          ? `${total} contacts logged. The collection link is copied; paste it into your bulk email to send the invitations.`
+          : `${total} contacts logged. Copy the collection link from the form list and include it in your bulk email.`);
+      } else {
+        toast.success(`${total} contacts logged. Create a collection form to generate an invitation link.`);
+      }
+      setCsvRows([]);
+      if (csvInputRef.current) csvInputRef.current.value = "";
+      void loadSends();
+    } catch (error: any) {
+      toast.error(error?.message || "The contacts could not be logged. Please try again.");
+    } finally {
+      setSending(false);
     }
-    setCsvRows([]);
-    setSending(false);
-    loadSends();
   };
 
   const statusIcon = (status: string) => {
@@ -325,14 +350,14 @@ const Collect = () => {
     <AppShell>
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-1">Collect</h1>
-        <p className="text-muted-foreground">Forms, email sequences, and outreach — all in one place.</p>
+        <p className="text-muted-foreground">Create collection forms, prepare outreach links, and organize reusable email templates.</p>
       </div>
 
       <Tabs defaultValue="forms">
         <TabsList className="mb-6">
           <TabsTrigger value="forms">Collection Forms</TabsTrigger>
           <TabsTrigger value="sequences">Email Sequences</TabsTrigger>
-          <TabsTrigger value="send">Send Requests</TabsTrigger>
+          <TabsTrigger value="send">Request links</TabsTrigger>
         </TabsList>
 
         {/* ═══════════════════ FORMS TAB ═══════════════════ */}
@@ -475,7 +500,7 @@ const Collect = () => {
         {/* ═══════════════════ SEQUENCES TAB ═══════════════════ */}
         <TabsContent value="sequences">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-muted-foreground">3-step email templates you can reuse when requesting testimonials.</p>
+            <p className="text-sm text-muted-foreground">Reusable email copy for manual outreach. These templates do not send emails automatically.</p>
             <Dialog open={seqOpen} onOpenChange={setSeqOpen}>
               <DialogTrigger asChild>
                 <Button onClick={startNewSeq}><Plus className="h-4 w-4 mr-1" /> New sequence</Button>
@@ -547,7 +572,7 @@ const Collect = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => toggleSeq(seq)} title={seq.is_active ? "Deactivate" : "Activate"}>
+                      <Button size="sm" variant="ghost" disabled={updatingSeqId === seq.id} onClick={() => toggleSeq(seq)} title={seq.is_active ? "Deactivate" : "Activate"}>
                         <ToggleLeft className="h-4 w-4" />
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => startEditSeq(seq)}>Edit</Button>
@@ -567,7 +592,7 @@ const Collect = () => {
             <div className="space-y-4">
               <div>
                 <h2 className="font-semibold mb-1">Send to one person</h2>
-                <p className="text-sm text-muted-foreground">Logs the contact and copies your form link to clipboard.</p>
+                <p className="text-sm text-muted-foreground">Logs the contact and prepares a form link. You send the invitation from your email app.</p>
               </div>
               <Card className="p-5 space-y-4">
                 <div>
@@ -604,7 +629,7 @@ const Collect = () => {
             <div className="space-y-4">
               <div>
                 <h2 className="font-semibold mb-1">Send to many people</h2>
-                <p className="text-sm text-muted-foreground">Upload a CSV with <code className="text-xs bg-muted px-1 py-0.5 rounded">name</code> and <code className="text-xs bg-muted px-1 py-0.5 rounded">email</code> columns.</p>
+                <p className="text-sm text-muted-foreground">Upload a CSV with <code className="text-xs bg-muted px-1 py-0.5 rounded">name</code> and <code className="text-xs bg-muted px-1 py-0.5 rounded">email</code> columns, then add the copied link to your bulk email.</p>
               </div>
               <Card className="p-5 space-y-4">
                 <div>
