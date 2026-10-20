@@ -101,7 +101,7 @@ WHERE NOT EXISTS (
     AND t.user_id = token.user_id
 );
 
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
@@ -115,7 +115,7 @@ BEGIN
       ON DELETE CASCADE;
   END IF;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS approval_tokens_guard_mutations ON public.approval_tokens;
 CREATE TRIGGER approval_tokens_guard_mutations
