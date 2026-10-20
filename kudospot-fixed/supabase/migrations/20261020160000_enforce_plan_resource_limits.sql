@@ -14,17 +14,72 @@ DECLARE
   current_count bigint := 0;
   limit_count integer;
 BEGIN
-  IF caller_role = 'service_role' THEN
-    RETURN NEW;
-  END IF;
-
   target_user_id := NEW.user_id;
-  IF target_user_id IS DISTINCT FROM auth.uid() THEN
-    RAISE EXCEPTION 'You can only create or update resources in your own workspace.'
+
+  IF TG_OP = 'UPDATE' AND NEW.user_id IS DISTINCT FROM OLD.user_id THEN
+    RAISE EXCEPTION 'Resources cannot be transferred between workspaces.'
       USING ERRCODE = '42501';
   END IF;
 
-  -- Serialize insert checks for a workspace to reduce concurrent quota races.
+  -- AI rewrites are server-owned. The quota check runs for the service-role
+  -- rewrite path too, under a profile row lock, to avoid concurrent overuse.
+  IF TG_TABLE_NAME = 'testimonials'
+    AND TG_OP = 'UPDATE'
+    AND NEW.ai_rewritten_text IS DISTINCT FROM OLD.ai_rewritten_text
+    AND NEW.ai_rewritten_text IS NOT NULL THEN
+
+    IF caller_role <> 'service_role' THEN
+      RAISE EXCEPTION 'AI rewrites must be created by the rewrite service.'
+        USING ERRCODE = '42501';
+    END IF;
+
+    SELECT coalesce(p.plan, 'free'), p.plan_expires_at
+    INTO active_plan, expires_at
+    FROM public.profiles AS p
+    WHERE p.id = target_user_id
+    FOR UPDATE;
+
+    IF active_plan NOT IN ('starter', 'pro')
+      OR expires_at IS NULL
+      OR expires_at <= now() THEN
+      active_plan := 'free';
+    END IF;
+
+    IF active_plan = 'free' THEN
+      SELECT count(*) INTO current_count
+      FROM public.testimonials
+      WHERE user_id = target_user_id
+        AND ai_rewritten_text IS NOT NULL;
+      IF current_count >= 5 THEN
+        RAISE EXCEPTION 'Free plan limit reached: up to 5 AI rewrites.'
+          USING ERRCODE = '23514';
+      END IF;
+    END IF;
+
+    RETURN NEW;
+  END IF;
+
+  IF TG_TABLE_NAME = 'testimonials' AND TG_OP = 'UPDATE' THEN
+    IF caller_role <> 'service_role' AND auth.uid() IS DISTINCT FROM target_user_id THEN
+      RAISE EXCEPTION 'You can only update testimonials in your own workspace.'
+        USING ERRCODE = '42501';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  -- Enforce resource creation quotas for service-role testimonial submissions
+  -- as well as normal authenticated inserts. This is the final backstop behind
+  -- the public submit edge function's own quota check.
+  IF caller_role = 'service_role' AND NOT (TG_TABLE_NAME = 'testimonials' AND TG_OP = 'INSERT') THEN
+    RETURN NEW;
+  END IF;
+
+  IF caller_role <> 'service_role' AND target_user_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'You can only create resources in your own workspace.'
+      USING ERRCODE = '42501';
+  END IF;
+
+  -- Serialize per-workspace insert checks to reduce concurrent quota races.
   SELECT coalesce(p.plan, 'free'), p.plan_expires_at
   INTO active_plan, expires_at
   FROM public.profiles AS p
@@ -37,22 +92,12 @@ BEGIN
     active_plan := 'free';
   END IF;
 
-  IF TG_TABLE_NAME = 'testimonials' THEN
-    IF TG_OP = 'UPDATE' THEN
-      IF NEW.ai_rewritten_text IS DISTINCT FROM OLD.ai_rewritten_text
-        AND NEW.ai_rewritten_text IS NOT NULL THEN
-        RAISE EXCEPTION 'AI rewrites must be created by the rewrite service.'
-          USING ERRCODE = '42501';
-      END IF;
-      RETURN NEW;
-    END IF;
-
+  IF TG_TABLE_NAME = 'testimonials' AND TG_OP = 'INSERT' THEN
     IF active_plan = 'free' THEN
       SELECT count(*) INTO current_count
       FROM public.testimonials
       WHERE user_id = target_user_id;
-      limit_count := 10;
-      IF current_count >= limit_count THEN
+      IF current_count >= 10 THEN
         RAISE EXCEPTION 'Free plan limit reached: up to 10 testimonials.'
           USING ERRCODE = '23514';
       END IF;
