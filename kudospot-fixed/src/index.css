@@ -31,6 +31,7 @@
     --border: 0 0% 92%;
     --input: 0 0% 90%;
     --ring: 206 100% 47%;
+    --link: 206 100% 47%;
     --radius: 0.875rem;
     --gradient-primary: linear-gradient(115deg, #C94320, #C0441E);
     --gradient-soft: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
@@ -74,6 +75,7 @@
     --border: 0 0% 20%;
     --input: 0 0% 22%;
     --ring: 206 100% 62%;
+    --link: 206 100% 62%;
     --sidebar-background: 0 0% 9%;
     --sidebar-foreground: 0 0% 97%;
     --sidebar-primary: 15 82% 65%;
