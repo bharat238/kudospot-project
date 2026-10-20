@@ -6,37 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Check, Zap, Loader2, Star } from "lucide-react";
+import { PLAN_CATALOG } from "@/config/planCatalog";
 
 declare global {
   interface Window { Razorpay: any; }
 }
 
-const PLANS = [
-  {
-    id: "free",
-    name: "Free",
-    price: "₹0",
-    period: "forever",
-    highlight: false,
-    features: ["10 testimonials", "5 AI rewrites", "1 widget", "0 case studies"],
-  },
-  {
-    id: "starter",
-    name: "Starter",
-    price: "₹499",
-    period: "/month",
-    highlight: true,
-    features: ["Unlimited testimonials", "Unlimited AI rewrites", "5 widgets", "3 case studies", "Social post generator", "Email approval flow"],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "₹1,299",
-    period: "/month",
-    highlight: false,
-    features: ["Everything in Starter", "Unlimited widgets", "Unlimited case studies", "PNG social graphics", "Priority support"],
-  },
-];
+const PLANS = PLAN_CATALOG;
 
 export default function Upgrade() {
   const { user } = useAuth();
@@ -105,7 +81,7 @@ export default function Upgrade() {
             toast.error("Payment verification failed. Contact support.");
           } else {
             setCurrentPlan(planId);
-            toast.success(`🎉 Upgraded to ${planId}! Enjoy your new features.`);
+            toast.success(`Upgraded to ${planId}. Your plan is ready to use.`);
           }
           setLoadingPlan(null);
         },
@@ -195,7 +171,7 @@ export default function Upgrade() {
       </div>
 
       <p className="text-center text-xs text-muted-foreground mt-8">
-        Payments powered by Razorpay. Secure & encrypted. Cancel anytime.
+        Payments are processed by Razorpay. Contact support if you need help changing your plan.
       </p>
     </AppShell>
   );
