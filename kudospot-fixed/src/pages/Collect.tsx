@@ -577,7 +577,7 @@ const Collect = () => {
                   </div>
                   <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-[#dfe7cc] bg-[#f7faef] p-2">
                     <div className="text-xs font-semibold uppercase text-primary px-1 min-w-[60px]">Wall</div>
-                    <code className="text-xs flex-1 truncate">{wallUrl(form.public_slug)}</code>
+                    <code className="min-w-0 flex-1 break-all text-xs sm:truncate">{wallUrl(form.public_slug)}</code>
                     <Button size="sm" variant="ghost" className="text-primary" onClick={() => void copyLink(wallUrl(form.public_slug), "Wall of Love link")}><Copy className="h-3.5 w-3.5" /></Button>
                     <Button size="sm" variant="ghost" className="text-primary" onClick={() => window.open(wallUrl(form.public_slug), "_blank", "noopener,noreferrer")}><ExternalLink className="h-3.5 w-3.5" /></Button>
                   </div>
