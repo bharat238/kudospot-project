@@ -12,6 +12,9 @@ import { toast } from "sonner";
 import { Plus, X, GripVertical, Zap, Copy, ChevronRight, HelpCircle, Mail, FileText, Shield } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { PLAN_LIMITS, usePlanLimits } from "@/hooks/usePlanLimits";
+import type { Tables } from "@/integrations/supabase/types";
+
+type SettingsProfile = Pick<Tables<"profiles">, "business_name" | "full_name" | "brand_voice" | "plan"> & { rejection_templates: string[] };
 
 const DEFAULT_TEMPLATES = [
   "Too short — needs more detail",
@@ -28,7 +31,7 @@ const DEFAULT_TEMPLATES = [
 const Settings = () => {
   const { user } = useAuth();
   const { plan: activePlan, expiresAt, loading: planLoading } = usePlanLimits();
-  const [profile, setProfile] = useState<any>({ business_name: "", full_name: "", brand_voice: "friendly", rejection_templates: DEFAULT_TEMPLATES, plan: "free" });
+  const [profile, setProfile] = useState<SettingsProfile>({ business_name: "", full_name: "", brand_voice: "friendly", rejection_templates: DEFAULT_TEMPLATES, plan: "free" });
   const [saving, setSaving] = useState(false);
   const [usage, setUsage] = useState({ testimonials: 0, ai_rewrites: 0, widgets: 0, case_studies: 0 });
 
@@ -38,7 +41,7 @@ const Settings = () => {
       if (data) {
         setProfile({
           ...data,
-          rejection_templates: Array.isArray(data.rejection_templates) ? data.rejection_templates : DEFAULT_TEMPLATES,
+          rejection_templates: Array.isArray(data.rejection_templates) ? data.rejection_templates.filter((item): item is string => typeof item === "string") : DEFAULT_TEMPLATES,
         });
       }
     });
@@ -76,7 +79,7 @@ const Settings = () => {
     setProfile({ ...profile, rejection_templates: next });
   };
   const addTpl = () => setProfile({ ...profile, rejection_templates: [...(profile.rejection_templates || []), ""] });
-  const removeTpl = (i: number) => setProfile({ ...profile, rejection_templates: profile.rejection_templates.filter((_: any, j: number) => j !== i) });
+  const removeTpl = (i: number) => setProfile({ ...profile, rejection_templates: profile.rejection_templates.filter((_, j) => j !== i) });
   const resetTpl = () => setProfile({ ...profile, rejection_templates: DEFAULT_TEMPLATES });
 
   const plan = activePlan;
