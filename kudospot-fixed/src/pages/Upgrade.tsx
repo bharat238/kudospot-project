@@ -129,7 +129,7 @@ export default function Upgrade() {
         description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan – 30-day access`,
         order_id: data.order_id,
         prefill: { email: user.email },
-        theme: { color: "#C8F34C" },
+        theme: { color: "#202126" },
         handler: async (response: RazorpayPaymentResponse) => {
           const { error: verifyError, data: verifyData } = await supabase.functions.invoke("verify-razorpay-payment", {
             body: {
