@@ -65,6 +65,15 @@ Deno.serve(async (req) => {
       return json({ error: "The testimonial could not be loaded. Please try again." }, 500);
     }
     if (!testimonial) return json({ error: "That testimonial was not found in your workspace." }, 404);
+    if (
+      testimonial.approval_status === "approved" ||
+      testimonial.approval_status === "declined" ||
+      testimonial.status === "published" ||
+      testimonial.status === "declined" ||
+      testimonial.status === "rejected"
+    ) {
+      return json({ error: "This testimonial already has a recorded customer decision. Create a new version if wording needs to change." }, 409);
+    }
     if (!testimonial.customer_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testimonial.customer_email.trim())) {
       return json({ error: "Add a valid customer email address before sending an approval request." }, 400);
     }
