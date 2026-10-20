@@ -131,7 +131,7 @@ const Pricing = () => {
       <section className="bg-gradient-soft py-16">
         <div className="container mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to start collecting real social proof?</h2>
-          <p className="text-muted-foreground mb-8 max-w-lg mx-auto">Join 1000+ founders using KudoSpot to turn customers into champions.</p>
+          <p className="text-muted-foreground mb-8 max-w-lg mx-auto">Start free and turn customer stories into social proof your next customer can trust.</p>
           <Link to="/signup">
             <Button size="lg" className="shadow-glow">
               Get started free <ArrowRight className="ml-1 h-4 w-4" />
