@@ -93,17 +93,17 @@ Deno.serve(async (req) => {
         subject: `Does this sound like you, ${testimonial.customer_name}?`,
         html: `
           <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;">
-            <h2 style="color:#7C3AED;">Hi ${testimonial.customer_name},</h2>
+            <h2 style="color:#C94320;">Hi ${testimonial.customer_name},</h2>
             <p style="color:#444;">A business you worked with would love to
             share your experience. Here is the polished version —
             does it sound like you?</p>
-            <div style="background:#f9f5ff;border-left:4px solid #7C3AED;
+            <div style="background:#fff5ef;border-left:4px solid #C94320;
             padding:16px;border-radius:8px;margin:24px 0;">
               <p style="font-style:italic;color:#333;line-height:1.6;">
               "${testimonial.ai_rewritten_text}"</p>
             </div>
             <a href="${Deno.env.get('SITE_URL')}/approve/${testimonial.approval_token}"
-            style="display:inline-block;background:#7C3AED;color:white;
+            style="display:inline-block;background:#C94320;color:white;
             padding:14px 32px;border-radius:8px;text-decoration:none;
             font-weight:bold;font-size:16px;">✓ Yes, approve this</a>
             <p style="color:#999;font-size:12px;margin-top:32px;">
