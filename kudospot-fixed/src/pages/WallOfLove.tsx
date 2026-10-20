@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Star, Share2, Loader2, Quote } from "lucide-react";
 import KudoSpotIcon from "@/components/KudoSpotIcon";
 import { toast } from "sonner";
+import type { Tables } from "@/integrations/supabase/types";
 
 const WallOfLove = () => {
   const { slug } = useParams();
-  const [profile, setProfile] = useState<any>(null);
-  const [testimonials, setTestimonials] = useState<any[]>([]);
+  const [profile, setProfile] = useState<Pick<Tables<"profiles">, "business_name" | "business_logo_url"> | null>(null);
+  const [testimonials, setTestimonials] = useState<Pick<Tables<"testimonials">, "id" | "customer_name" | "customer_role" | "customer_company" | "customer_avatar_url" | "approved_text" | "ai_rewritten_text" | "original_text" | "rating" | "created_at">[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
