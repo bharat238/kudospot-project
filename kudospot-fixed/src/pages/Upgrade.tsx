@@ -63,7 +63,7 @@ export default function Upgrade() {
         amount: data.amount,
         currency: data.currency,
         name: "KudoSpot",
-        description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan – Monthly`,
+        description: `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan – One-time payment`,
         order_id: data.order_id,
         prefill: { email: user.email },
         theme: { color: "#C94320" },
