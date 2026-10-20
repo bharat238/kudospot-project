@@ -111,7 +111,7 @@ const Widgets = () => {
         supabase.from("testimonials")
           .select("id, customer_name, customer_role, customer_company, approved_text, ai_rewritten_text, original_text, rating")
           .eq("user_id", user.id)
-          .in("status", ["approved", "published"])
+          .or("approval_status.eq.approved,status.eq.published")
           .order("created_at", { ascending: false }),
       ]);
       if (widgetResult.error) throw widgetResult.error;
