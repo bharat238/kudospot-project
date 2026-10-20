@@ -121,6 +121,14 @@ const Testimonials = () => {
         .is("used_at", null);
       if (tokenError) return toast.error("Existing approval links could not be invalidated. Please try again.");
 
+      const { error: caseStudyError } = await supabase
+        .from("case_studies")
+        .update({ is_published: false })
+        .eq("user_id", user.id)
+        .contains("testimonial_ids", [editing.id])
+        .eq("is_published", true);
+      if (caseStudyError) return toast.error("Linked case studies could not be taken offline safely. Please try again.");
+
       const { error } = await supabase
         .from("testimonials")
         .update({
