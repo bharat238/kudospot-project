@@ -181,81 +181,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Compatibility for older email links created before approval_tokens existed.
-    const { data: legacy, error: legacyError } = await supabaseAdmin
-      .from("testimonials")
-      .select("id,user_id,customer_name,original_text,ai_rewritten_text,status,approval_status,approved_text,campaign")
-      .eq("approval_token", token)
-      .maybeSingle();
-
-    if (legacyError || !legacy) {
-      return json({ error: "This approval link is invalid or expired. Please contact the business." }, 404);
-    }
-
-    const recordedAction = legacy.approval_status === "approved" || legacy.status === "published"
-      ? "approve"
-      : legacy.approval_status === "declined" || legacy.status === "declined" || legacy.status === "rejected"
-        ? "decline"
-        : null;
-
-    if (action === "preview") {
-      if (recordedAction) {
-        return json({ success: true, already: true, action: recordedAction, customer_name: legacy.customer_name });
-      }
-      return json({
-        success: true,
-        already: false,
-        action: "preview",
-        customer_name: legacy.customer_name,
-        testimonial_text: legacy.ai_rewritten_text || legacy.original_text,
-      });
-    }
-
-    const isApprove = action === "approve";
-
-    if (recordedAction) {
-      return json({ success: true, already: true, action: recordedAction, customer_name: legacy.customer_name });
-    }
-
-    // Rotate legacy UUID tokens after every response so a second action cannot override it.
-    const rotatedToken = crypto.randomUUID();
-    const legacyChanges = isApprove
-      ? {
-          status: "approved",
-          approval_status: "approved",
-          approved_at: now,
-          approved_text: legacy.ai_rewritten_text || legacy.original_text,
-          approval_token: rotatedToken,
-        }
-      : {
-          status: "declined",
-          approval_status: "declined",
-          rejection_reason: reason || null,
-          rejected_at: now,
-          approval_token: rotatedToken,
-        };
-
-    const { error: legacyUpdateError } = await supabaseAdmin
-      .from("testimonials")
-      .update(legacyChanges)
-      .eq("id", legacy.id);
-
-    if (legacyUpdateError) {
-      console.error("Legacy testimonial approval update failed:", legacyUpdateError.message);
-      return json({ error: "Your response could not be saved. Please try again." }, 500);
-    }
-
-    const { error: legacyEventError } = await supabaseAdmin.from("analytics_events").insert({
-      user_id: legacy.user_id,
-      event_type: isApprove ? "approval_approved" : "approval_rejected",
-      entity_id: legacy.id,
-      entity_type: "approval",
-      campaign: legacy.campaign || null,
-      metadata: action === "approve" ? {} : { reason },
-    });
-    if (legacyEventError) console.warn("Legacy approval analytics event failed:", legacyEventError.message);
-
-    return json({ success: true, already: false, action: isApprove ? "approve" : "decline", customer_name: legacy.customer_name });
+    // Old links do not prove which exact wording the customer received.
+    // They are invalidated by migration and must be resent through the snapshot flow.
+    return json({ error: "This approval link is outdated. Ask the business to send a fresh request." }, 410);
   } catch (error) {
     console.error("handle-approval failed:", error instanceof Error ? error.message : String(error));
     return json({ error: "The approval link could not be processed. Please try again." }, 500);
