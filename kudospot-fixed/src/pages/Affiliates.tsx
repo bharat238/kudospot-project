@@ -8,7 +8,7 @@ const Affiliates = () => {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-50">
-        <div className="container mx-auto flex h-16 items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-bold text-lg">
             <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-8 w-8" />
             KudoSpot
@@ -26,7 +26,7 @@ const Affiliates = () => {
 
       {/* Hero */}
       <section className="bg-gradient-soft">
-        <div className="container mx-auto py-20 md:py-28 text-center">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             Earn recurring commissions <span className="text-primary">by referring</span> KudoSpot
           </h1>
@@ -37,7 +37,7 @@ const Affiliates = () => {
       </section>
 
       {/* Benefits */}
-      <section className="container mx-auto py-20">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           {[
             {
@@ -70,7 +70,7 @@ const Affiliates = () => {
 
       {/* How it works */}
       <section className="bg-muted/30 py-20">
-        <div className="container mx-auto">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-2">How it works</h2>
             <p className="text-muted-foreground">Three simple steps to start earning.</p>
@@ -99,7 +99,7 @@ const Affiliates = () => {
       </section>
 
       {/* CTA */}
-      <section className="container mx-auto py-20 text-center">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         <h2 className="text-3xl font-bold mb-6">Ready to start earning?</h2>
         <p className="text-muted-foreground mb-8">We review applications personally and reply within a few days.</p>
         <a href="mailto:hello@kudospot.io?subject=Affiliate%20Program%20Application&body=Hi%20KudoSpot%20team%2C%0A%0AI%27d%20like%20to%20apply%20to%20become%20an%20affiliate%20for%20KudoSpot.%0A%0ATell%20us%20a%20bit%20about%20your%20audience%20and%20how%20you%20plan%20to%20promote%20KudoSpot%3A">
@@ -111,7 +111,7 @@ const Affiliates = () => {
 
       {/* Footer */}
       <footer className="border-t border-border/60 py-10 text-sm text-muted-foreground">
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-medium text-foreground">
             <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-5 w-5" />
             KudoSpot
