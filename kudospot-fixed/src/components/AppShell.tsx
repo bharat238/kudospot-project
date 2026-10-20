@@ -138,7 +138,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             <div className="flex min-h-[68px] items-center justify-between gap-3 py-3">
               <div className="flex min-w-0 items-center gap-3">
                 <Link to="/dashboard" aria-label="KudoSpot dashboard" className="md:hidden"><Logo /></Link>
-                <div className="min-w-0">
+                <div className="hidden min-w-0 md:block">
                   <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#878b94]">
                     <span>Workspace</span><span aria-hidden="true">/</span><span className="truncate text-[#4d515a]">{pageLabel}</span>
                   </div>
