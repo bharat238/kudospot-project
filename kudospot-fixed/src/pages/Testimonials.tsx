@@ -64,7 +64,7 @@ const Testimonials = () => {
     setPageLoading(false);
   };
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { void load(); }, [user]);
   
   // When editing changes, pre-fill the form
   useEffect(() => {
@@ -144,7 +144,7 @@ const Testimonials = () => {
     setRewritingIds(prev => new Set(prev).add(t.id));
     try {
       const { data, error } = await supabase.functions.invoke("rewrite-testimonial", {
-        body: { testimonial_id: t.id },
+        body: { testimonial_id: t.id, resend: Boolean(opts?.resend) },
       });
       if (error) throw error;
       toast.success("AI rewrite complete!");
@@ -165,10 +165,11 @@ const Testimonials = () => {
   const createApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }) => {
     if (!user || sendingIds.has(t.id)) return null;
     setSendingIds((current) => new Set(current).add(t.id));
+    let emailDeliveryFailed = false;
 
     try {
       // Send via email when the customer has an address and an AI-assisted draft is ready.
-      if (t.customer_email && t.ai_rewritten_text) {
+      if (t.customer_email) {
         const { data: emailData, error: emailError } = await supabase.functions.invoke("send-approval-email", {
           body: { testimonial_id: t.id },
         });
@@ -176,11 +177,14 @@ const Testimonials = () => {
         if (!emailError) {
           trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
           if (!opts?.silent) {
-            if (emailData?.approval_url) {
+            if (emailData?.email_sent === false) {
+              if (emailData?.approval_url) await tryCopyText(emailData.approval_url);
+              toast.error(emailData.message || "An approval link was created, but the email was not delivered. Share the link manually.");
+            } else if (emailData?.approval_url) {
               const copied = await tryCopyText(emailData.approval_url);
               toast.success(emailData.message || (copied
                 ? "Approval email sent. The link was also copied."
-                : "Approval email sent. Your browser blocked clipboard access, so copy the link from the approval details."));
+                : "Approval email sent. Copy the link from the approval details if needed."));
             } else {
               toast.success("Approval email sent to " + t.customer_email);
             }
@@ -189,9 +193,8 @@ const Testimonials = () => {
           return emailData?.approval_url || null;
         }
 
-        // A failed send is handled separately from clipboard failures to avoid
-        // generating a second approval token after a successful email send.
-        toast.error(emailError.message || "Email send failed. Creating a manual approval link instead.");
+        // A failed email request can still fall back to a customer-shareable link.
+        emailDeliveryFailed = true;
       }
 
       if (opts?.resend) {
@@ -215,14 +218,18 @@ const Testimonials = () => {
       const copied = await tryCopyText(url);
       trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: t.id, entity_type: "approval", campaign: t.campaign });
       if (!opts?.silent) {
-        const message = !t.customer_email
-          ? "Approval link created. No email is on file, so send the link manually."
-          : !t.ai_rewritten_text
-            ? "Approval link created. Run AI Rewrite for the best approval experience."
+        const message = emailDeliveryFailed
+          ? "Email delivery failed. A manual approval link was created."
+          : !t.customer_email
+            ? "Approval link created. No email is on file, so share the link manually."
             : opts?.resend
               ? "A fresh approval link was created and the previous link was invalidated."
               : "Approval link created. Share it with your customer.";
-        toast.success(copied ? message : `${message} Clipboard access was blocked; use Copy latest to try again.`);
+        if (emailDeliveryFailed) {
+          toast.error(copied ? `${message} The link was copied to your clipboard.` : `${message} Copy the link and share it with the customer.`);
+        } else {
+          toast.success(copied ? message : `${message} Clipboard access was blocked; use Copy latest to try again.`);
+        }
       }
       void load();
       return url;
@@ -236,6 +243,8 @@ const Testimonials = () => {
         return next;
       });
     }
+  };
+
   const requestApprovalLink = async (t: Testimonial, opts?: { silent?: boolean; resend?: boolean }) => {
     const url = await createApprovalLink(t, opts);
     if (url && user) {
@@ -270,7 +279,6 @@ const Testimonials = () => {
     const selectedItems = items.filter((item) => selected.has(item.id));
     const sendable = selectedItems.filter((item) =>
       Boolean(item.customer_email?.trim()) &&
-      Boolean(item.ai_rewritten_text?.trim()) &&
       item.approval_status !== "approved" &&
       item.approval_status !== "declined" &&
       item.status !== "declined" &&
@@ -278,7 +286,7 @@ const Testimonials = () => {
     );
     const skipped = selectedItems.length - sendable.length;
     if (sendable.length === 0) {
-      toast.error("Each selected testimonial needs a customer email and an AI rewrite before you can request approval.");
+      toast.error("Each selected testimonial needs a valid customer email before you can request approval.");
       return;
     }
 
@@ -289,7 +297,7 @@ const Testimonials = () => {
           const { data, error } = await supabase.functions.invoke("send-approval-email", {
             body: { testimonial_id: item.id },
           });
-          if (error || !data?.success) return { item, success: false };
+          if (error || !data?.success) return { item, success: false, manualShare: false, url: null };
           trackEvent({ user_id: user.id, event_type: "approval_sent", entity_id: item.id, entity_type: "approval", campaign: item.campaign ?? undefined });
           return { item, success: true };
         } catch {
@@ -298,9 +306,11 @@ const Testimonials = () => {
       }));
 
       const sent = results.filter((result) => result.success).length;
-      const failed = results.length - sent;
-      if (sent > 0) toast.success(sent + " customer approval request" + (sent === 1 ? "" : "s") + " sent. Testimonials remain unpublished until customers approve.");
-      if (failed > 0 || skipped > 0) toast.error(failed + " request" + (failed === 1 ? "" : "s") + " failed and " + skipped + " item" + (skipped === 1 ? "" : "s") + " skipped. Check customer emails and AI rewrites, then retry.");
+      const manualShare = results.filter((result) => result.manualShare).length;
+      const failed = results.filter((result) => !result.success && !result.manualShare).length;
+      if (sent > 0) toast.success(sent + " customer approval request" + (sent === 1 ? "" : "s") + " emailed. Testimonials remain private until customers approve.");
+      if (manualShare > 0) toast.error(manualShare + " approval link" + (manualShare === 1 ? " was" : "s were") + " created, but email delivery failed. Open each testimonial and copy the latest link to share manually.");
+      if (failed > 0 || skipped > 0) toast.error(failed + " request" + (failed === 1 ? "" : "s") + " failed and " + skipped + " item" + (skipped === 1 ? "" : "s") + " skipped. Check customer emails and retry.");
 
       setSelected(new Set());
       await load();
@@ -701,7 +711,7 @@ const ApprovalWorkflow = ({ testimonial, refreshKey, onResend, onCopy, isSending
               {isSending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RotateCw className="mr-1.5 h-3.5 w-3.5" />} Create fresh approval link
             </Button>
           ) : (
-            <Button size="sm" className="rounded-lg" onClick={onCopy} disabled={!testimonial.ai_rewritten_text || isSending}>
+            <Button size="sm" className="rounded-lg" onClick={onCopy} disabled={isSending}>
               {isSending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Link2 className="mr-1.5 h-3.5 w-3.5" />} Request customer approval
             </Button>
           )}
