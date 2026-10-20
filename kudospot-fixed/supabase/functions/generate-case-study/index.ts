@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
   try {
     const { testimonial_ids, client_name, context, campaign } = await req.json();
-    if (!Array.isArray(testimonial_ids) || testimonial_ids.length === 0) {
+    if (!Array.isArray(testimonial_ids) || testimonial_ids.length === 0 || testimonial_ids.length > 20 || testimonial_ids.some((id) => typeof id !== "string")) {
       return new Response(JSON.stringify({ error: "Pick at least one testimonial." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -59,12 +59,13 @@ Deno.serve(async (req) => {
     // Security fix: always filter by user_id
     const { data: testimonials } = await supabase
       .from("testimonials")
-      .select("customer_name, customer_role, customer_company, original_text, ai_rewritten_text, approved_text, rating")
-      .in("id", testimonial_ids)
-      .eq("user_id", user.id);
+      .select("id,customer_name,customer_role,customer_company,original_text,ai_rewritten_text,approved_text,rating,approval_status")
+      .in("id", [...new Set(testimonial_ids)])
+      .eq("user_id", user.id)
+      .eq("approval_status", "approved");
 
-    if (!testimonials || testimonials.length === 0) {
-      return new Response(JSON.stringify({ error: "No testimonials found. Make sure they belong to your account." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!testimonials || testimonials.length !== new Set(testimonial_ids).size) {
+      return new Response(JSON.stringify({ error: "Every selected testimonial must belong to your account and have customer approval." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const testimonialBlock = testimonials.map((t, i) =>
