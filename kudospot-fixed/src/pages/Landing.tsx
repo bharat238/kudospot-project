@@ -27,7 +27,7 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border/70 bg-background/85 backdrop-blur-xl">
-        <div className="container mx-auto flex h-[68px] items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-[68px] items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight text-foreground">
             <img src="/kudospot-icon.svg" alt="KudoSpot" className="h-8 w-8" />
             <span className="text-xl">KudoSpot</span>
@@ -65,7 +65,7 @@ const Landing = () => {
       <main>
         <section className="relative isolate overflow-hidden border-b border-border/60 bg-gradient-soft">
           <div className="pointer-events-none absolute inset-0 -z-10 opacity-80" style={{ background: "radial-gradient(ellipse at 75% 38%, rgba(255, 190, 154, .25), transparent 34%), radial-gradient(ellipse at 55% 70%, rgba(255, 221, 169, .20), transparent 34%)" }} />
-          <div className="container mx-auto grid items-center gap-12 py-14 md:grid-cols-[0.92fr_1.08fr] md:py-20 lg:gap-16 lg:py-24">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid items-center gap-12 py-14 md:grid-cols-[0.92fr_1.08fr] md:py-20 lg:gap-16 lg:py-24">
             <div className="relative z-10">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground shadow-sm">
                 <Sparkles className="h-3.5 w-3.5 text-[#3d4924]" /> AI-powered testimonial platform
@@ -158,7 +158,7 @@ const Landing = () => {
         </section>
 
         <section className="border-b border-border/70 bg-white py-8">
-          <div className="container mx-auto">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <p className="mb-5 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Built for teams that care about customer trust</p>
             <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-sm font-semibold tracking-tight text-foreground/70 sm:gap-x-16">
               {["Founders", "SaaS teams", "Agencies", "Freelancers", "Creators"].map((label) => <span key={label}>{label}</span>)}
@@ -166,7 +166,7 @@ const Landing = () => {
           </div>
         </section>
 
-        <section id="how-it-works" className="container mx-auto grid items-center gap-12 py-20 md:grid-cols-2 md:py-24">
+        <section id="how-it-works" className="container mx-auto px-4 sm:px-6 lg:px-8 grid items-center gap-12 py-20 md:grid-cols-2 md:py-24">
           <div>
             <div className="mb-4 inline-flex rounded-full bg-[#f0f7d8] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#3d4924]">Collect</div>
             <h2 className="mb-5 max-w-lg text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">Get testimonials without the awkward ask.</h2>
@@ -192,7 +192,7 @@ const Landing = () => {
         </section>
 
         <section id="features" className="border-y border-border/70 bg-secondary/40 py-20 md:py-24">
-          <div className="container mx-auto">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mx-auto mb-12 max-w-2xl text-center">
               <div className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#3d4924]">One simple workflow</div>
               <h2 className="mb-4 text-3xl font-semibold tracking-tight sm:text-4xl">From customer feedback to social proof.</h2>
@@ -217,7 +217,7 @@ const Landing = () => {
           </div>
         </section>
 
-        <section id="pricing" className="container mx-auto py-20 md:py-24">
+        <section id="pricing" className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-24">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-semibold tracking-tight sm:text-4xl">Simple, founder-friendly pricing.</h2>
             <p className="text-muted-foreground">Start free. Upgrade when you're ready.</p>
@@ -236,14 +236,14 @@ const Landing = () => {
         <p className="mx-auto mt-5 max-w-3xl text-center text-xs leading-5 text-muted-foreground">Paid checkouts grant 30 days of access and do not renew automatically. Renew manually from your account when you need another period.</p>
         </section>
 
-        <section id="faq" className="container mx-auto max-w-3xl py-16 md:py-20">
+        <section id="faq" className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl py-16 md:py-20">
           <div className="mb-10 text-center"><h2 className="mb-3 text-3xl font-semibold tracking-tight sm:text-4xl">Questions, answered.</h2><p className="text-muted-foreground">The essentials before you get started.</p></div>
           <Accordion type="single" collapsible className="w-full">
             {PRODUCT_FAQS.map((item, index) => <AccordionItem key={item.q} value={"product-faq-" + index}><AccordionTrigger className="text-left">{item.q}</AccordionTrigger><AccordionContent className="leading-6 text-muted-foreground">{item.a}</AccordionContent></AccordionItem>)}
           </Accordion>
         </section>
 
-        <section className="container mx-auto pb-20 md:pb-24">
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 pb-20 md:pb-24">
           <div className="overflow-hidden rounded-3xl border border-border bg-gradient-soft px-6 py-12 text-center sm:px-12 md:py-16">
             <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#3d4924] shadow-sm"><KudoSpotIcon className="h-5 w-5" /></div>
             <h2 className="mb-4 text-3xl font-semibold tracking-tight sm:text-5xl">Make customer love visible.</h2>
@@ -254,13 +254,13 @@ const Landing = () => {
       </main>
 
       <footer className="border-t border-border/70 py-10 text-sm text-muted-foreground">
-        <div className="container mx-auto mb-8 grid gap-8 md:grid-cols-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-8 grid gap-8 md:grid-cols-4">
           <div><div className="mb-3 flex items-center gap-2 font-semibold text-foreground"><img src="/kudospot-icon.svg" alt="" className="h-6 w-6" />KudoSpot</div><p className="max-w-xs text-xs leading-5">Built for teams who want real customer stories to do more.</p></div>
           <div><div className="mb-3 font-medium text-foreground">Product</div><div className="space-y-2 text-xs"><Link to="/pricing" className="block hover:text-foreground">Pricing</Link><Link to="/changelog" className="block hover:text-foreground">Changelog</Link><Link to="/widgets" className="block hover:text-foreground">Widgets</Link></div></div>
           <div><div className="mb-3 font-medium text-foreground">Company</div><div className="space-y-2 text-xs"><Link to="/contact" className="block hover:text-foreground">Contact</Link><Link to="/affiliates" className="block hover:text-foreground">Affiliates</Link><a href="mailto:hello@kudospot.io" className="block hover:text-foreground">Email us</a></div></div>
           <div><div className="mb-3 font-medium text-foreground">Resources</div><div className="space-y-2 text-xs"><Link to="/help" className="block hover:text-foreground">Help & FAQ</Link><Link to="/privacy" className="block hover:text-foreground">Privacy Policy</Link><Link to="/terms" className="block hover:text-foreground">Terms of Service</Link></div></div>
         </div>
-        <div className="container mx-auto flex flex-col items-center justify-between gap-4 border-t border-border/70 pt-6 md:flex-row"><p className="text-xs">© {new Date().getFullYear()} KudoSpot. All rights reserved.</p><div className="flex items-center gap-4 text-xs"><Link to="/compare/senja" className="hover:text-foreground">KudoSpot vs Senja</Link><Link to="/for/freelancers" className="hover:text-foreground">For Freelancers</Link></div></div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-between gap-4 border-t border-border/70 pt-6 md:flex-row"><p className="text-xs">© {new Date().getFullYear()} KudoSpot. All rights reserved.</p><div className="flex items-center gap-4 text-xs"><Link to="/compare/senja" className="hover:text-foreground">KudoSpot vs Senja</Link><Link to="/for/freelancers" className="hover:text-foreground">For Freelancers</Link></div></div>
       </footer>
     </div>
   );
