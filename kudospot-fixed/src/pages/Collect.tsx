@@ -455,7 +455,7 @@ const Collect = () => {
                   <Plus className="h-4 w-4 mr-1" /> New form
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90dvh] overflow-y-auto rounded-2xl sm:w-full">
                 <DialogHeader>
                   <DialogTitle>{editing ? "Edit form" : "New collection form"}</DialogTitle>
                   <DialogDescription>{editing ? "Update your collection form settings." : "Create a new collection form to gather testimonials."}</DialogDescription>
@@ -589,7 +589,7 @@ const Collect = () => {
 
         {/* ═══════════════════ SEQUENCES TAB ═══════════════════ */}
         <TabsContent value="sequences">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">Reusable email copy for manual outreach. These templates do not send emails automatically.</p>
             <Dialog open={seqOpen} onOpenChange={setSeqOpen}>
               <DialogTrigger asChild>
@@ -640,17 +640,19 @@ const Collect = () => {
           </div>
 
           {sequences.length === 0 ? (
-            <Card className="p-16 text-center text-muted-foreground">
-              <Mail className="h-8 w-8 mx-auto mb-3 opacity-30" />
-              No sequences yet. Create your first 3-step email template.
+            <Card className="rounded-[22px] border-dashed border-[#dfe2e7] bg-white px-6 py-12 text-center sm:px-10 sm:py-16">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaffae] text-[#303a1b]"><Mail className="h-6 w-6" /></div>
+              <h2 className="text-lg font-semibold text-[#202126]">Prepare your first outreach sequence</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777c85]">Save reusable email templates for requesting testimonials. You send each invitation from your own email app.</p>
+              <Button className="mt-5 rounded-full bg-[#202126] text-white hover:bg-[#383b43]" onClick={startNewSeq}><Plus className="mr-2 h-4 w-4" />New email sequence</Button>
             </Card>
           ) : (
             <div className="grid gap-4">
               {sequences.map((seq) => (
                 <Card key={seq.id} className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold flex items-center gap-2">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 font-semibold">
                         {seq.sequence_name}
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${seq.is_active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
                           {seq.is_active ? "Active" : "Inactive"}
