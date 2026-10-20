@@ -11,7 +11,7 @@ const plans = PLAN_CATALOG;
 const faqs = [
   {
     q: "Can I change plans later?",
-    a: "You can choose a different plan from the Upgrade page. For help changing or ending a paid plan, contact hello@kudospot.io.",
+    a: "Paid plans currently use a one-time Razorpay payment and do not auto-renew. Contact hello@kudospot.io for a downgrade or billing review.",
   },
   {
     q: "Do you offer refunds?",
