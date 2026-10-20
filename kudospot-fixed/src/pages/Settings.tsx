@@ -198,9 +198,7 @@ const Settings = () => {
                   </span>
                 </div>
                 {plan !== "pro" && (
-                  <Button onClick={() => { window.location.href = "/upgrade"; }}>
-                    <Zap className="h-4 w-4 mr-1" /> Upgrade
-                  </Button>
+                  <Button asChild><Link to="/upgrade"><Zap className="mr-1 h-4 w-4" />Upgrade</Link></Button>
                 )}
               </div>
               {plan === "free" ? (
