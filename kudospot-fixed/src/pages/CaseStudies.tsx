@@ -42,7 +42,7 @@ const CaseStudies = () => {
     if (!user) return;
     const [{ data: cs }, { data: t }] = await Promise.all([
       supabase.from("case_studies").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("testimonials").select("id, customer_name, approved_text, ai_rewritten_text, original_text").eq("user_id", user.id).in("status", ["approved", "published"]),
+      supabase.from("testimonials").select("id, customer_name, approved_text, ai_rewritten_text, original_text").eq("user_id", user.id).or("approval_status.eq.approved,status.eq.published"),
     ]);
     setItems(cs || []); setTestimonials(t || []);
   };
