@@ -515,9 +515,11 @@ const Testimonials = () => {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <Card className="p-16 text-center text-muted-foreground">
-          <KudoSpotIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
-          {search ? `No testimonials match "${search}"` : "No testimonials here yet."}
+        <Card className="rounded-2xl border-dashed p-10 text-center sm:p-14">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground"><KudoSpotIcon className="h-7 w-7" /></div>
+          <h2 className="text-lg font-semibold">{search ? "No matching testimonials" : "Your testimonial library starts here"}</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{search ? `No testimonials match "${search}". Try a different name or phrase.` : "Add a customer story or create a collection form. Use AI to clarify it, then ask the customer to approve the final version before publishing."}</p>
+          {!search && <div className="mt-5 flex flex-wrap justify-center gap-2"><Button onClick={() => { setEditing(null); setOpen(true); }}><Plus className="mr-2 h-4 w-4" />Add testimonial</Button><Button asChild variant="outline"><a href="/collect">Create collection form</a></Button></div>}
         </Card>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
