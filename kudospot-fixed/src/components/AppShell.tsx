@@ -1,7 +1,7 @@
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, MessageSquareQuote, LogOut, Settings, Inbox, LayoutGrid,
-  FileText, Share2, BarChart3, Menu, Zap, Layers3
+  FileText, Share2, BarChart3, Menu, Zap, LifeBuoy, PanelLeft
 } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
@@ -20,10 +20,19 @@ const nav = [
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
-const Logo = () => (
-  <div className="flex items-center gap-2.5">
+const topNav = [
+  { to: "/dashboard", label: "Overview", end: true },
+  { to: "/testimonials", label: "Activity" },
+  { to: "/collect", label: "Collect" },
+  { to: "/widgets", label: "Showcase" },
+  { to: "/case-studies", label: "Stories" },
+  { to: "/analytics", label: "Reports" },
+];
+
+const Logo = ({ compact = false }: { compact?: boolean }) => (
+  <div className={compact ? "flex items-center justify-center" : "flex items-center gap-2.5"}>
     <img src="/kudospot-icon.svg" alt="" className="h-8 w-8 shrink-0" />
-    <span className="text-lg font-semibold tracking-tight text-foreground">KudoSpot</span>
+    {!compact && <span className="text-lg font-semibold tracking-tight text-foreground">KudoSpot</span>}
   </div>
 );
 
@@ -37,41 +46,34 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   };
 
   return (
-    <div className="flex h-full flex-col bg-card">
-      <div className="border-b border-border/70 px-5 py-5">
-        <NavLink to="/dashboard" onClick={onNavigate} aria-label="KudoSpot dashboard" className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+    <div className="flex h-full flex-col bg-white">
+      <div className="border-b border-[#eceae6] px-5 py-5">
+        <Link to="/dashboard" onClick={onNavigate} aria-label="KudoSpot dashboard" className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
           <Logo />
-        </NavLink>
+        </Link>
       </div>
-
       <div className="px-5 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Workspace</div>
       <nav aria-label="Application navigation" className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
         {nav.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            onClick={onNavigate}
-            className={({ isActive }) => `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-          >
+          <NavLink key={item.to} to={item.to} end={item.end} onClick={onNavigate}
+            className={({ isActive }) => "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " + (isActive ? "bg-[#fff0e9] text-[#a83a1c]" : "text-[#686762] hover:bg-[#f5f4f1] hover:text-[#252522]")}>
             <item.icon className="h-[18px] w-[18px] shrink-0" />
             <span>{item.label}</span>
           </NavLink>
         ))}
       </nav>
-
-      <div className="space-y-3 border-t border-border/70 p-3">
-        <NavLink to="/upgrade" onClick={onNavigate} className={({ isActive }) => `flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-semibold transition-colors ${isActive ? "border-border bg-accent text-accent-foreground" : "border-border/70 bg-card text-foreground hover:bg-muted"}`}>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-foreground"><Zap className="h-4 w-4" /></span>
-          <span className="min-w-0 flex-1"><span className="block">Upgrade plan</span><span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">Unlock more capacity</span></span>
+      <div className="space-y-2 border-t border-[#eceae6] p-3">
+        <NavLink to="/upgrade" onClick={onNavigate} className={({ isActive }) => "flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-semibold transition-colors " + (isActive ? "border-[#e9c9bb] bg-[#fff0e9] text-[#a83a1c]" : "border-[#e9e7e2] bg-white text-[#292824] hover:bg-[#f8f7f4]")}>
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#fff0e9] text-[#a83a1c]"><Zap className="h-4 w-4" /></span>
+          <span className="min-w-0 flex-1"><span className="block">Upgrade plan</span><span className="mt-0.5 block text-[10px] font-medium text-[#77756f]">Unlock more capacity</span></span>
         </NavLink>
         <div className="flex items-center gap-3 rounded-xl px-2 py-1">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">{(user?.email?.[0] || "K").toUpperCase()}</div>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f1f0ed] text-xs font-semibold text-[#34332f]">{(user?.email?.[0] || "K").toUpperCase()}</div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-semibold text-foreground">Your account</div>
-            <div className="truncate text-[11px] text-muted-foreground">{user?.email || "Signed in"}</div>
+            <div className="truncate text-xs font-semibold text-[#292824]">Your account</div>
+            <div className="truncate text-[11px] text-[#77756f]">{user?.email || "Signed in"}</div>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Sign out" onClick={doSignOut} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="icon" aria-label="Sign out" onClick={doSignOut} className="h-8 w-8 text-[#77756f] hover:text-[#292824]">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
@@ -80,50 +82,86 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   );
 };
 
-export const AppShell = ({ children }: { children: ReactNode }) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const location = useLocation();
-  const { user } = useAuth();
-  const page = nav.find((item) => location.pathname === item.to || (item.to !== "/dashboard" && location.pathname.startsWith(item.to)));
-  const pageLabel = location.pathname === "/upgrade" ? "Upgrade plan" : page?.label || "Manage your customer proof";
+const IconRail = () => {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const doSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
-    <div className="min-h-screen bg-[#f4f4f3] text-foreground dark:bg-background">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[236px] border-r border-border/70 bg-card md:flex md:flex-col">
-        <SidebarContent />
-      </aside>
+    <aside aria-label="Quick navigation" className="hidden w-[58px] shrink-0 flex-col items-center border-r border-[#e9e7e2] bg-[#fbfaf8] py-4 md:flex">
+      <Link to="/dashboard" aria-label="KudoSpot home" className="mb-7 flex h-9 w-9 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Logo compact />
+      </Link>
+      <nav aria-label="Quick links" className="flex w-full flex-1 flex-col items-center gap-2 px-2">
+        {nav.map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.end} title={item.label} aria-label={item.label}
+            className={({ isActive }) => "group relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " + (isActive ? "bg-[#242420] text-white shadow-sm" : "text-[#76746e] hover:bg-[#efeee9] hover:text-[#292824]")}>
+            <item.icon className="h-[17px] w-[17px]" />
+            <span className="pointer-events-none absolute left-11 z-50 hidden whitespace-nowrap rounded-lg bg-[#242420] px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg group-hover:block group-focus-visible:block">{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <Link to="/help" title="Help & FAQ" aria-label="Help and FAQ" className="flex h-9 w-9 items-center justify-center rounded-xl text-[#76746e] transition-colors hover:bg-[#efeee9] hover:text-[#292824]"><LifeBuoy className="h-[17px] w-[17px]" /></Link>
+        <Link to="/upgrade" title="Upgrade plan" aria-label="Upgrade plan" className="flex h-9 w-9 items-center justify-center rounded-xl text-[#a83a1c] transition-colors hover:bg-[#fff0e9]"><Zap className="h-[17px] w-[17px]" /></Link>
+        <Button variant="ghost" size="icon" title="Sign out" aria-label="Sign out" onClick={doSignOut} className="h-9 w-9 rounded-xl text-[#76746e] hover:bg-[#efeee9] hover:text-[#292824]"><LogOut className="h-[17px] w-[17px]" /></Button>
+      </div>
+    </aside>
+  );
+};
 
-      <div className="min-w-0 md:ml-[236px]">
-        <header className="sticky top-0 z-30 border-b border-border/70 bg-card/95 backdrop-blur-xl">
-          <div className="flex h-[62px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="md:hidden"><Logo /></div>
-              <div className="hidden items-center gap-2 text-sm md:flex">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Layers3 className="h-4 w-4" /></span>
-                <div>
-                  <div className="font-semibold leading-4 text-foreground">Workspace</div>
-                  <div className="mt-1 text-[10px] text-muted-foreground">{pageLabel}</div>
-                </div>
+export const AppShell = ({ children }: { children: ReactNode }) => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useAuth();
+
+  return (
+    <div className="min-h-screen bg-[#eae9e7] p-2 text-foreground sm:p-4 lg:p-6">
+      <div className="mx-auto grid min-h-[calc(100vh-16px)] max-w-[1680px] grid-cols-1 overflow-hidden rounded-[24px] border border-[#dedcd7] bg-[#f8f8f6] shadow-[0_8px_36px_rgba(25,24,20,0.05)] sm:min-h-[calc(100vh-32px)] md:grid-cols-[58px_minmax(0,1fr)] lg:min-h-[calc(100vh-48px)]">
+        <IconRail />
+        <div className="flex min-w-0 flex-col">
+          <header className="sticky top-0 z-30 border-b border-[#e9e7e2] bg-[#f8f8f6]/95 px-3 backdrop-blur-xl sm:px-5 lg:px-7">
+            <div className="flex min-h-[70px] items-center justify-between gap-3 py-3">
+              <Link to="/dashboard" aria-label="KudoSpot dashboard" className="md:hidden"><Logo /></Link>
+              <nav aria-label="Primary navigation" className="hidden min-w-0 items-center gap-0.5 rounded-full border border-[#e7e5e0] bg-white p-1 shadow-[0_1px_2px_rgba(25,24,20,0.035)] md:flex">
+                {topNav.map((item) => (
+                  <NavLink key={item.to} to={item.to} end={item.end}
+                    className={({ isActive }) => "whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors lg:px-4 " + (isActive ? "bg-[#242420] text-white shadow-sm" : "text-[#6b6963] hover:bg-[#f3f2ee] hover:text-[#252522]")}>
+                    {item.label}
+                  </NavLink>
+                ))}
+              </nav>
+              <div className="flex shrink-0 items-center gap-2">
+                <Link to="/help" title="Help & FAQ" aria-label="Help and FAQ" className="hidden h-9 w-9 items-center justify-center rounded-full border border-[#e7e5e0] bg-white text-[#6b6963] transition-colors hover:bg-[#f4f3ef] hover:text-[#252522] sm:flex"><LifeBuoy className="h-4 w-4" /></Link>
+                <Link to="/settings" className="flex max-w-[190px] items-center gap-2 rounded-full border border-[#e7e5e0] bg-white py-1.5 pl-1.5 pr-3 transition-colors hover:bg-[#fbfaf8]">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#f1f0ed] text-[11px] font-semibold text-[#34332f]">{(user?.email?.[0] || "K").toUpperCase()}</span>
+                  <span className="hidden min-w-0 truncate text-xs font-medium text-[#34332f] sm:block">{user?.email || "Workspace account"}</span>
+                  <Settings className="h-3.5 w-3.5 shrink-0 text-[#85827b]" />
+                </Link>
+                <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="icon" aria-label="Open application menu" className="h-9 w-9 rounded-full border-[#e7e5e0] bg-white md:hidden"><Menu className="h-4 w-4" /></Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[290px] p-0"><SidebarContent onNavigate={() => setMobileOpen(false)} /></SheetContent>
+                </Sheet>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <div className="hidden max-w-[260px] items-center gap-2 rounded-full border border-border/80 bg-background px-3 py-2 sm:flex">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">{(user?.email?.[0] || "K").toUpperCase()}</div>
-                <span className="max-w-[190px] truncate text-xs font-medium text-foreground">{user?.email || "Workspace account"}</span>
-              </div>
-              <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label="Open application menu" className="h-9 w-9 md:hidden"><Menu className="h-4 w-4" /></Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[280px] p-0"><SidebarContent onNavigate={() => setMobileOpen(false)} /></SheetContent>
-              </Sheet>
-            </div>
-          </div>
-        </header>
-
-        <main className="min-w-0 px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pt-8">
-          <div className="mx-auto w-full max-w-[1520px]">{children}</div>
-        </main>
+            <nav aria-label="Primary navigation" className="flex gap-1 overflow-x-auto pb-3 md:hidden">
+              {topNav.map((item) => (
+                <NavLink key={item.to} to={item.to} end={item.end}
+                  className={({ isActive }) => "whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors " + (isActive ? "bg-[#242420] text-white" : "border border-[#e7e5e0] bg-white text-[#6b6963] hover:bg-[#f3f2ee]")}>
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          </header>
+          <main className="min-w-0 flex-1 px-3 pb-8 pt-5 sm:px-5 lg:px-7 lg:pt-7">
+            <div className="mx-auto w-full max-w-[1480px]">{children}</div>
+          </main>
+        </div>
       </div>
     </div>
   );
